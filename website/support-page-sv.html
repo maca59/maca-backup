@@ -1,0 +1,220 @@
+<!--
+  maca BackUp — supportsida för maca.se
+  Produktröt: https://maca.se/maca-backup/
+  Support:    https://maca.se/support-maca-backup/
+  Villkor:    https://maca.se/maca-backup/terms/
+  Integritet: https://maca.se/maca-backup/privacy/
+
+  Klistra in i WordPress-sidan med slug support-maca-backup (HTML-block).
+  Valfritt formulär: [fluentform id="4"]
+-->
+
+<!-- wp:heading {"level":1} -->
+<h1>Support — maca BackUp</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Här får du hjälp med <strong>maca BackUp</strong> — backup och återställning för WordPress. Snabbast får du svar via supportformuläret i pluginet (<em>maca BackUp → Support</em>). Du behöver inte logga in på maca.se.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Kontakt</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>E-post:</strong> <a href="mailto:support@maca.se?subject=maca%20BackUp%20support">support@maca.se</a><br>
+Ange gärna webbplats-URL, pluginversion (maca BackUp → Support eller under Tillägg), WordPress-/PHP-version och en kort beskrivning. Feltext från fliken <em>Logs</em> eller förloppspanelen hjälper. Skärmdumpar är välkomna.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Svarstid:</strong> vardagar, vanligtvis inom 1–2 arbetsdagar.</p>
+<!-- /wp:paragraph -->
+
+<!--
+  Valfritt: lägg in Fluent Forms här, t.ex.
+  [fluentform id="4"]
+-->
+
+<!-- wp:heading {"level":2} -->
+<h2>Innan du skriver till oss</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list {"ordered":true} -->
+<ol>
+	<li>Kontrollera att maca BackUp är uppdaterat till senaste version.</li>
+	<li>Acceptera villkor och integritetspolicy under <em>maca BackUp → Support</em> (backup/restore är pausade tills båda är godkända).</li>
+	<li>Titta i <em>Logs</em> och i förloppspanelen efter felmeddelanden.</li>
+	<li>Beskriv vad du försökte: full / databas / filer / incremental / differential, restore, Smart Restore eller lagringstjänst.</li>
+	<li>Klistra inte in hemliga nycklar, lösenord eller API-tokens i supportärenden om det går att undvika.</li>
+</ol>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Krav &amp; installation</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Vilka krav gäller?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>WordPress 6.0 eller nyare och PHP 8.2 eller nyare. Filbackup och import kräver PHP-utökningen <strong>ZipArchive</strong>. FTP kräver FTP-utökningen; SFTP kräver <strong>ssh2</strong>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Behöver jag en licensnyckel?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Nej. maca BackUp är GPL-licensierat och har ingen betald licensaktivering. Installera pluginet, aktivera det och godkänn villkoren under Support.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Var hittar jag pluginet i admin?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Toppmenyn <strong>maca BackUp</strong>. Flikar: Dashboard, Backups, Restore, Smart Restore, Schedule, Storage, Logs, Settings, Support.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Backup</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Vilka backuptyper finns?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>På Dashboard: <em>Create full backup</em>, <em>Incremental</em>, <em>Differential</em>, <em>Database only</em> och <em>Files only</em>. Jobbet körs i bakgrunden — du kan lämna sidan.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Incremental / differential fungerar inte</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>De kräver först en färdig <strong>full</strong> backup. Skapa en full backup och försök igen.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Backupen stannar, timeoutar eller “hänger”</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul>
+	<li>Minska belastningen under <em>Settings</em>: <em>Files per chunk</em>, <em>Tables per chunk</em> och eventuellt <em>ZIP split size</em>.</li>
+	<li>Exkludera tunga mappar under <em>Exclude paths</em> (en sökväg per rad, relativ till webbplatsroten).</li>
+	<li>Kontrollera att PHP har tillräckligt med minne och att WP-Cron fungerar (särskilt vid schemalagda jobb).</li>
+	<li>Jobb utan progress i cirka 2 timmar markeras som misslyckade — se <em>Logs</em>.</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Pre-update backup</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Under <em>Settings → Pre-update backups</em> kan du ta backup innan WordPress-, plugin- eller temauppdateringar. Högst en pre-update-backup per timme, så massuppdateringar inte startar ett nytt jobb för varje paket.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Återställning</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Hur återställer jag?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Fliken <em>Restore</em>: välj backup (eller importera .zip / .enc), välj omfattning (hela webbplatsen, databas, wp-content, uploads, plugins, themes eller anpassad sökväg) och kör <em>Restore now</em>. Använd <em>Test restore</em> / <em>Preview changes</em> först för att verifiera arkivet utan att ändra livesajten.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Vad är Smart Restore?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Under <em>Smart Restore</em> jämför du livesajten med en backup och återställer bara nya, ändrade eller markerade filer (<em>Compare</em> → välj → <em>Restore selected</em>).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Import misslyckas</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Filen måste vara en giltig maca-backup (.zip eller krypterad .enc) med <code>manifest.json</code>. Storleken får inte överstiga webbplatsens maxuppladdning (<code>wp_max_upload_size</code>). För stora filer: ladda upp via FTP/SFTP till servern och importera därifrån om din miljö tillåter det, eller kontakta hostingleverantören om uppladdningsgränsen.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Lagring (Storage)</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Vilka destinationer stöds?</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Local storage, FTP, SFTP, Google Drive, Dropbox, OneDrive samt Amazon S3 / Backblaze B2 / S3-kompatibelt. Konfigurera under <em>Storage</em> och välj aktiv leverantör.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>“(not configured)” eller uppladdning misslyckas</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul>
+	<li>Kontrollera att rätt leverantör är vald och att uppgifter är sparade.</li>
+	<li>FTP/SFTP: värd, port, användare, lösenord/nyckel och sökväg. SFTP kräver ssh2 på servern.</li>
+	<li>Moln: förnya OAuth-token (Google Drive / OneDrive) eller kontrollera API-nycklar (Dropbox / S3).</li>
+	<li>Skicka aldrig hemliga nycklar i klartext till support om det går att undvika — beskriv felet och felkoden i stället.</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Schema, kryptering &amp; notifieringar</h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Schemalagda backups körs inte</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Scheman beror på WP-Cron. Kontrollera att webbplatsen får trafik (eller att systemcron anropar <code>wp-cron.php</code>), att schemat är aktiverat under <em>Schedule</em>, och att tider visas i webbplatsens tidszon. Anpassad cron uttrycks i UTC.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Krypterade backups går inte att öppna</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Aktivera <em>Encrypt backup archives (AES-256-GCM)</em> och sätt samma <em>Backup passphrase</em> under Settings som när backupen skapades. Utan rätt lösenfras går krypterade arkiv inte att återställa.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>E-postnotifieringar</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Under Settings kan du slå på e-post vid lyckad/misslyckad backup och restore. Om mail inte kommer fram beror det oftast på webbplatsens e-postleverans — testa med ett SMTP-plugin eller hostingleverantörens mail.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2>maca Hub</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Valfritt heartbeat till maca Hub för övervakning av flera webbplatser. Aktiveras under <em>Settings → maca Hub</em>. Det skickar statusuppgifter (t.ex. webbplats-URL och version), inte innehållet i dina backups. Backups lagras alltid hos dig (lokal disk eller din molnlagring) — maca hostar inte arkiven.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2>Villkor &amp; integritet</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><a href="https://maca.se/maca-backup/terms/">Användarvillkor</a> · <a href="https://maca.se/maca-backup/privacy/">Integritetspolicy</a> · <a href="https://maca.se/maca-backup/">Produktsida</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Godkänn dokumenten i pluginet under <em>Support → Accept terms &amp; privacy</em> innan du kör backup eller restore.</p>
+<!-- /wp:paragraph -->

@@ -1,0 +1,14 @@
+# Dependencies / IDE
+/.idea/
+/.vscode/
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local backups / build
+/dist/
+*.zip
+!assets/**/*.zip

@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "download_url": "https://api.maca.se/v1/backup-pro/downloads/maca-backup-1.0.0.zip",
+  "requires": "6.0",
+  "requires_php": "8.2",
+  "tested": "6.8",
+  "last_updated": "2026-07-30",
+  "changelog": "Initial release — backup, restore, Smart Restore, storage providers, hub telemetry.",
+  "sha256": ""
+}
