@@ -22,7 +22,7 @@ class Maca_Backup_Pro_Mailer {
 	 * Notify after backup.
 	 *
 	 * @param bool                 $success Whether backup succeeded.
-	 * @param array<string, mixed> $data    Status payload.
+	 * @param array<string, mixed> $data    Status payload (optional schedule_id for per-schedule prefs).
 	 * @return bool
 	 */
 	public static function notify_backup( bool $success, array $data ): bool {
@@ -30,10 +30,16 @@ class Maca_Backup_Pro_Mailer {
 		if ( empty( $settings['email_enabled'] ) ) {
 			return false;
 		}
-		if ( $success && empty( $settings['email_on_success'] ) ) {
+
+		$prefs = self::backup_email_prefs( $data, $settings );
+		if ( $success && empty( $prefs['on_success'] ) ) {
 			return false;
 		}
-		if ( ! $success && empty( $settings['email_on_failure'] ) ) {
+		if ( ! $success && empty( $prefs['on_failure'] ) ) {
+			return false;
+		}
+
+		if ( ! self::claim_notify_once( 'backup', $success, $data ) ) {
 			return false;
 		}
 
@@ -42,6 +48,63 @@ class Maca_Backup_Pro_Mailer {
 			: sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Backup failed', 'maca-backup-pro' ) );
 
 		return self::send( $subject, $success ? 'backup_ok' : 'backup_fail', $data );
+	}
+
+	/**
+	 * Resolve success/failure toggles: schedule email_mode overrides Settings when set.
+	 *
+	 * @param array<string, mixed> $data     Notify payload.
+	 * @param array<string, mixed> $settings Plugin settings.
+	 * @return array{on_success:bool,on_failure:bool}
+	 */
+	private static function backup_email_prefs( array $data, array $settings ): array {
+		$on_success = ! empty( $settings['email_on_success'] );
+		$on_failure = ! empty( $settings['email_on_failure'] );
+
+		$schedule_id = sanitize_key( (string) ( $data['schedule_id'] ?? '' ) );
+		if ( '' === $schedule_id || ! class_exists( 'Maca_Backup_Pro_Scheduler', false ) ) {
+			return array(
+				'on_success' => $on_success,
+				'on_failure' => $on_failure,
+			);
+		}
+
+		$entry = Maca_Backup_Pro_Scheduler::get_schedule( $schedule_id );
+		if ( ! $entry ) {
+			return array(
+				'on_success' => $on_success,
+				'on_failure' => $on_failure,
+			);
+		}
+
+		switch ( sanitize_key( (string) ( $entry['email_mode'] ?? 'inherit' ) ) ) {
+			case 'off':
+				return array(
+					'on_success' => false,
+					'on_failure' => false,
+				);
+			case 'failure':
+				return array(
+					'on_success' => false,
+					'on_failure' => true,
+				);
+			case 'success':
+				return array(
+					'on_success' => true,
+					'on_failure' => false,
+				);
+			case 'both':
+				return array(
+					'on_success' => true,
+					'on_failure' => true,
+				);
+			case 'inherit':
+			default:
+				return array(
+					'on_success' => $on_success,
+					'on_failure' => $on_failure,
+				);
+		}
 	}
 
 	/**
@@ -63,11 +126,44 @@ class Maca_Backup_Pro_Mailer {
 			return false;
 		}
 
+		if ( ! self::claim_notify_once( 'restore', $success, $data ) ) {
+			return false;
+		}
+
 		$subject = $success
 			? sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Restore completed', 'maca-backup-pro' ) )
 			: sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Restore failed', 'maca-backup-pro' ) );
 
 		return self::send( $subject, $success ? 'restore_ok' : 'restore_fail', $data );
+	}
+
+	/**
+	 * One-shot guard so concurrent finishers cannot send the same notification twice.
+	 *
+	 * @param string               $kind    backup|restore.
+	 * @param bool                 $success Outcome.
+	 * @param array<string, mixed> $data    Payload.
+	 * @return bool True if this caller may send.
+	 */
+	private static function claim_notify_once( string $kind, bool $success, array $data ): bool {
+		$job_id    = (int) ( $data['job_id'] ?? 0 );
+		$backup_id = (int) ( $data['backup_id'] ?? 0 );
+
+		// Need a stable job/backup identity; schedule-only start failures stay unguarded here.
+		if ( $job_id < 1 && $backup_id < 1 ) {
+			return true;
+		}
+
+		$key = 'maca_bp_mail_' . md5(
+			$kind . '|' . ( $success ? 'ok' : 'fail' ) . '|' . $job_id . '|' . $backup_id
+		);
+
+		if ( false !== get_transient( $key ) ) {
+			return false;
+		}
+
+		set_transient( $key, 1, 12 * HOUR_IN_SECONDS );
+		return true;
 	}
 
 	/**
@@ -153,7 +249,13 @@ class Maca_Backup_Pro_Mailer {
 	private static function send( string $subject, string $type, array $data ): bool {
 		$settings = Maca_Backup_Pro_Settings::all();
 		$raw      = (string) ( $settings['email_recipients'] ?? '' );
-		$emails   = array_filter( array_map( 'trim', explode( ',', $raw ) ) );
+		$emails   = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'trim', explode( ',', $raw ) )
+				)
+			)
+		);
 
 		if ( empty( $emails ) ) {
 			$emails = array( get_option( 'admin_email' ) );
@@ -242,6 +344,16 @@ class Maca_Backup_Pro_Mailer {
 				'label' => __( 'Duration', 'maca-backup-pro' ),
 				'value' => Maca_Backup_Pro_Format::duration( (int) $data['duration'] ),
 			);
+		}
+
+		if ( ! empty( $data['checksum'] ) ) {
+			$crc = strtoupper( preg_replace( '/[^a-f0-9]/i', '', (string) $data['checksum'] ) ?? '' );
+			if ( 8 === strlen( $crc ) ) {
+				$rows[] = array(
+					'label' => __( 'CRC32', 'maca-backup-pro' ),
+					'value' => $crc,
+				);
+			}
 		}
 
 		if ( ! empty( $data['backup_id'] ) ) {

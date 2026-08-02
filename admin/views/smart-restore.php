@@ -58,6 +58,7 @@ defined( 'ABSPATH' ) || exit;
 			</button>
 		</div>
 		<p class="maca-bp-progress__label"></p>
+		<p class="maca-bp-progress__elapsed" aria-live="off"></p>
 		<p class="maca-bp-progress__detail" aria-live="polite"></p>
 		<p class="maca-bp-progress__note" hidden><?php esc_html_e( 'Runs in the background — you can leave this page.', 'maca-backup-pro' ); ?></p>
 	</div>

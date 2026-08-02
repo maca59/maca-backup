@@ -1,10 +1,10 @@
 === maca BackUp ===
-Contributors: macadevelopment
+Contributors: macas
 Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.26
+Stable tag: 2.0.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,7 +28,9 @@ maca BackUp protects your WordPress site with full, database-only, and files-onl
 * Live maca Hub status (latest backup, active job, schedules) via Hub Connector
 * In-plugin Help and Support
 
-Backups stay on your server or in cloud accounts you configure. maca does not host your backup archives.
+Backups stay on your server or in cloud accounts you configure. Maca Development does not host your backup archives.
+
+Developed by **Maca Development**. Source and issue tracker: https://github.com/maca59/maca-backup
 
 == Installation ==
 
@@ -54,19 +56,30 @@ WordPress 6.0+, PHP 8.2+, and the PHP ZipArchive extension for file backups and 
 
 = How do I get support? =
 
-Use the Support form inside the plugin (maca BackUp → Support), or email support@maca.se. Public help: https://maca.se/support-maca-backup/
+Use the Support form inside the plugin (maca BackUp → Support), or open an issue on GitHub: https://github.com/maca59/maca-backup/issues
 
 == Privacy ==
 
-By default the plugin does **not** send data to maca servers.
+By default the plugin does **not** send data to Maca Development.
 
-If you enable **maca Hub / telemetry** under Settings, the plugin may send limited operational metadata to api.maca.se (for example site URL, plugin version, and backup status). Backup archives and database contents are never uploaded to maca. You can turn this off at any time.
+If you enable **maca Hub / telemetry** under Settings, the plugin may send limited operational metadata (for example site URL, plugin version, backup status, and a list of backup history entries such as type, date, size, and status) for multi-site monitoring. Backup archives and database contents are never uploaded. You can turn this off at any time.
 
-Support requests you submit via the in-plugin Support form are sent to maca.se so we can reply.
+Support requests you submit via the in-plugin Support form are sent to Maca Development so we can reply.
 
 Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms.
 
 == Changelog ==
+
+= 2.0.34 =
+* Per-schedule email notifications (inherit site default, off, failures only, success only, or both)
+* Site Settings remain the fallback for schedules set to “Use site default”
+* Email when a scheduled backup fails to start (respects that schedule’s email mode)
+* Fix duplicate backup/restore notification emails when AJAX and cron finish the same job
+* Fix inflated full-backup size when concurrent workers packed the same files repeatedly into the ZIP
+* Live progress: elapsed timer ticks every second; status polls return faster so the bar/detail update more often
+* Compare two backups on the Backups tab (file counts, only-in-A/B paths, size mismatches)
+* Show CRC32 checksum on backup history (and in success emails); stored in manifest + checksum column
+* Hub status/heartbeat includes full backup history list (type, datetime, size, status, storage, CRC, etc.)
 
 = 2.0.23 =
 * Hub Connector status endpoint with latest backup, active job, and schedules
@@ -79,6 +92,9 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 * Major release: Smart Restore, storage providers, schedules, encryption, hub telemetry
 
 == Upgrade Notice ==
+
+= 2.0.34 =
+Recommended: schedule email controls, safer concurrent backups, live progress, backup compare, and CRC32 checksums.
 
 = 2.0.23 =
 Adds rich maca Hub status (backup, job, schedules) for multi-site monitoring.

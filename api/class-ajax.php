@@ -44,6 +44,7 @@ class Maca_Backup_Pro_Ajax {
 			'maca_backup_pro_preview'           => 'preview',
 			'maca_backup_pro_browse_backup'     => 'browse_backup',
 			'maca_backup_pro_smart_compare'     => 'smart_compare',
+			'maca_backup_pro_compare_backups'   => 'compare_backups',
 			'maca_backup_pro_smart_restore'     => 'smart_restore',
 			'maca_backup_pro_delete_backup'     => 'delete_backup',
 			'maca_backup_pro_verify_backup'     => 'verify_backup',
@@ -136,8 +137,9 @@ class Maca_Backup_Pro_Ajax {
 		}
 
 		if ( in_array( (string) $job->status, array( 'pending', 'running' ), true ) ) {
-			// Drive work from the open admin tab (like other backup plugins), not only WP-Cron.
-			Maca_Backup_Pro_Scheduler::instance()->process_jobs();
+			// Short budget so the UI can refresh often; background loopback continues heavy work.
+			Maca_Backup_Pro_Scheduler::instance()->process_jobs( 4 );
+			Maca_Backup_Pro_Scheduler::instance()->spawn_loopback();
 			$fresh = Maca_Backup_Pro_Jobs_Table::get( (int) $job->id );
 			if ( $fresh ) {
 				$job = $fresh;
@@ -259,6 +261,22 @@ class Maca_Backup_Pro_Ajax {
 		Maca_Backup_Pro_Security::verify_ajax();
 		$backup_id = isset( $_POST['backup_id'] ) ? (int) $_POST['backup_id'] : 0;
 		$result    = Maca_Backup_Pro_Smart_Restore::compare( $backup_id );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Compare two backups against each other.
+	 *
+	 * @return void
+	 */
+	public function compare_backups(): void {
+		Maca_Backup_Pro_Security::verify_ajax();
+		$id_a   = isset( $_POST['backup_id_a'] ) ? (int) $_POST['backup_id_a'] : 0;
+		$id_b   = isset( $_POST['backup_id_b'] ) ? (int) $_POST['backup_id_b'] : 0;
+		$result = Maca_Backup_Pro_Smart_Restore::compare_backups( $id_a, $id_b );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}

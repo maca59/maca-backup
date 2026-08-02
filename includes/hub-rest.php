@@ -29,6 +29,12 @@ class Maca_Backup_Pro_Hub_Rest {
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
 			),
+			'limit'    => array(
+				'required'          => false,
+				'type'              => 'integer',
+				'default'           => 100,
+				'sanitize_callback' => 'absint',
+			),
 		);
 
 		register_rest_route(
@@ -100,9 +106,14 @@ class Maca_Backup_Pro_Hub_Rest {
 	}
 
 	/**
+	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	public function get_status() {
-		return rest_ensure_response( maca_backup_pro_hub_get_status() );
+	public function get_status( $request ) {
+		$limit = (int) $request->get_param( 'limit' );
+		if ( $limit < 1 ) {
+			$limit = 100;
+		}
+		return rest_ensure_response( maca_backup_pro_hub_get_status( $limit ) );
 	}
 }

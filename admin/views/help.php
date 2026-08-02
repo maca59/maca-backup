@@ -97,6 +97,7 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 			<li><?php esc_html_e( 'Times use your WordPress site timezone (local), not UTC-only clock settings in the form.', 'maca-backup-pro' ); ?></li>
 			<li><?php esc_html_e( 'Frequencies: hourly, every N hours, daily, weekly, monthly, or a custom cron expression.', 'maca-backup-pro' ); ?></li>
 			<li><?php esc_html_e( 'You can enable or disable a schedule without deleting it.', 'maca-backup-pro' ); ?></li>
+			<li><?php esc_html_e( 'Per schedule, choose email notifications: site default, off, failures only, success only, or both.', 'maca-backup-pro' ); ?></li>
 		</ul>
 	</article>
 
@@ -197,7 +198,8 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 				);
 				?>
 			</li>
-			<li><?php esc_html_e( 'Choose recipients and whether to notify on successful or failed backups and restores.', 'maca-backup-pro' ); ?></li>
+			<li><?php esc_html_e( 'Choose recipients and whether to notify on successful or failed backups and restores. These are the site defaults.', 'maca-backup-pro' ); ?></li>
+			<li><?php esc_html_e( 'Each schedule can override email behavior (Use site default, Off, Failures only, Success only, or Success and failures).', 'maca-backup-pro' ); ?></li>
 			<li><?php esc_html_e( 'If recipients are empty, the site admin email is used when notifications are enabled.', 'maca-backup-pro' ); ?></li>
 		</ul>
 	</article>

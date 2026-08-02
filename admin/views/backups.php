@@ -26,6 +26,7 @@ defined( 'ABSPATH' ) || exit;
 			</button>
 		</div>
 		<p class="maca-bp-progress__label"></p>
+		<p class="maca-bp-progress__elapsed" aria-live="off"></p>
 		<p class="maca-bp-progress__detail" aria-live="polite"></p>
 		<p class="maca-bp-progress__note" hidden><?php esc_html_e( 'Runs in the background — you can leave this page.', 'maca-backup-pro' ); ?></p>
 	</div>
@@ -50,6 +51,61 @@ defined( 'ABSPATH' ) || exit;
 		?></p>
 	</div>
 
+	<?php
+	$completed = array_values(
+		array_filter(
+			is_array( $history ) ? $history : array(),
+			static fn( $row ) => is_object( $row ) && 'completed' === (string) ( $row->status ?? '' )
+		)
+	);
+	?>
+	<?php if ( count( $completed ) >= 2 ) : ?>
+		<div class="maca-bp-compare">
+			<h3><?php esc_html_e( 'Compare backups', 'maca-backup-pro' ); ?></h3>
+			<p class="maca-bp-muted"><?php esc_html_e( 'Diff file lists between two archives — useful when sizes look wrong (e.g. 1 GB vs 6 GB).', 'maca-backup-pro' ); ?></p>
+			<div class="maca-bp-compare__controls">
+				<label>
+					<span><?php esc_html_e( 'Backup A', 'maca-backup-pro' ); ?></span>
+					<select id="maca-bp-compare-a">
+						<?php foreach ( $completed as $row ) : ?>
+							<option value="<?php echo esc_attr( (string) $row->id ); ?>">
+								<?php
+								echo esc_html(
+									Maca_Backup_Pro_Format::datetime_local( ! empty( $row->finished_at ) ? (string) $row->finished_at : (string) $row->created_at )
+									. ' — ' . (string) $row->type
+									. ' (' . size_format( (int) $row->size_bytes ) . ', '
+									. (int) $row->file_count . ' '
+									. __( 'files', 'maca-backup-pro' ) . ')'
+								);
+								?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<label>
+					<span><?php esc_html_e( 'Backup B', 'maca-backup-pro' ); ?></span>
+					<select id="maca-bp-compare-b">
+						<?php foreach ( $completed as $i => $row ) : ?>
+							<option value="<?php echo esc_attr( (string) $row->id ); ?>" <?php selected( $i, 1 ); ?>>
+								<?php
+								echo esc_html(
+									Maca_Backup_Pro_Format::datetime_local( ! empty( $row->finished_at ) ? (string) $row->finished_at : (string) $row->created_at )
+									. ' — ' . (string) $row->type
+									. ' (' . size_format( (int) $row->size_bytes ) . ', '
+									. (int) $row->file_count . ' '
+									. __( 'files', 'maca-backup-pro' ) . ')'
+								);
+								?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<button type="button" class="button button-primary" id="maca-bp-compare-run"><?php esc_html_e( 'Compare', 'maca-backup-pro' ); ?></button>
+			</div>
+			<div id="maca-bp-compare-result" class="maca-bp-compare__result" hidden></div>
+		</div>
+	<?php endif; ?>
+
 	<?php if ( empty( $history ) ) : ?>
 		<p class="maca-bp-muted"><?php esc_html_e( 'No backups yet.', 'maca-backup-pro' ); ?></p>
 	<?php else : ?>
@@ -60,6 +116,7 @@ defined( 'ABSPATH' ) || exit;
 					<th><?php esc_html_e( 'Type', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Storage', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Size', 'maca-backup-pro' ); ?></th>
+					<th><?php esc_html_e( 'CRC32', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Files', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Time', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Status', 'maca-backup-pro' ); ?></th>
@@ -81,6 +138,16 @@ defined( 'ABSPATH' ) || exit;
 						</td>
 						<td><?php echo esc_html( (string) $row->storage ); ?></td>
 						<td><?php echo esc_html( size_format( (int) $row->size_bytes ) ); ?></td>
+						<td>
+							<?php
+							$crc_label = Maca_Backup_Pro_Format::backup_checksum_label( $row );
+							$crc_full  = Maca_Backup_Pro_Format::backup_crc(
+								(string) ( $row->checksum ?? '' ),
+								(array) ( json_decode( (string) ( $row->manifest ?? '' ), true ) ?: array() )
+							);
+							?>
+							<code class="maca-bp-crc" title="<?php echo esc_attr( '' !== $crc_full ? $crc_full : $crc_label ); ?>"><?php echo esc_html( $crc_label ); ?></code>
+						</td>
 						<td><?php echo esc_html( (string) $row->file_count ); ?></td>
 						<td><?php echo esc_html( Maca_Backup_Pro_Format::duration( (int) $row->duration ) ); ?></td>
 						<td><span class="maca-bp-pill maca-bp-pill--<?php echo esc_attr( (string) $row->status ); ?>"><?php echo esc_html( (string) $row->status ); ?></span></td>

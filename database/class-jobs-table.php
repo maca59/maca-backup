@@ -90,6 +90,115 @@ class Maca_Backup_Pro_Jobs_Table {
 	}
 
 	/**
+	 * Atomically move a job from pending/running to a terminal status.
+	 * Only the first caller wins — used to avoid duplicate emails/logs when
+	 * AJAX, cron, and loopback finish the same job concurrently.
+	 *
+	 * @param int                  $id     Job ID.
+	 * @param string               $status completed|failed|cancelled.
+	 * @param array<string, mixed> $data   Extra columns to set with the claim.
+	 * @return bool True if this caller claimed the transition.
+	 */
+	public static function claim_terminal( int $id, string $status, array $data = array() ): bool {
+		global $wpdb;
+
+		if ( $id < 1 || ! in_array( $status, array( 'completed', 'failed', 'cancelled' ), true ) ) {
+			return false;
+		}
+
+		$table              = self::table_name();
+		$data['status']     = $status;
+		$data['updated_at'] = current_time( 'mysql' );
+
+		$set_parts = array();
+		$values    = array();
+		foreach ( $data as $column => $value ) {
+			$column = preg_replace( '/[^a-z0-9_]/i', '', (string) $column );
+			if ( ! is_string( $column ) || '' === $column ) {
+				continue;
+			}
+			if ( null === $value ) {
+				$set_parts[] = "`{$column}` = NULL";
+				continue;
+			}
+			if ( is_int( $value ) ) {
+				$set_parts[] = "`{$column}` = %d";
+				$values[]    = $value;
+				continue;
+			}
+			$set_parts[] = "`{$column}` = %s";
+			$values[]    = is_scalar( $value ) ? (string) $value : '';
+		}
+
+		if ( empty( $set_parts ) ) {
+			return false;
+		}
+
+		$values[] = $id;
+		$sql      = "UPDATE {$table} SET " . implode( ', ', $set_parts ) . " WHERE id = %d AND status IN ('pending','running')";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$result = $wpdb->query( $wpdb->prepare( $sql, ...$values ) );
+
+		return 1 === (int) $result;
+	}
+
+	/**
+	 * Acquire an exclusive lock for processing one job (prevents concurrent ZIP writes).
+	 *
+	 * @param int $id Job ID.
+	 * @return bool
+	 */
+	public static function acquire_process_lock( int $id ): bool {
+		if ( $id < 1 ) {
+			return false;
+		}
+
+		global $wpdb;
+		$name = 'maca_bp_job_' . $id;
+
+		// MySQL/MariaDB named lock — atomic and released on connection end.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$got = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $name ) );
+		if ( '1' === (string) $got ) {
+			return true;
+		}
+		if ( '0' === (string) $got ) {
+			return false;
+		}
+
+		// Fallback when GET_LOCK is unavailable (e.g. non-MySQL): atomic add_option.
+		$option = '_maca_bp_job_lock_' . $id;
+		$expires = (int) get_option( $option, 0 );
+		if ( $expires > time() ) {
+			return false;
+		}
+		if ( $expires > 0 ) {
+			delete_option( $option );
+		}
+		return (bool) add_option( $option, (string) ( time() + 120 ), '', 'no' );
+	}
+
+	/**
+	 * Release a job process lock.
+	 *
+	 * @param int $id Job ID.
+	 * @return void
+	 */
+	public static function release_process_lock( int $id ): void {
+		if ( $id < 1 ) {
+			return;
+		}
+
+		global $wpdb;
+		$name = 'maca_bp_job_' . $id;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) );
+
+		delete_option( '_maca_bp_job_lock_' . $id );
+	}
+
+	/**
 	 * Get job.
 	 *
 	 * @param int $id Job ID.

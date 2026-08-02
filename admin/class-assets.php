@@ -114,6 +114,7 @@ class Maca_Backup_Pro_Assets {
 				'i18n'          => array(
 					'starting'     => __( 'Starting…', 'maca-backup-pro' ),
 					'running'      => __( 'Running in background…', 'maca-backup-pro' ),
+					'elapsed'      => __( 'Elapsed', 'maca-backup-pro' ),
 					'done'         => __( 'Completed', 'maca-backup-pro' ),
 					'failed'       => __( 'Failed', 'maca-backup-pro' ),
 					'cancelled'    => __( 'Cancelled', 'maca-backup-pro' ),
@@ -121,7 +122,18 @@ class Maca_Backup_Pro_Assets {
 					'confirmRes'   => __( 'Restore will overwrite selected files/database. Continue?', 'maca-backup-pro' ),
 					'confirmStop'  => __( 'Stop the running job? Partial files will be removed.', 'maca-backup-pro' ),
 					'selectBackup' => __( 'Select a backup first.', 'maca-backup-pro' ),
-					'testing'      => __( 'Running test restore…', 'maca-backup-pro' ),
+					'compareNeedTwo' => __( 'Select two different backups to compare.', 'maca-backup-pro' ),
+					'compareRunning' => __( 'Comparing…', 'maca-backup-pro' ),
+					'compareFiles'   => __( 'Files in inventory', 'maca-backup-pro' ),
+					'compareArchive' => __( 'Archive size', 'maca-backup-pro' ),
+					'compareContent' => __( 'Uncompressed content', 'maca-backup-pro' ),
+					'compareSame'    => __( 'Identical paths', 'maca-backup-pro' ),
+					'compareOnlyA'   => __( 'Only in A', 'maca-backup-pro' ),
+					'compareOnlyB'   => __( 'Only in B', 'maca-backup-pro' ),
+					'compareMismatch'=> __( 'Size / CRC mismatch', 'maca-backup-pro' ),
+					/* translators: %d: number of additional paths not listed */
+					'compareMore'    => __( '…and %d more', 'maca-backup-pro' ),
+					'testing'       => __( 'Running test restore…', 'maca-backup-pro' ),
 					'testPass'     => __( 'Test restore passed — archive can be restored.', 'maca-backup-pro' ),
 					'testFail'     => __( 'Test restore found issues.', 'maca-backup-pro' ),
 					'checkArchive' => __( 'Archive readable', 'maca-backup-pro' ),
@@ -161,6 +173,9 @@ class Maca_Backup_Pro_Assets {
 			return null;
 		}
 
+		$state   = json_decode( (string) $job->state, true );
+		$started = is_array( $state ) ? (int) ( $state['started'] ?? 0 ) : 0;
+
 		return array(
 			'id'        => (int) $job->id,
 			'job_type'  => (string) $job->job_type,
@@ -168,6 +183,7 @@ class Maca_Backup_Pro_Assets {
 			'progress'  => (int) $job->progress,
 			'step'      => (string) $job->step,
 			'backup_id' => (int) $job->backup_id,
+			'started'   => $started,
 			'parallel'  => count( $jobs ) > 1 ? count( $jobs ) : ( 'backup' === (string) $job->job_type ? count( $jobs ) : 0 ),
 		);
 	}

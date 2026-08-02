@@ -175,7 +175,7 @@ class Maca_Backup_Pro_Legal {
 		}
 
 		$content = '<p>maca BackUp creates backups of this WordPress site. Backup files are stored on your own server and/or in cloud accounts you connect yourself (for example local storage, FTP/SFTP, S3, Google Drive, Dropbox, OneDrive). maca / Maca Development does not host your backup files.</p>'
-			. '<p>Hub/telemetry is off by default. If enabled under Settings → maca Hub, the plugin may send limited operational data to api.maca.se (such as the site URL and plugin version) for product statistics and hub status. Backup file contents are not sent.</p>'
+			. '<p>Hub/telemetry is off by default. If enabled under Settings → maca Hub, the plugin may send limited operational data to api.maca.se (such as the site URL, plugin version, and backup history metadata: type, date, size, status) for product statistics and hub status. Backup file contents are not sent.</p>'
 			. '<p>If you use the in-plugin support form, your name, email, message, and optional site information may be sent to maca.se (Fluent Support) so we can reply.</p>'
 			. '<p>See the <a href="' . esc_url( self::PRIVACY_URL ) . '">privacy policy</a> and the Support tab in wp-admin for full details.</p>';
 
@@ -207,7 +207,7 @@ class Maca_Backup_Pro_Legal {
 		$html .= '<li>You are responsible for safeguarding WordPress admin access, hosting, and any API keys or passwords you enter for remote storage.</li>';
 		$html .= '</ul>';
 		$html .= '<h4>4. Optional telemetry and hub</h4>';
-		$html .= '<p>Hub/telemetry is <strong>off by default</strong>. If you enable it under Settings → maca Hub, the plugin may send limited operational information—such as the site URL and plugin version—to <code>api.maca.se</code> for product improvement and hub heartbeat status. Backup file contents are not included. You may turn this off again at any time.</p>';
+		$html .= '<p>Hub/telemetry is <strong>off by default</strong>. If you enable it under Settings → maca Hub, the plugin may send limited operational information—such as the site URL, plugin version, and backup history metadata (type, date/time, size, status)—to <code>api.maca.se</code> for product improvement and hub heartbeat status. Backup file contents are not included. You may turn this off again at any time.</p>';
 		$html .= '<h4>5. Support requests</h4>';
 		$html .= '<p>Use the support form on the plugin Support tab in wp-admin. Information you provide (name, email, message, subject, and optional site / system details) may be sent to maca.se and processed via Fluent Support so we can assist you. Email to <a href="mailto:support@maca.se">support@maca.se</a> is a secondary contact option.</p>';
 		$html .= '<h4>6. No warranty</h4>';
@@ -236,7 +236,7 @@ class Maca_Backup_Pro_Legal {
 		$html .= '<h4>2. Credentials you enter</h4>';
 		$html .= '<p>Storage credentials (FTP passwords, API tokens, S3 keys, OAuth tokens, and similar) are stored in your WordPress database or options as configured by the plugin. They are used only to transfer backups to destinations you choose. Keep your WordPress admin and hosting secure. maca does not collect these credentials for hosting backups.</p>';
 		$html .= '<h4>3. Optional telemetry / hub</h4>';
-		$html .= '<p>Hub/telemetry is <strong>off by default</strong>. If you enable it under Settings → maca Hub, limited metadata may be sent to <code>api.maca.se</code>—for example the site URL, plugin version, and similar operational status. Backup file contents and database dumps are not uploaded to maca. You can turn this off again at any time in Settings.</p>';
+		$html .= '<p>Hub/telemetry is <strong>off by default</strong>. If you enable it under Settings → maca Hub, limited metadata may be sent to <code>api.maca.se</code>—for example the site URL, plugin version, and backup history entries (type, date/time, size, status). Backup file contents and database dumps are not uploaded to maca. You can turn this off again at any time in Settings.</p>';
 		$html .= '<h4>4. Support form and contact</h4>';
 		$html .= '<p>If you use the in-plugin support form on the Support tab, the plugin may send your name, email address, subject, message, site URL, plugin version, and optional system information to maca.se, where tickets are handled via Fluent Support (or equivalent). If you email <a href="mailto:support@maca.se">support@maca.se</a>, we process the information you provide (and any diagnostics you choose to share) to respond to your request.</p>';
 		$html .= '<h4>5. Your obligations</h4>';

@@ -178,6 +178,10 @@ class Maca_Backup_Pro_Zip_Builder {
 			}
 		}
 
+		if ( false !== $this->zip->locateName( $arcname ) ) {
+			$this->zip->deleteName( $arcname );
+		}
+
 		$ok = $this->zip->addFile( $absolute, $arcname );
 		if ( ! $ok ) {
 			return false;
@@ -203,6 +207,9 @@ class Maca_Backup_Pro_Zip_Builder {
 			if ( ! $this->open() ) {
 				return false;
 			}
+		}
+		if ( false !== $this->zip->locateName( $arcname ) ) {
+			$this->zip->deleteName( $arcname );
 		}
 		$ok = $this->zip->addFromString( $arcname, $content );
 		if ( $ok ) {

@@ -140,66 +140,87 @@ class Maca_Backup_Pro_Restore_Engine {
 			return self::status_payload( $job );
 		}
 
-		$state = json_decode( (string) $job->state, true );
-		if ( ! is_array( $state ) ) {
-			return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid restore state.', 'maca-backup-pro' ) );
+		$lock_id = (int) $job->id;
+		if ( ! Maca_Backup_Pro_Jobs_Table::acquire_process_lock( $lock_id ) ) {
+			return self::status_payload( $job );
 		}
 
 		try {
-			switch ( (string) $state['step'] ) {
-				case 'prepare':
-					$state = self::step_prepare( $state );
-					break;
-				case 'database':
-					$state = self::step_database( $state );
-					break;
-				case 'files':
-					$state = self::step_files( $state );
-					break;
-				case 'done':
-					return self::complete( (int) $job->id, (int) $job->backup_id, $state );
-				default:
-					return self::fail( (int) $job->id, (int) $job->backup_id, 'Unknown restore step.' );
+			$job = Maca_Backup_Pro_Jobs_Table::get( $lock_id );
+			if ( ! $job ) {
+				return array(
+					'done'     => true,
+					'progress' => 100,
+					'status'   => 'idle',
+				);
 			}
-		} catch ( Throwable $e ) {
-			return self::fail( (int) $job->id, (int) $job->backup_id, $e->getMessage() );
-		}
+			if ( in_array( (string) $job->status, array( 'completed', 'failed', 'cancelled' ), true ) ) {
+				return self::status_payload( $job );
+			}
 
-		$fresh = Maca_Backup_Pro_Jobs_Table::get( (int) $job->id );
-		if ( $fresh && 'cancelled' === (string) $fresh->status ) {
-			return self::status_payload( $fresh );
-		}
+			$state = json_decode( (string) $job->state, true );
+			if ( ! is_array( $state ) ) {
+				return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid restore state.', 'maca-backup-pro' ) );
+			}
 
-		$progress = match ( (string) $state['step'] ) {
-			'prepare'  => 10,
-			'database' => 40,
-			'files'    => 70,
-			'done'     => 100,
-			default    => 20,
-		};
+			try {
+				switch ( (string) $state['step'] ) {
+					case 'prepare':
+						$state = self::step_prepare( $state );
+						break;
+					case 'database':
+						$state = self::step_database( $state );
+						break;
+					case 'files':
+						$state = self::step_files( $state );
+						break;
+					case 'done':
+						return self::complete( (int) $job->id, (int) $job->backup_id, $state );
+					default:
+						return self::fail( (int) $job->id, (int) $job->backup_id, 'Unknown restore step.' );
+				}
+			} catch ( Throwable $e ) {
+				return self::fail( (int) $job->id, (int) $job->backup_id, $e->getMessage() );
+			}
 
-		Maca_Backup_Pro_Jobs_Table::update(
-			(int) $job->id,
-			array(
+			$fresh = Maca_Backup_Pro_Jobs_Table::get( (int) $job->id );
+			if ( $fresh && 'cancelled' === (string) $fresh->status ) {
+				return self::status_payload( $fresh );
+			}
+
+			$progress = match ( (string) $state['step'] ) {
+				'prepare'  => 10,
+				'database' => 40,
+				'files'    => 70,
+				'done'     => 100,
+				default    => 20,
+			};
+
+			Maca_Backup_Pro_Jobs_Table::update(
+				(int) $job->id,
+				array(
+					'progress' => $progress,
+					'step'     => (string) $state['step'],
+					'state'    => wp_json_encode( $state ),
+				)
+			);
+
+			if ( 'done' === $state['step'] ) {
+				return self::complete( (int) $job->id, (int) $job->backup_id, $state );
+			}
+
+			Maca_Backup_Pro_Scheduler::instance()->schedule_process();
+
+			return array(
+				'done'     => false,
 				'progress' => $progress,
-				'step'     => (string) $state['step'],
-				'state'    => wp_json_encode( $state ),
-			)
-		);
-
-		if ( 'done' === $state['step'] ) {
-			return self::complete( (int) $job->id, (int) $job->backup_id, $state );
+				'step'     => $state['step'],
+				'status'   => 'running',
+				'job_id'   => (int) $job->id,
+			);
+		} finally {
+			Maca_Backup_Pro_Jobs_Table::release_process_lock( $lock_id );
 		}
-
-		Maca_Backup_Pro_Scheduler::instance()->schedule_process();
-
-		return array(
-			'done'     => false,
-			'progress' => $progress,
-			'step'     => $state['step'],
-			'status'   => 'running',
-			'job_id'   => (int) $job->id,
-		);
 	}
 
 	/**
@@ -641,14 +662,23 @@ class Maca_Backup_Pro_Restore_Engine {
 	private static function complete( int $job_id, int $backup_id, array $state ): array {
 		$duration = max( 0, time() - (int) ( $state['started'] ?? time() ) );
 
-		Maca_Backup_Pro_Jobs_Table::update(
+		$claimed = Maca_Backup_Pro_Jobs_Table::claim_terminal(
 			$job_id,
+			'completed',
 			array(
-				'status'   => 'completed',
 				'progress' => 100,
 				'step'     => 'done',
 			)
 		);
+
+		if ( ! $claimed ) {
+			return array(
+				'done'     => true,
+				'progress' => 100,
+				'status'   => 'completed',
+				'job_id'   => $job_id,
+			);
+		}
 
 		Maca_Backup_Pro_Logger::success(
 			__( 'Restore completed.', 'maca-backup-pro' ),
@@ -664,6 +694,7 @@ class Maca_Backup_Pro_Restore_Engine {
 				'duration'  => $duration,
 				'scope'     => sanitize_key( (string) ( $state['scope'] ?? 'full' ) ),
 				'backup_id' => $backup_id,
+				'job_id'    => $job_id,
 			)
 		);
 
@@ -774,6 +805,8 @@ class Maca_Backup_Pro_Restore_Engine {
 			'current_item' => $detail,
 			'processed'    => (int) ( $state['file_offset'] ?? 0 ),
 			'total'        => count( $state['files'] ?? array() ),
+			'started'      => (int) ( $state['started'] ?? 0 ),
+			'elapsed'      => max( 0, time() - (int) ( $state['started'] ?? time() ) ),
 		);
 	}
 
@@ -786,22 +819,6 @@ class Maca_Backup_Pro_Restore_Engine {
 	 * @return array<string, mixed>
 	 */
 	private static function fail( int $job_id, int $backup_id, string $message ): array {
-		Maca_Backup_Pro_Jobs_Table::update(
-			$job_id,
-			array(
-				'status'        => 'failed',
-				'error_message' => $message,
-			)
-		);
-
-		Maca_Backup_Pro_Logger::error(
-			$message,
-			array(
-				'backup_id' => $backup_id,
-				'job_id'    => $job_id,
-			)
-		);
-
 		$job_state = array();
 		$job_row   = Maca_Backup_Pro_Jobs_Table::get( $job_id );
 		if ( $job_row && ! empty( $job_row->state ) ) {
@@ -811,12 +828,37 @@ class Maca_Backup_Pro_Restore_Engine {
 			}
 		}
 
+		$claimed = Maca_Backup_Pro_Jobs_Table::claim_terminal(
+			$job_id,
+			'failed',
+			array(
+				'error_message' => $message,
+			)
+		);
+
+		if ( ! $claimed ) {
+			return array(
+				'done'   => true,
+				'status' => 'failed',
+				'error'  => $message,
+			);
+		}
+
+		Maca_Backup_Pro_Logger::error(
+			$message,
+			array(
+				'backup_id' => $backup_id,
+				'job_id'    => $job_id,
+			)
+		);
+
 		Maca_Backup_Pro_Mailer::notify_restore(
 			false,
 			array(
 				'error'     => $message,
 				'scope'     => sanitize_key( (string) ( $job_state['scope'] ?? '' ) ),
 				'backup_id' => $backup_id,
+				'job_id'    => $job_id,
 			)
 		);
 

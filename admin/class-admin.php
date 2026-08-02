@@ -621,6 +621,7 @@ class Maca_Backup_Pro_Admin {
 			'dom'            => $utc['dom'],
 			'custom_cron'    => isset( $_POST['custom_cron'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_cron'] ) ) : '',
 			'backup_type'    => isset( $_POST['backup_type'] ) ? sanitize_key( wp_unslash( $_POST['backup_type'] ) ) : 'full',
+			'email_mode'     => isset( $_POST['schedule_email_mode'] ) ? sanitize_key( wp_unslash( $_POST['schedule_email_mode'] ) ) : 'inherit',
 		);
 
 		$saved = Maca_Backup_Pro_Scheduler::upsert_schedule( $entry );

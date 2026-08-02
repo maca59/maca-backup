@@ -33,7 +33,7 @@ class Maca_Backup_Pro_Chunk_Processor {
 	 */
 	public function __construct( int $time_budget = 15 ) {
 		$this->started     = microtime( true );
-		$this->time_budget = max( 5, $time_budget );
+		$this->time_budget = max( 2, $time_budget );
 	}
 
 	/**

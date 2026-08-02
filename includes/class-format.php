@@ -70,4 +70,53 @@ class Maca_Backup_Pro_Format {
 
 		return wp_date( $format, $dt->getTimestamp() );
 	}
+
+	/**
+	 * Format a stored backup checksum for admin display (CRC32 preferred).
+	 *
+	 * @param string               $checksum Raw checksum column.
+	 * @param array<string, mixed> $manifest Decoded manifest (optional).
+	 * @return string
+	 */
+	public static function backup_crc( string $checksum, array $manifest = array() ): string {
+		$from_manifest = isset( $manifest['crc32'] ) ? strtolower( preg_replace( '/[^a-f0-9]/i', '', (string) $manifest['crc32'] ) ?? '' ) : '';
+		if ( is_string( $from_manifest ) && 8 === strlen( $from_manifest ) ) {
+			return strtoupper( $from_manifest );
+		}
+
+		$raw = strtolower( preg_replace( '/[^a-f0-9]/i', '', $checksum ) ?? '' );
+		if ( 8 === strlen( $raw ) ) {
+			return strtoupper( $raw );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Short label for checksum column (CRC or truncated SHA-256 for legacy rows).
+	 *
+	 * @param object $backup Backup row.
+	 * @return string
+	 */
+	public static function backup_checksum_label( object $backup ): string {
+		$manifest = array();
+		if ( ! empty( $backup->manifest ) ) {
+			$decoded = json_decode( (string) $backup->manifest, true );
+			if ( is_array( $decoded ) ) {
+				$manifest = $decoded;
+			}
+		}
+
+		$crc = self::backup_crc( (string) ( $backup->checksum ?? '' ), $manifest );
+		if ( '' !== $crc ) {
+			return $crc;
+		}
+
+		$sha = strtolower( preg_replace( '/[^a-f0-9]/i', '', (string) ( $backup->checksum ?? '' ) ) ?? '' );
+		if ( 64 === strlen( $sha ) ) {
+			return strtoupper( substr( $sha, 0, 8 ) ) . '…' . strtoupper( substr( $sha, -4 ) );
+		}
+
+		return '—';
+	}
 }

@@ -94,6 +94,8 @@ class Maca_Backup_Pro_Backup_Engine {
 			return new WP_Error( 'db_insert', $message );
 		}
 
+		$schedule_id = sanitize_key( (string) ( $options['schedule_id'] ?? '' ) );
+
 		$state = array(
 			'type'             => $type,
 			'work_dir'         => $work,
@@ -108,6 +110,7 @@ class Maca_Backup_Pro_Backup_Engine {
 			'started'          => time(),
 			'parent_backup_id' => $parent_id,
 			'pre_update'       => ! empty( $options['pre_update'] ),
+			'schedule_id'      => $schedule_id,
 		);
 
 		$job_id = Maca_Backup_Pro_Jobs_Table::insert(
@@ -264,94 +267,117 @@ class Maca_Backup_Pro_Backup_Engine {
 			return self::status_payload( $job );
 		}
 
-		$state = json_decode( (string) $job->state, true );
-		if ( ! is_array( $state ) ) {
-			return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid job state.', 'maca-backup-pro' ) );
+		$lock_id = (int) $job->id;
+		if ( ! Maca_Backup_Pro_Jobs_Table::acquire_process_lock( $lock_id ) ) {
+			// Another worker is packing this job — avoid duplicate ZIP entries / inflated size.
+			return self::status_payload( $job );
 		}
 
-		// Migrate oversized in-state file lists (legacy / stuck jobs) onto disk once.
-		if ( ! empty( $state['files'] ) && is_array( $state['files'] ) && count( $state['files'] ) > 50 ) {
-			$state = self::persist_files_list( $state, $state['files'] );
+		try {
+			// Re-read after lock so we never advance a stale file_offset.
+			$job = Maca_Backup_Pro_Jobs_Table::get( $lock_id );
+			if ( ! $job ) {
+				return array(
+					'done'     => true,
+					'progress' => 100,
+					'status'   => 'idle',
+				);
+			}
+			if ( in_array( (string) $job->status, array( 'completed', 'failed', 'cancelled' ), true ) ) {
+				return self::status_payload( $job );
+			}
+
+			$state = json_decode( (string) $job->state, true );
+			if ( ! is_array( $state ) ) {
+				return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid job state.', 'maca-backup-pro' ) );
+			}
+
+			// Migrate oversized in-state file lists (legacy / stuck jobs) onto disk once.
+			if ( ! empty( $state['files'] ) && is_array( $state['files'] ) && count( $state['files'] ) > 50 ) {
+				$state = self::persist_files_list( $state, $state['files'] );
+				Maca_Backup_Pro_Jobs_Table::update(
+					(int) $job->id,
+					array(
+						'state' => wp_json_encode( $state ),
+					)
+				);
+			}
+
+			$chunk = new Maca_Backup_Pro_Chunk_Processor( 25 );
+			$step  = (string) ( $state['step'] ?? 'scan' );
+
+			try {
+				switch ( $step ) {
+					case 'scan':
+						$state = self::step_scan( $state );
+						break;
+					case 'database':
+						$state = self::step_database( $state, $chunk );
+						break;
+					case 'files':
+						// Pack as many byte-capped batches as the time budget allows.
+						do {
+							$before = (int) ( $state['file_offset'] ?? 0 );
+							$state  = self::step_files( $state, $chunk );
+							$after  = (int) ( $state['file_offset'] ?? 0 );
+							if ( $after <= $before || 'files' !== (string) ( $state['step'] ?? '' ) ) {
+								break;
+							}
+						} while ( ! $chunk->should_yield() && ! $chunk->memory_pressure() );
+						break;
+					case 'manifest':
+						$state = self::step_manifest( $state, (int) $job->backup_id );
+						break;
+					case 'upload':
+						$state = self::step_upload( $state, (int) $job->backup_id );
+						break;
+					case 'verify':
+						$state = self::step_verify( $state, (int) $job->backup_id );
+						break;
+					case 'done':
+						return self::complete( (int) $job->id, (int) $job->backup_id, $state );
+					default:
+						return self::fail( (int) $job->id, (int) $job->backup_id, 'Unknown step: ' . $step );
+				}
+			} catch ( Throwable $e ) {
+				return self::fail( (int) $job->id, (int) $job->backup_id, $e->getMessage() );
+			}
+
+			$fresh = Maca_Backup_Pro_Jobs_Table::get( (int) $job->id );
+			if ( $fresh && 'cancelled' === (string) $fresh->status ) {
+				return self::status_payload( $fresh );
+			}
+
+			$progress = self::progress_for_state( $state );
 			Maca_Backup_Pro_Jobs_Table::update(
 				(int) $job->id,
 				array(
-					'state' => wp_json_encode( $state ),
+					'status'   => 'running',
+					'step'     => (string) $state['step'],
+					'progress' => $progress,
+					'state'    => wp_json_encode( $state ),
 				)
 			);
-		}
 
-		$chunk = new Maca_Backup_Pro_Chunk_Processor( 25 );
-		$step  = (string) ( $state['step'] ?? 'scan' );
-
-		try {
-			switch ( $step ) {
-				case 'scan':
-					$state = self::step_scan( $state );
-					break;
-				case 'database':
-					$state = self::step_database( $state, $chunk );
-					break;
-				case 'files':
-					// Pack as many byte-capped batches as the time budget allows.
-					do {
-						$before = (int) ( $state['file_offset'] ?? 0 );
-						$state  = self::step_files( $state, $chunk );
-						$after  = (int) ( $state['file_offset'] ?? 0 );
-						if ( $after <= $before || 'files' !== (string) ( $state['step'] ?? '' ) ) {
-							break;
-						}
-					} while ( ! $chunk->should_yield() && ! $chunk->memory_pressure() );
-					break;
-				case 'manifest':
-					$state = self::step_manifest( $state, (int) $job->backup_id );
-					break;
-				case 'upload':
-					$state = self::step_upload( $state, (int) $job->backup_id );
-					break;
-				case 'verify':
-					$state = self::step_verify( $state, (int) $job->backup_id );
-					break;
-				case 'done':
-					return self::complete( (int) $job->id, (int) $job->backup_id, $state );
-				default:
-					return self::fail( (int) $job->id, (int) $job->backup_id, 'Unknown step: ' . $step );
+			if ( 'done' === $state['step'] ) {
+				return self::complete( (int) $job->id, (int) $job->backup_id, $state );
 			}
-		} catch ( Throwable $e ) {
-			return self::fail( (int) $job->id, (int) $job->backup_id, $e->getMessage() );
+
+			Maca_Backup_Pro_Scheduler::instance()->schedule_process();
+
+			return array_merge(
+				array(
+					'done'     => false,
+					'progress' => $progress,
+					'step'     => $state['step'],
+					'status'   => 'running',
+					'job_id'   => (int) $job->id,
+				),
+				self::progress_meta( $state )
+			);
+		} finally {
+			Maca_Backup_Pro_Jobs_Table::release_process_lock( $lock_id );
 		}
-
-		$fresh = Maca_Backup_Pro_Jobs_Table::get( (int) $job->id );
-		if ( $fresh && 'cancelled' === (string) $fresh->status ) {
-			return self::status_payload( $fresh );
-		}
-
-		$progress = self::progress_for_state( $state );
-		Maca_Backup_Pro_Jobs_Table::update(
-			(int) $job->id,
-			array(
-				'status'   => 'running',
-				'step'     => (string) $state['step'],
-				'progress' => $progress,
-				'state'    => wp_json_encode( $state ),
-			)
-		);
-
-		if ( 'done' === $state['step'] ) {
-			return self::complete( (int) $job->id, (int) $job->backup_id, $state );
-		}
-
-		Maca_Backup_Pro_Scheduler::instance()->schedule_process();
-
-		return array_merge(
-			array(
-				'done'     => false,
-				'progress' => $progress,
-				'step'     => $state['step'],
-				'status'   => 'running',
-				'job_id'   => (int) $job->id,
-			),
-			self::progress_meta( $state )
-		);
 	}
 
 	/**
@@ -607,7 +633,15 @@ class Maca_Backup_Pro_Backup_Engine {
 			$abs                   = trailingslashit( ABSPATH ) . $rel;
 			if ( is_readable( $abs ) ) {
 				$size = (int) filesize( $abs );
-				$zip->add_file( $abs, $rel );
+				if ( ! $zip->add_file( $abs, $rel ) ) {
+					throw new RuntimeException(
+						sprintf(
+							/* translators: %s: relative file path */
+							esc_html__( 'Could not add file to backup archive: %s', 'maca-backup-pro' ),
+							esc_html( $rel )
+						)
+					);
+				}
 				$queued += max( 0, $size );
 				$inventory[ str_replace( '\\', '/', $rel ) ] = array(
 					'size'  => $size,
@@ -644,30 +678,39 @@ class Maca_Backup_Pro_Backup_Engine {
 	 */
 	private static function discover_parts( string $work_dir ): array {
 		$parts = array();
-		$single = $work_dir . '/backup.zip';
-		if ( is_readable( $single ) ) {
-			$parts[] = $single;
-		}
+
+		// Prefer split parts; never count backup.zip alongside part001+ (inflates size).
 		$glob = glob( $work_dir . '/backup.part*.zip' );
-		if ( is_array( $glob ) ) {
-			sort( $glob );
+		if ( is_array( $glob ) && ! empty( $glob ) ) {
+			natsort( $glob );
 			foreach ( $glob as $path ) {
-				if ( is_readable( $path ) && ! in_array( $path, $parts, true ) ) {
-					$parts[] = $path;
+				if ( is_readable( $path ) ) {
+					$parts[] = (string) $path;
 				}
 			}
+		} else {
+			$single = $work_dir . '/backup.zip';
+			if ( is_readable( $single ) ) {
+				$parts[] = $single;
+			}
 		}
-		// Encrypted variants.
+
+		// Encrypted variants (replace plain parts when present).
 		$enc = glob( $work_dir . '/backup*.zip.enc' );
-		if ( is_array( $enc ) ) {
-			sort( $enc );
+		if ( is_array( $enc ) && ! empty( $enc ) ) {
+			natsort( $enc );
+			$enc_parts = array();
 			foreach ( $enc as $path ) {
-				if ( is_readable( $path ) && ! in_array( $path, $parts, true ) ) {
-					$parts[] = $path;
+				if ( is_readable( $path ) ) {
+					$enc_parts[] = (string) $path;
 				}
 			}
+			if ( ! empty( $enc_parts ) ) {
+				return array_values( $enc_parts );
+			}
 		}
-		return $parts;
+
+		return array_values( $parts );
 	}
 
 	/**
@@ -735,15 +778,26 @@ class Maca_Backup_Pro_Backup_Engine {
 		}
 
 		$checksums = array();
+		$crc_parts = array();
 		$total     = 0;
 		foreach ( $parts as $part ) {
 			$hash = Maca_Backup_Pro_Checksum::file( $part );
 			$checksums[ basename( $part ) ] = $hash ?: '';
+			$crc                              = Maca_Backup_Pro_Checksum::crc32_file( $part );
+			if ( '' !== $crc ) {
+				$crc_parts[ basename( $part ) ] = $crc;
+			}
 			$total += (int) filesize( $part );
 		}
 
+		$archive_crc = Maca_Backup_Pro_Checksum::crc32_parts( $parts );
+		$manifest['crc32']          = $archive_crc;
+		$manifest['part_checksums'] = $checksums;
+		$manifest['part_crc32']     = $crc_parts;
+
 		$state['parts']      = $parts;
 		$state['checksums']  = $checksums;
+		$state['crc32']      = $archive_crc;
 		$state['size']       = $total;
 		$state['manifest']   = $manifest;
 		$state['inventory_path'] = $inv_path;
@@ -759,7 +813,7 @@ class Maca_Backup_Pro_Backup_Engine {
 				'size_bytes'        => $total,
 				'db_size_bytes'     => (int) ( $state['db_bytes'] ?? ( is_readable( $sql ) ? filesize( $sql ) : 0 ) ),
 				'file_count'        => count( $files ),
-				'checksum'          => Maca_Backup_Pro_Checksum::make( (string) wp_json_encode( $checksums ) ),
+				'checksum'          => $archive_crc ?: Maca_Backup_Pro_Checksum::make( (string) wp_json_encode( $checksums ) ),
 				'manifest'          => wp_json_encode( $manifest ),
 				'inventory'         => wp_json_encode( $inventory ),
 				'parent_backup_id'  => (int) ( $state['parent_backup_id'] ?? 0 ),
@@ -956,7 +1010,9 @@ class Maca_Backup_Pro_Backup_Engine {
 			'error_message'    => '',
 		);
 
-		if ( ! empty( $state['checksums'] ) ) {
+		if ( ! empty( $state['crc32'] ) ) {
+			$row_data['checksum'] = (string) $state['crc32'];
+		} elseif ( ! empty( $state['checksums'] ) ) {
 			$row_data['checksum'] = Maca_Backup_Pro_Checksum::make( (string) wp_json_encode( $state['checksums'] ) );
 		}
 		if ( ! empty( $state['manifest'] ) ) {
@@ -990,16 +1046,27 @@ class Maca_Backup_Pro_Backup_Engine {
 			$backup_id              = Maca_Backup_Pro_Backups_Table::insert( $row_data );
 		}
 
-		Maca_Backup_Pro_Jobs_Table::update(
+		$claimed = Maca_Backup_Pro_Jobs_Table::claim_terminal(
 			$job_id,
+			'completed',
 			array(
-				'status'    => 'completed',
 				'progress'  => 100,
 				'step'      => 'done',
 				'backup_id' => $backup_id,
 				'state'     => wp_json_encode( $state ),
 			)
 		);
+
+		// Concurrent processor already finalized this job — do not email/log again.
+		if ( ! $claimed ) {
+			return array(
+				'done'      => true,
+				'progress'  => 100,
+				'status'    => 'completed',
+				'backup_id' => $backup_id,
+				'job_id'    => $job_id,
+			);
+		}
 
 		// Ensure the row really exists as completed (guards against silent update misses).
 		$saved = $backup_id > 0 ? Maca_Backup_Pro_Backups_Table::get( $backup_id ) : null;
@@ -1025,11 +1092,14 @@ class Maca_Backup_Pro_Backup_Engine {
 		Maca_Backup_Pro_Mailer::notify_backup(
 			true,
 			array(
-				'size'      => $size,
-				'storage'   => $state['storage'] ?? 'local',
-				'duration'  => $duration,
-				'type'      => sanitize_key( (string) ( $state['type'] ?? 'full' ) ),
-				'backup_id' => $backup_id,
+				'size'        => $size,
+				'storage'     => $state['storage'] ?? 'local',
+				'duration'    => $duration,
+				'type'        => sanitize_key( (string) ( $state['type'] ?? 'full' ) ),
+				'backup_id'   => $backup_id,
+				'job_id'      => $job_id,
+				'schedule_id' => sanitize_key( (string) ( $state['schedule_id'] ?? '' ) ),
+				'checksum'    => (string) ( $state['crc32'] ?? '' ),
 			)
 		);
 
@@ -1136,6 +1206,8 @@ class Maca_Backup_Pro_Backup_Engine {
 				'backup_id' => (int) $job->backup_id,
 				'job_type'  => (string) $job->job_type,
 				'error'     => (string) ( $job->error_message ?? '' ),
+				'started'   => (int) ( $state['started'] ?? 0 ),
+				'elapsed'   => max( 0, time() - (int) ( $state['started'] ?? time() ) ),
 			),
 			self::progress_meta( $state )
 		);
@@ -1150,30 +1222,6 @@ class Maca_Backup_Pro_Backup_Engine {
 	 * @return array<string, mixed>
 	 */
 	private static function fail( int $job_id, int $backup_id, string $message ): array {
-		Maca_Backup_Pro_Jobs_Table::update(
-			$job_id,
-			array(
-				'status'        => 'failed',
-				'error_message' => $message,
-			)
-		);
-		Maca_Backup_Pro_Backups_Table::update(
-			$backup_id,
-			array(
-				'status'        => 'failed',
-				'error_message' => $message,
-				'finished_at'   => current_time( 'mysql' ),
-			)
-		);
-
-		Maca_Backup_Pro_Logger::error(
-			$message,
-			array(
-				'backup_id' => $backup_id,
-				'job_id'    => $job_id,
-			)
-		);
-
 		$job_state = array();
 		$job_row   = Maca_Backup_Pro_Jobs_Table::get( $job_id );
 		if ( $job_row && ! empty( $job_row->state ) ) {
@@ -1183,13 +1231,51 @@ class Maca_Backup_Pro_Backup_Engine {
 			}
 		}
 
+		$claimed = Maca_Backup_Pro_Jobs_Table::claim_terminal(
+			$job_id,
+			'failed',
+			array(
+				'error_message' => $message,
+			)
+		);
+
+		if ( ! $claimed ) {
+			return array(
+				'done'     => true,
+				'progress' => 0,
+				'status'   => 'failed',
+				'error'    => $message,
+			);
+		}
+
+		if ( $backup_id > 0 ) {
+			Maca_Backup_Pro_Backups_Table::update(
+				$backup_id,
+				array(
+					'status'        => 'failed',
+					'error_message' => $message,
+					'finished_at'   => current_time( 'mysql' ),
+				)
+			);
+		}
+
+		Maca_Backup_Pro_Logger::error(
+			$message,
+			array(
+				'backup_id' => $backup_id,
+				'job_id'    => $job_id,
+			)
+		);
+
 		Maca_Backup_Pro_Mailer::notify_backup(
 			false,
 			array(
-				'storage'   => Maca_Backup_Pro_Settings::get( 'storage_provider', 'local' ),
-				'error'     => $message,
-				'type'      => sanitize_key( (string) ( $job_state['type'] ?? 'full' ) ),
-				'backup_id' => $backup_id,
+				'storage'     => Maca_Backup_Pro_Settings::get( 'storage_provider', 'local' ),
+				'error'       => $message,
+				'type'        => sanitize_key( (string) ( $job_state['type'] ?? 'full' ) ),
+				'backup_id'   => $backup_id,
+				'job_id'      => $job_id,
+				'schedule_id' => sanitize_key( (string) ( $job_state['schedule_id'] ?? '' ) ),
 			)
 		);
 

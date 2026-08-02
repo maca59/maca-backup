@@ -184,6 +184,17 @@ class Maca_Backup_Pro_Backups_Table {
 	}
 
 	/**
+	 * Count all backup rows (any status).
+	 *
+	 * @return int
+	 */
+	public static function count_all(): int {
+		global $wpdb;
+		$table = self::table_name();
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
 	 * Latest completed backup.
 	 *
 	 * @return object|null

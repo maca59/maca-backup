@@ -40,6 +40,10 @@ $backup_type = (string) ( $editing['backup_type'] ?? 'full' );
 $custom_cron = (string) ( $editing['custom_cron'] ?? '' );
 $schedule_id = (string) ( $editing['id'] ?? '' );
 $interval_h  = Maca_Backup_Pro_Scheduler::sanitize_interval_hours( (int) ( $editing['interval_hours'] ?? 4 ) );
+$email_mode  = (string) ( $editing['email_mode'] ?? 'inherit' );
+if ( ! in_array( $email_mode, array( 'inherit', 'off', 'failure', 'success', 'both' ), true ) ) {
+	$email_mode = 'inherit';
+}
 
 $tz      = wp_timezone();
 $tz_name = $tz->getName();
@@ -91,6 +95,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 					<th><?php esc_html_e( 'Frequency', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Time', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Type', 'maca-backup-pro' ); ?></th>
+					<th><?php esc_html_e( 'Email', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Next run', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Status', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Actions', 'maca-backup-pro' ); ?></th>
@@ -112,6 +117,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( (string) $row['backup_type'] ); ?></td>
+						<td><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( (string) ( $row['email_mode'] ?? 'inherit' ) ) ); ?></td>
 						<td>
 							<?php if ( $next ) : ?>
 								<?php echo esc_html( wp_date( 'Y-m-d H:i', $next ) ); ?>
@@ -319,7 +325,18 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						<option value="files" <?php selected( $backup_type, 'files' ); ?>><?php esc_html_e( 'Files', 'maca-backup-pro' ); ?></option>
 					</select>
 				</label>
+				<label>
+					<span><?php esc_html_e( 'Email notifications', 'maca-backup-pro' ); ?></span>
+					<select name="schedule_email_mode">
+						<option value="inherit" <?php selected( $email_mode, 'inherit' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'inherit' ) ); ?></option>
+						<option value="off" <?php selected( $email_mode, 'off' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'off' ) ); ?></option>
+						<option value="failure" <?php selected( $email_mode, 'failure' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'failure' ) ); ?></option>
+						<option value="success" <?php selected( $email_mode, 'success' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'success' ) ); ?></option>
+						<option value="both" <?php selected( $email_mode, 'both' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'both' ) ); ?></option>
+					</select>
+				</label>
 			</div>
+			<p class="maca-bp-muted"><?php esc_html_e( 'Site default comes from Settings → Email notifications. Use “Failures only” for frequent schedules (e.g. every 4 hours) to avoid inbox noise.', 'maca-backup-pro' ); ?></p>
 		</div>
 
 		<p class="submit">

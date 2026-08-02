@@ -5,6 +5,9 @@
 	cfg.i18n = cfg.i18n || {};
 	var i18n = cfg.i18n;
 	var pollTimer = null;
+	var elapsedTimer = null;
+	var jobStartedAt = 0;
+	var lastProgressData = null;
 	var activeJobId = cfg.activeJob && cfg.activeJob.id ? parseInt(cfg.activeJob.id, 10) : 0;
 	var treeSelections = { restore: {}, smart: {} };
 	var smartState = null;
@@ -70,12 +73,81 @@
 			$el.find('.maca-bp-progress__stop').prop('hidden', true);
 			$el.find('.maca-bp-progress__bar span').css('width', '0%');
 			$el.find('.maca-bp-progress__detail').text('');
+			$el.find('.maca-bp-progress__elapsed').text('');
 			$el.find('.maca-bp-progress__note').prop('hidden', true);
 			$el.find('.maca-bp-progress__label').text('');
+			stopElapsedClock();
+			lastProgressData = null;
 		} else {
 			$el.find('.maca-bp-progress__stop').prop('hidden', false);
 			$el.find('.maca-bp-progress__note').prop('hidden', false);
 		}
+	}
+
+	function formatElapsed(sec) {
+		sec = Math.max(0, Math.floor(sec || 0));
+		var h = Math.floor(sec / 3600);
+		var m = Math.floor((sec % 3600) / 60);
+		var s = sec % 60;
+		if (h > 0) {
+			return h + 'h ' + m + 'm ' + s + 's';
+		}
+		if (m > 0) {
+			return m + 'm ' + s + 's';
+		}
+		return s + 's';
+	}
+
+	function elapsedSeconds() {
+		if (!jobStartedAt) {
+			return 0;
+		}
+		return Math.max(0, Math.floor(Date.now() / 1000) - jobStartedAt);
+	}
+
+	function startElapsedClock(startedUnix) {
+		var s = parseInt(startedUnix, 10) || 0;
+		if (s > 0) {
+			jobStartedAt = s;
+		} else if (!jobStartedAt) {
+			jobStartedAt = Math.floor(Date.now() / 1000);
+		}
+		if (elapsedTimer) {
+			return;
+		}
+		elapsedTimer = window.setInterval(function () {
+			if (lastProgressData) {
+				setProgress(
+					lastProgressData.progress || 0,
+					formatProgressLabel(lastProgressData),
+					formatProgressDetail(lastProgressData),
+					true
+				);
+			} else {
+				renderElapsed();
+			}
+		}, 1000);
+	}
+
+	function stopElapsedClock() {
+		if (elapsedTimer) {
+			window.clearInterval(elapsedTimer);
+			elapsedTimer = null;
+		}
+		jobStartedAt = 0;
+	}
+
+	function renderElapsed() {
+		var $el = $progress().find('.maca-bp-progress__elapsed');
+		if (!$el.length) {
+			return;
+		}
+		if (!jobStartedAt) {
+			$el.text('');
+			return;
+		}
+		var prefix = t('elapsed', 'Elapsed');
+		$el.text(prefix + ': ' + formatElapsed(elapsedSeconds()));
 	}
 
 	function setProgress(pct, label, detail, active) {
@@ -87,9 +159,9 @@
 		// Stop stays visible for any truly in-flight job (including 0%), not only mid-fill.
 		var running = active !== false && pct < 100;
 		$el.toggleClass('is-active', running);
-		$el.toggleClass('has-fill', pct > 0);
+		$el.toggleClass('has-fill', pct > 0 || running);
 		$el.find('.maca-bp-progress__stop').prop('hidden', !running);
-		$el.find('.maca-bp-progress__bar span').css('width', pct + '%');
+		$el.find('.maca-bp-progress__bar span').css('width', Math.max(pct, running && pct < 1 ? 2 : pct) + '%');
 		if (label) {
 			$el.find('.maca-bp-progress__label').text(label);
 		}
@@ -97,6 +169,7 @@
 		if ($detail.length) {
 			$detail.text(detail || '');
 		}
+		renderElapsed();
 	}
 
 	function formatProgressLabel(d) {
@@ -124,6 +197,8 @@
 		activeJobId = 0;
 		setStartButtonsDisabled(false);
 		stopPolling();
+		stopElapsedClock();
+		lastProgressData = null;
 
 		if (d.status === 'idle') {
 			showProgress(false);
@@ -162,12 +237,16 @@
 		showProgress(true);
 		var seedPct = 0;
 		var seedLabel = cfg.i18n.running;
+		var seedStarted = 0;
 		if (cfg.activeJob && parseInt(cfg.activeJob.id, 10) === parseInt(jobId, 10)) {
 			seedPct = parseInt(cfg.activeJob.progress, 10) || 0;
+			seedStarted = parseInt(cfg.activeJob.started, 10) || 0;
 			if (cfg.activeJob.step) {
 				seedLabel = cfg.activeJob.step + ' — ' + seedPct + '%';
 			}
 		}
+		startElapsedClock(seedStarted);
+		lastProgressData = { progress: seedPct, step: cfg.activeJob && cfg.activeJob.step ? cfg.activeJob.step : '', status: 'running' };
 		setProgress(seedPct, seedLabel, '', true);
 
 		function tick() {
@@ -192,8 +271,12 @@
 					showProgress(false);
 					return;
 				}
+				if (d.started) {
+					startElapsedClock(d.started);
+				}
+				lastProgressData = d;
 				setProgress(d.progress || 0, formatProgressLabel(d), formatProgressDetail(d), true);
-				pollTimer = window.setTimeout(tick, 400);
+				pollTimer = window.setTimeout(tick, 600);
 			}).fail(function () {
 				pollTimer = window.setTimeout(tick, 2500);
 			});
@@ -207,18 +290,22 @@
 			return;
 		}
 		showProgress(true);
+		startElapsedClock(Math.floor(Date.now() / 1000));
+		lastProgressData = { progress: 1, step: 'starting', status: 'running' };
 		setProgress(1, cfg.i18n.starting, '', true);
 		setStartButtonsDisabled(true);
 		post('maca_backup_pro_start_backup', { type: type || 'full' }).done(function (res) {
 			if (!res || !res.success) {
 				setProgress(0, (res && res.data && res.data.message) || cfg.i18n.failed, '', false);
 				setStartButtonsDisabled(false);
+				stopElapsedClock();
 				return;
 			}
 			statusLoop(res.data.job_id);
 		}).fail(function () {
 			setProgress(0, cfg.i18n.failed, '', false);
 			setStartButtonsDisabled(false);
+			stopElapsedClock();
 		});
 	}
 
@@ -400,6 +487,102 @@
 					$(this).remove();
 				});
 			}
+		});
+	});
+
+	function formatBytes(n) {
+		n = parseInt(n, 10) || 0;
+		if (n < 1024) {
+			return n + ' B';
+		}
+		if (n < 1024 * 1024) {
+			return (n / 1024).toFixed(1) + ' KB';
+		}
+		if (n < 1024 * 1024 * 1024) {
+			return (n / (1024 * 1024)).toFixed(1) + ' MB';
+		}
+		return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+	}
+
+	function renderPathList(title, rows, more, sizeKey) {
+		sizeKey = sizeKey || 'size';
+		var html = '<div class="maca-bp-compare__list">';
+		html += '<h4>' + escapeHtml(title) + ' (' + rows.length + (more ? '+' : '') + ')</h4>';
+		if (!rows.length) {
+			html += '<p class="maca-bp-muted">—</p></div>';
+			return html;
+		}
+		html += '<ul>';
+		rows.forEach(function (row) {
+			var meta = '';
+			if (typeof row.size_a !== 'undefined') {
+				meta = formatBytes(row.size_a) + ' → ' + formatBytes(row.size_b);
+			} else {
+				meta = formatBytes(row[sizeKey]);
+			}
+			html += '<li><code>' + escapeHtml(row.path) + '</code><span>' + escapeHtml(meta) + '</span></li>';
+		});
+		html += '</ul>';
+		if (more > 0) {
+			html += '<p class="maca-bp-muted">' + escapeHtml((t('compareMore', '…and %d more')).replace('%d', String(more))) + '</p>';
+		}
+		html += '</div>';
+		return html;
+	}
+
+	function renderCompareResult(d) {
+		var s = d.summary || {};
+		var a = d.a || {};
+		var b = d.b || {};
+		var html = '<div class="maca-bp-compare__cards">';
+		html += '<div class="maca-bp-compare__card"><strong>A #' + escapeHtml(String(a.id)) + '</strong>';
+		html += '<span>' + escapeHtml(a.date || '') + ' · ' + escapeHtml(a.type || '') + '</span>';
+		html += '<span>' + t('compareArchive', 'Archive size') + ': <b>' + formatBytes(a.archive_size) + '</b></span>';
+		html += '<span>' + t('compareFiles', 'Files') + ': <b>' + escapeHtml(String(a.file_count || 0)) + '</b></span>';
+		html += '<span>' + t('compareContent', 'Content') + ': <b>' + formatBytes(a.content_bytes) + '</b></span></div>';
+		html += '<div class="maca-bp-compare__card"><strong>B #' + escapeHtml(String(b.id)) + '</strong>';
+		html += '<span>' + escapeHtml(b.date || '') + ' · ' + escapeHtml(b.type || '') + '</span>';
+		html += '<span>' + t('compareArchive', 'Archive size') + ': <b>' + formatBytes(b.archive_size) + '</b></span>';
+		html += '<span>' + t('compareFiles', 'Files') + ': <b>' + escapeHtml(String(b.file_count || 0)) + '</b></span>';
+		html += '<span>' + t('compareContent', 'Content') + ': <b>' + formatBytes(b.content_bytes) + '</b></span></div>';
+		html += '</div>';
+		html += '<p class="maca-bp-compare__verdict">' + escapeHtml(d.verdict || '') + '</p>';
+		html += '<ul class="maca-bp-compare__stats">';
+		html += '<li><span>' + t('compareSame', 'Identical paths') + '</span><strong>' + escapeHtml(String(s.same || 0)) + '</strong></li>';
+		html += '<li><span>' + t('compareOnlyA', 'Only in A') + '</span><strong>' + escapeHtml(String(s.only_in_a || 0)) + '</strong></li>';
+		html += '<li><span>' + t('compareOnlyB', 'Only in B') + '</span><strong>' + escapeHtml(String(s.only_in_b || 0)) + '</strong></li>';
+		html += '<li><span>' + t('compareMismatch', 'Size / CRC mismatch') + '</span><strong>' + escapeHtml(String(s.size_mismatch || 0)) + '</strong></li>';
+		html += '</ul>';
+		var trunc = d.truncated || {};
+		html += renderPathList(t('compareOnlyA', 'Only in A'), d.only_in_a || [], trunc.only_in_a || 0);
+		html += renderPathList(t('compareOnlyB', 'Only in B'), d.only_in_b || [], trunc.only_in_b || 0);
+		html += renderPathList(t('compareMismatch', 'Size / CRC mismatch'), d.size_mismatch || [], trunc.size_mismatch || 0);
+		return html;
+	}
+
+	$('#maca-bp-compare-run').on('click', function () {
+		var idA = parseInt($('#maca-bp-compare-a').val(), 10) || 0;
+		var idB = parseInt($('#maca-bp-compare-b').val(), 10) || 0;
+		var $out = $('#maca-bp-compare-result');
+		var $btn = $(this);
+		if (!idA || !idB || idA === idB) {
+			window.alert(t('compareNeedTwo', 'Select two different backups to compare.'));
+			return;
+		}
+		$btn.prop('disabled', true);
+		$out.prop('hidden', false).html('<p class="maca-bp-muted">' + escapeHtml(t('compareRunning', 'Comparing…')) + '</p>');
+		post('maca_backup_pro_compare_backups', { backup_id_a: idA, backup_id_b: idB }).done(function (res) {
+			$btn.prop('disabled', false);
+			if (!res || !res.success) {
+				$out.html('<p class="maca-bp-verify maca-bp-verify--fail"><strong>' +
+					escapeHtml((res && res.data && res.data.message) || t('failed', 'Failed')) +
+					'</strong></p>');
+				return;
+			}
+			$out.html(renderCompareResult(res.data || {}));
+		}).fail(function () {
+			$btn.prop('disabled', false);
+			$out.html('<p class="maca-bp-verify maca-bp-verify--fail"><strong>' + escapeHtml(t('failed', 'Failed')) + '</strong></p>');
 		});
 	});
 

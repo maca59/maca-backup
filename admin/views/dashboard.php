@@ -71,6 +71,7 @@ if ( $show_onboarding ) {
 		</button>
 	</div>
 	<p class="maca-bp-progress__label"><?php esc_html_e( 'Preparing…', 'maca-backup-pro' ); ?></p>
+	<p class="maca-bp-progress__elapsed" aria-live="off"></p>
 	<p class="maca-bp-progress__detail" aria-live="polite"></p>
 	<p class="maca-bp-progress__note" hidden><?php esc_html_e( 'Runs in the background — you can leave this page.', 'maca-backup-pro' ); ?></p>
 </div>
@@ -151,6 +152,7 @@ if ( $show_onboarding ) {
 					<th><?php esc_html_e( 'Date', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Type', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Size', 'maca-backup-pro' ); ?></th>
+					<th><?php esc_html_e( 'CRC32', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Time', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Status', 'maca-backup-pro' ); ?></th>
 					<th><?php esc_html_e( 'Actions', 'maca-backup-pro' ); ?></th>
@@ -162,6 +164,16 @@ if ( $show_onboarding ) {
 						<td><?php echo esc_html( Maca_Backup_Pro_Format::datetime_local( ! empty( $row->finished_at ) ? (string) $row->finished_at : (string) $row->created_at ) ); ?></td>
 						<td><?php echo esc_html( (string) $row->type ); ?></td>
 						<td><?php echo esc_html( size_format( (int) $row->size_bytes ) ); ?></td>
+						<td>
+							<?php
+							$crc_label = Maca_Backup_Pro_Format::backup_checksum_label( $row );
+							$crc_full  = Maca_Backup_Pro_Format::backup_crc(
+								(string) ( $row->checksum ?? '' ),
+								(array) ( json_decode( (string) ( $row->manifest ?? '' ), true ) ?: array() )
+							);
+							?>
+							<code class="maca-bp-crc" title="<?php echo esc_attr( '' !== $crc_full ? $crc_full : $crc_label ); ?>"><?php echo esc_html( $crc_label ); ?></code>
+						</td>
 						<td><?php echo esc_html( Maca_Backup_Pro_Format::duration( (int) $row->duration ) ); ?></td>
 						<td><span class="maca-bp-pill maca-bp-pill--<?php echo esc_attr( (string) $row->status ); ?>"><?php echo esc_html( (string) $row->status ); ?></span></td>
 						<td class="maca-bp-row-actions">

@@ -181,6 +181,11 @@ class Maca_Backup_Pro_Scheduler {
 
 		$interval = self::sanitize_interval_hours( (int) ( $raw['interval_hours'] ?? 4 ) );
 
+		$email_mode = sanitize_key( (string) ( $raw['email_mode'] ?? 'inherit' ) );
+		if ( ! in_array( $email_mode, array( 'inherit', 'off', 'failure', 'success', 'both' ), true ) ) {
+			$email_mode = 'inherit';
+		}
+
 		return array(
 			'id'             => sanitize_key( $id ),
 			'label'          => sanitize_text_field( (string) ( $raw['label'] ?? '' ) ),
@@ -192,7 +197,30 @@ class Maca_Backup_Pro_Scheduler {
 			'dom'            => max( 1, min( 28, absint( $raw['dom'] ?? $raw['schedule_dom'] ?? 1 ) ) ),
 			'custom_cron'    => sanitize_text_field( (string) ( $raw['custom_cron'] ?? '' ) ),
 			'backup_type'    => sanitize_key( (string) ( $raw['backup_type'] ?? 'full' ) ) ?: 'full',
+			'email_mode'     => $email_mode,
 		);
+	}
+
+	/**
+	 * Human label for a schedule email_mode value.
+	 *
+	 * @param string $mode Mode key.
+	 * @return string
+	 */
+	public static function email_mode_label( string $mode ): string {
+		switch ( sanitize_key( $mode ) ) {
+			case 'off':
+				return __( 'Off', 'maca-backup-pro' );
+			case 'failure':
+				return __( 'Failures only', 'maca-backup-pro' );
+			case 'success':
+				return __( 'Success only', 'maca-backup-pro' );
+			case 'both':
+				return __( 'Success and failures', 'maca-backup-pro' );
+			case 'inherit':
+			default:
+				return __( 'Use site default', 'maca-backup-pro' );
+		}
 	}
 
 	/**
@@ -620,6 +648,16 @@ class Maca_Backup_Pro_Scheduler {
 						continue;
 					}
 
+					Maca_Backup_Pro_Mailer::notify_backup(
+						false,
+						array(
+							'schedule_id' => $id,
+							'type'        => $type,
+							'error'       => $result->get_error_message(),
+							'storage'     => Maca_Backup_Pro_Settings::get( 'storage_provider', 'local' ),
+						)
+					);
+
 					// Avoid a tight retry loop on hard failures.
 					set_transient( 'maca_backup_pro_sched_fail_' . $id, 1, 5 * MINUTE_IN_SECONDS );
 					continue;
@@ -1012,15 +1050,16 @@ class Maca_Backup_Pro_Scheduler {
 	/**
 	 * Process active backup/restore jobs in a time-budgeted loop.
 	 *
+	 * @param int $budget_seconds Soft seconds before yielding (UI polls use a short budget).
 	 * @return void
 	 */
-	public function process_jobs(): void {
+	public function process_jobs( int $budget_seconds = 25 ): void {
 		if ( ! $this->acquire_lock() ) {
 			return;
 		}
 
 		try {
-			$budget = new Maca_Backup_Pro_Chunk_Processor( 25 );
+			$budget = new Maca_Backup_Pro_Chunk_Processor( max( 2, $budget_seconds ) );
 			$ran    = false;
 
 			do {
@@ -1075,6 +1114,19 @@ class Maca_Backup_Pro_Scheduler {
 	 * @return bool
 	 */
 	private function acquire_lock(): bool {
+		global $wpdb;
+		$name = 'maca_bp_process';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$got = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $name ) );
+		if ( '1' === (string) $got ) {
+			return true;
+		}
+		if ( '0' === (string) $got ) {
+			return false;
+		}
+
+		// Fallback when GET_LOCK is unavailable.
 		$lock = 'maca_backup_pro_process_lock';
 		if ( get_transient( $lock ) ) {
 			return false;
@@ -1089,6 +1141,9 @@ class Maca_Backup_Pro_Scheduler {
 	 * @return void
 	 */
 	private function release_lock(): void {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', 'maca_bp_process' ) );
 		delete_transient( 'maca_backup_pro_process_lock' );
 	}
 

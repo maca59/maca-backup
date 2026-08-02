@@ -574,38 +574,25 @@ function maca_backup_pro_api_hub_heartbeat( $blocking = false ) {
 		return false;
 	}
 
-	$latest = class_exists( 'Maca_Backup_Pro_Backups_Table' )
-		? Maca_Backup_Pro_Backups_Table::latest_completed()
-		: null;
-	$job    = class_exists( 'Maca_Backup_Pro_Jobs_Table' )
-		? ( Maca_Backup_Pro_Jobs_Table::active( 'backup' ) ?: Maca_Backup_Pro_Jobs_Table::active( 'restore' ) )
-		: null;
+	$status = function_exists( 'maca_backup_pro_hub_get_status' )
+		? maca_backup_pro_hub_get_status( 100 )
+		: array();
 
 	$extra = array(
 		'hub' => array(
-			'latest_backup' => $latest ? array(
-				'id'          => (int) $latest->id,
-				'type'        => (string) $latest->type,
-				'status'      => (string) $latest->status,
-				'size_bytes'  => (int) $latest->size_bytes,
-				'finished_at' => (string) $latest->finished_at,
-				'storage'     => (string) $latest->storage,
-			) : null,
-			'backup_count'  => class_exists( 'Maca_Backup_Pro_Backups_Table' )
-				? Maca_Backup_Pro_Backups_Table::count_completed()
-				: 0,
-			'total_size'    => class_exists( 'Maca_Backup_Pro_Backups_Table' )
-				? Maca_Backup_Pro_Backups_Table::total_size()
-				: 0,
-			'storage'       => (string) Maca_Backup_Pro_Settings::get( 'storage_provider', 'local' ),
-			'active_job'    => $job ? array(
-				'id'       => (int) $job->id,
-				'type'     => (string) $job->job_type,
-				'status'   => (string) $job->status,
-				'progress' => (int) $job->progress,
-				'step'     => (string) $job->step,
-			) : null,
-			'last_error'    => (string) get_option( 'maca_backup_pro_api_last_error', '' ),
+			'latest_backup'      => $status['latest_backup'] ?? null,
+			'last_failed_backup' => $status['last_failed_backup'] ?? null,
+			'backups'            => $status['backups'] ?? array(),
+			'backup_count'       => (int) ( $status['counts']['completed'] ?? 0 ),
+			'total_size'         => (int) ( $status['counts']['total_size_bytes'] ?? 0 ),
+			'storage'            => $status['storage']['id'] ?? (string) Maca_Backup_Pro_Settings::get( 'storage_provider', 'local' ),
+			'storage_label'      => $status['storage']['label'] ?? '',
+			'space'              => $status['storage']['space'] ?? null,
+			'active_job'         => $status['active_job'] ?? null,
+			'schedules'          => $status['schedules'] ?? array(),
+			'next_backup_at'     => $status['next_backup_at'] ?? null,
+			'timezone'           => $status['timezone'] ?? '',
+			'last_error'         => $status['last_error'] ?? (string) get_option( 'maca_backup_pro_api_last_error', '' ),
 		),
 	);
 

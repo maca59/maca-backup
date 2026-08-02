@@ -58,7 +58,7 @@ $excludes = is_array( $settings['exclude_paths'] ?? null ) ? implode( "\n", $set
 
 		<h3><?php esc_html_e( 'maca Hub', 'maca-backup-pro' ); ?></h3>
 		<label class="maca-bp-check"><input type="checkbox" name="hub_enabled" value="1" <?php checked( ! empty( $settings['hub_enabled'] ) ); ?> /> <?php esc_html_e( 'Enable maca Hub / telemetry (optional)', 'maca-backup-pro' ); ?></label>
-		<p class="maca-bp-muted"><?php esc_html_e( 'Off by default. When enabled, the plugin may send site URL, plugin version, and backup status metadata to api.maca.se for multi-site monitoring. Backup file contents are never sent.', 'maca-backup-pro' ); ?></p>
+		<p class="maca-bp-muted"><?php esc_html_e( 'Off by default. When enabled, the plugin may send site URL, plugin version, and backup history metadata (type, date/time, size, status, and related fields) to api.maca.se for multi-site monitoring. Backup file contents are never sent.', 'maca-backup-pro' ); ?></p>
 
 		<h3><?php esc_html_e( 'Email notifications', 'maca-backup-pro' ); ?></h3>
 		<label class="maca-bp-check"><input type="checkbox" name="email_enabled" value="1" <?php checked( ! empty( $settings['email_enabled'] ) ); ?> /> <?php esc_html_e( 'Enable email notifications', 'maca-backup-pro' ); ?></label>
@@ -66,6 +66,7 @@ $excludes = is_array( $settings['exclude_paths'] ?? null ) ? implode( "\n", $set
 			<span><?php esc_html_e( 'Recipients (comma-separated)', 'maca-backup-pro' ); ?></span>
 			<input type="text" name="email_recipients" value="<?php echo esc_attr( (string) $settings['email_recipients'] ); ?>" placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>" />
 		</label>
+		<p class="maca-bp-muted"><?php esc_html_e( 'Default for manual backups and schedules set to “Use site default”. Each schedule can override this under Scheduled backups (e.g. failures only for every-4-hours DB backups).', 'maca-backup-pro' ); ?></p>
 		<label class="maca-bp-check"><input type="checkbox" name="email_on_success" value="1" <?php checked( ! empty( $settings['email_on_success'] ) ); ?> /> <?php esc_html_e( 'Successful backup', 'maca-backup-pro' ); ?></label>
 		<label class="maca-bp-check"><input type="checkbox" name="email_on_failure" value="1" <?php checked( ! empty( $settings['email_on_failure'] ) ); ?> /> <?php esc_html_e( 'Failed backup', 'maca-backup-pro' ); ?></label>
 		<label class="maca-bp-check"><input type="checkbox" name="email_on_restore_ok" value="1" <?php checked( ! empty( $settings['email_on_restore_ok'] ) ); ?> /> <?php esc_html_e( 'Successful restore', 'maca-backup-pro' ); ?></label>
