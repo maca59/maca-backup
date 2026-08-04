@@ -55,23 +55,23 @@ class Maca_Backup_Pro_Scheduler {
 	public function schedules( array $schedules ): array {
 		$schedules['maca_hourly'] = array(
 			'interval' => HOUR_IN_SECONDS,
-			'display'  => __( 'Every hour (maca BackUp)', 'maca-backup-pro' ),
+			'display'  => __( 'Every hour (maca BackUp)', 'maca-backup' ),
 		);
 		$schedules['maca_daily_check'] = array(
 			'interval' => 15 * MINUTE_IN_SECONDS,
-			'display'  => __( 'Every 15 minutes (maca BackUp schedule check)', 'maca-backup-pro' ),
+			'display'  => __( 'Every 15 minutes (maca BackUp schedule check)', 'maca-backup' ),
 		);
 		$schedules['maca_weekly'] = array(
 			'interval' => WEEK_IN_SECONDS,
-			'display'  => __( 'Once weekly (maca BackUp)', 'maca-backup-pro' ),
+			'display'  => __( 'Once weekly (maca BackUp)', 'maca-backup' ),
 		);
 		$schedules['maca_monthly'] = array(
 			'interval' => 30 * DAY_IN_SECONDS,
-			'display'  => __( 'Once monthly (maca BackUp)', 'maca-backup-pro' ),
+			'display'  => __( 'Once monthly (maca BackUp)', 'maca-backup' ),
 		);
 		$schedules['maca_watchdog'] = array(
 			'interval' => MINUTE_IN_SECONDS,
-			'display'  => __( 'Every minute (maca BackUp job watchdog)', 'maca-backup-pro' ),
+			'display'  => __( 'Every minute (maca BackUp job watchdog)', 'maca-backup' ),
 		);
 		return $schedules;
 	}
@@ -109,7 +109,7 @@ class Maca_Backup_Pro_Scheduler {
 			self::normalize_entry(
 				array(
 					'id'          => 'legacy_' . wp_generate_password( 6, false, false ),
-					'label'       => __( 'Default schedule', 'maca-backup-pro' ),
+					'label'       => __( 'Default schedule', 'maca-backup' ),
 					'enabled'     => true,
 					'frequency'   => $legacy_freq,
 					'time_utc'    => (string) Maca_Backup_Pro_Settings::get( 'schedule_time_utc', '03:00' ),
@@ -210,16 +210,16 @@ class Maca_Backup_Pro_Scheduler {
 	public static function email_mode_label( string $mode ): string {
 		switch ( sanitize_key( $mode ) ) {
 			case 'off':
-				return __( 'Off', 'maca-backup-pro' );
+				return __( 'Off', 'maca-backup' );
 			case 'failure':
-				return __( 'Failures only', 'maca-backup-pro' );
+				return __( 'Failures only', 'maca-backup' );
 			case 'success':
-				return __( 'Success only', 'maca-backup-pro' );
+				return __( 'Success only', 'maca-backup' );
 			case 'both':
-				return __( 'Success and failures', 'maca-backup-pro' );
+				return __( 'Success and failures', 'maca-backup' );
 			case 'inherit':
 			default:
-				return __( 'Use site default', 'maca-backup-pro' );
+				return __( 'Use site default', 'maca-backup' );
 		}
 	}
 
@@ -342,7 +342,7 @@ class Maca_Backup_Pro_Scheduler {
 		if ( 'every_hours' === $freq ) {
 			return sprintf(
 				/* translators: 1: hours, 2: backup type */
-				__( 'Every %1$d hours %2$s', 'maca-backup-pro' ),
+				__( 'Every %1$d hours %2$s', 'maca-backup' ),
 				self::entry_interval_hours( $entry ),
 				$type
 			);
@@ -365,7 +365,7 @@ class Maca_Backup_Pro_Scheduler {
 		if ( 'hourly' === $freq ) {
 			return sprintf(
 				/* translators: %s: minutes past the hour, e.g. 00 */
-				__( 'Every hour at :%s', 'maca-backup-pro' ),
+				__( 'Every hour at :%s', 'maca-backup' ),
 				sprintf( '%02d', $local['minute'] )
 			);
 		}
@@ -373,7 +373,7 @@ class Maca_Backup_Pro_Scheduler {
 		if ( 'every_hours' === $freq ) {
 			return sprintf(
 				/* translators: 1: hours interval, 2: local time HH:MM */
-				__( 'Every %1$d hours from %2$s', 'maca-backup-pro' ),
+				__( 'Every %1$d hours from %2$s', 'maca-backup' ),
 				self::entry_interval_hours( $entry ),
 				sprintf( '%02d:%02d', $local['hour'], $local['minute'] )
 			);
@@ -396,12 +396,12 @@ class Maca_Backup_Pro_Scheduler {
 	public static function frequency_label( array $entry ): string {
 		$freq = (string) ( $entry['frequency'] ?? 'daily' );
 		$labels = array(
-			'hourly'      => __( 'Hourly', 'maca-backup-pro' ),
-			'every_hours' => __( 'Every N hours', 'maca-backup-pro' ),
-			'daily'       => __( 'Daily', 'maca-backup-pro' ),
-			'weekly'      => __( 'Weekly', 'maca-backup-pro' ),
-			'monthly'     => __( 'Monthly', 'maca-backup-pro' ),
-			'custom'      => __( 'Custom', 'maca-backup-pro' ),
+			'hourly'      => __( 'Hourly', 'maca-backup' ),
+			'every_hours' => __( 'Every N hours', 'maca-backup' ),
+			'daily'       => __( 'Daily', 'maca-backup' ),
+			'weekly'      => __( 'Weekly', 'maca-backup' ),
+			'monthly'     => __( 'Monthly', 'maca-backup' ),
+			'custom'      => __( 'Custom', 'maca-backup' ),
 		);
 		$base = $labels[ $freq ] ?? $freq;
 
@@ -411,24 +411,24 @@ class Maca_Backup_Pro_Scheduler {
 		if ( 'every_hours' === $freq ) {
 			$base = sprintf(
 				/* translators: %d: hours */
-				__( 'Every %d hours', 'maca-backup-pro' ),
+				__( 'Every %d hours', 'maca-backup' ),
 				self::entry_interval_hours( $entry )
 			);
 		} elseif ( 'weekly' === $freq ) {
 			$days = array(
-				__( 'Sunday', 'maca-backup-pro' ),
-				__( 'Monday', 'maca-backup-pro' ),
-				__( 'Tuesday', 'maca-backup-pro' ),
-				__( 'Wednesday', 'maca-backup-pro' ),
-				__( 'Thursday', 'maca-backup-pro' ),
-				__( 'Friday', 'maca-backup-pro' ),
-				__( 'Saturday', 'maca-backup-pro' ),
+				__( 'Sunday', 'maca-backup' ),
+				__( 'Monday', 'maca-backup' ),
+				__( 'Tuesday', 'maca-backup' ),
+				__( 'Wednesday', 'maca-backup' ),
+				__( 'Thursday', 'maca-backup' ),
+				__( 'Friday', 'maca-backup' ),
+				__( 'Saturday', 'maca-backup' ),
 			);
 			$base .= ' · ' . ( $days[ $local['weekday'] ] ?? '' );
 		} elseif ( 'monthly' === $freq ) {
 			$base .= ' · ' . sprintf(
 				/* translators: %d: day of month */
-				__( 'day %d', 'maca-backup-pro' ),
+				__( 'day %d', 'maca-backup' ),
 				$local['dom']
 			);
 		} elseif ( 'custom' === $freq && ! empty( $entry['custom_cron'] ) ) {
@@ -636,7 +636,7 @@ class Maca_Backup_Pro_Scheduler {
 					Maca_Backup_Pro_Logger::error(
 						sprintf(
 							/* translators: 1: schedule label, 2: error */
-							__( 'Scheduled backup “%1$s” failed to start: %2$s', 'maca-backup-pro' ),
+							__( 'Scheduled backup “%1$s” failed to start: %2$s', 'maca-backup' ),
 							(string) ( $entry['label'] ?: $id ),
 							$result->get_error_message()
 						),
@@ -669,7 +669,7 @@ class Maca_Backup_Pro_Scheduler {
 				Maca_Backup_Pro_Logger::info(
 					sprintf(
 						/* translators: %s: schedule label */
-						__( 'Scheduled backup “%s” started.', 'maca-backup-pro' ),
+						__( 'Scheduled backup “%s” started.', 'maca-backup' ),
 						(string) ( $entry['label'] ?: $id )
 					),
 					array(

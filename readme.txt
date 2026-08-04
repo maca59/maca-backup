@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.35
+Stable tag: 2.0.36
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,7 @@ Developed by **Maca Development**. Source and issue tracker: https://github.com/
 
 == Installation ==
 
-1. Upload the `maca-backup-pro` folder to `/wp-content/plugins/` or install the ZIP via Plugins → Add New → Upload.
+1. Upload the `maca-backup` folder to `/wp-content/plugins/` or install via Plugins → Add New (search for “maca BackUp”) / Upload Plugin.
 2. Activate maca BackUp through the Plugins screen.
 3. Open **maca BackUp** in the admin menu.
 4. Accept the Terms and Privacy Policy on the Support tab.
@@ -58,6 +58,58 @@ WordPress 6.0+, PHP 8.2+, and the PHP ZipArchive extension for file backups and 
 
 Use the Support form inside the plugin (maca BackUp → Support), or open an issue on GitHub: https://github.com/maca59/maca-backup/issues
 
+== External services ==
+
+This plugin can connect to third-party services when you enable or configure the related features. Nothing below is required for local-only backups.
+
+= Google Drive =
+
+Optional remote storage. When configured under Storage, the plugin uses Google OAuth and the Google Drive API to upload, download, and delete backup archives in your Google Drive account.
+
+Data sent: OAuth tokens/credentials you supply, and backup archive files (binary) when a backup or restore uses Google Drive.
+
+Service provided by Google. [Terms of Service](https://policies.google.com/terms) · [Privacy Policy](https://policies.google.com/privacy) · [Google APIs Terms](https://developers.google.com/terms)
+
+= Microsoft OneDrive =
+
+Optional remote storage via Microsoft Graph. When configured, the plugin uploads, downloads, and deletes backup archives in your OneDrive.
+
+Data sent: OAuth tokens/credentials you supply, and backup archive files when OneDrive is the active destination.
+
+Service provided by Microsoft. [Microsoft Services Agreement](https://www.microsoft.com/servicesagreement) · [Privacy Statement](https://privacy.microsoft.com/privacystatement)
+
+= Dropbox =
+
+Optional remote storage. When configured, the plugin uses the Dropbox API to upload, download, and delete backup archives in your Dropbox account.
+
+Data sent: access token/credentials you supply, and backup archive files when Dropbox is used.
+
+Service provided by Dropbox. [Terms of Service](https://www.dropbox.com/terms) · [Privacy Policy](https://www.dropbox.com/privacy)
+
+= Amazon S3 / S3-compatible storage =
+
+Optional remote storage (Amazon S3, Backblaze B2, and other S3-compatible endpoints you configure). Used to upload, download, and delete backup objects in the bucket you specify.
+
+Data sent: API credentials you supply, and backup archive files to the endpoint/region/bucket you configure.
+
+For Amazon Web Services: [AWS Service Terms](https://aws.amazon.com/service-terms/) · [AWS Privacy](https://aws.amazon.com/privacy/). Other S3-compatible providers follow their own terms (configure only services you trust).
+
+= maca Hub / telemetry (api.maca.se) =
+
+Optional and **off by default**. When you enable maca Hub under Settings, the plugin may send limited operational metadata to `https://api.maca.se/` for multi-site monitoring (heartbeat / lifecycle events).
+
+Data sent (when enabled): site URL, plugin version, WordPress/PHP versions, locale, and backup status metadata (for example type, date, size, status). Backup archive contents and database dumps are never uploaded.
+
+Service provided by Maca Development. [Terms](https://maca.se/maca-backup/terms/) · [Privacy](https://maca.se/maca-backup/privacy/)
+
+= In-plugin Support (maca.se) =
+
+When you submit a support request from maca BackUp → Support, the plugin sends your message to Maca Development so we can reply (REST endpoint on maca.se, with e-mail fallback).
+
+Data sent: name, email, subject, message, and optional system information you choose to include (site URL, plugin/WordPress/PHP versions, locale).
+
+Service provided by Maca Development. [Terms](https://maca.se/maca-backup/terms/) · [Privacy](https://maca.se/maca-backup/privacy/)
+
 == Privacy ==
 
 By default the plugin does **not** send data to Maca Development.
@@ -66,9 +118,15 @@ If you enable **maca Hub / telemetry** under Settings, the plugin may send limit
 
 Support requests you submit via the in-plugin Support form are sent to Maca Development so we can reply.
 
-Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms.
+Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms. See **External services** above.
 
 == Changelog ==
+
+= 2.0.36 =
+* WordPress.org review: text domain matches plugin slug (maca-backup)
+* Document external services (Google Drive, OneDrive, Dropbox, S3, maca Hub, Support) in readme
+* Confine staging restores to the local backup directory
+* Harden ZIP import/restore against path traversal (Zip Slip)
 
 = 2.0.34 =
 * Per-schedule email notifications (inherit site default, off, failures only, success only, or both)
@@ -92,6 +150,9 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 * Major release: Smart Restore, storage providers, schedules, encryption, hub telemetry
 
 == Upgrade Notice ==
+
+= 2.0.36 =
+WordPress.org compliance: text domain, external services documentation, safer staging and ZIP handling.
 
 = 2.0.34 =
 Recommended: schedule email controls, safer concurrent backups, live progress, backup compare, and CRC32 checksums.

@@ -44,8 +44,8 @@ class Maca_Backup_Pro_Mailer {
 		}
 
 		$subject = $success
-			? sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Backup completed', 'maca-backup-pro' ) )
-			: sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Backup failed', 'maca-backup-pro' ) );
+			? sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Backup completed', 'maca-backup' ) )
+			: sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Backup failed', 'maca-backup' ) );
 
 		return self::send( $subject, $success ? 'backup_ok' : 'backup_fail', $data );
 	}
@@ -131,8 +131,8 @@ class Maca_Backup_Pro_Mailer {
 		}
 
 		$subject = $success
-			? sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Restore completed', 'maca-backup-pro' ) )
-			: sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Restore failed', 'maca-backup-pro' ) );
+			? sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Restore completed', 'maca-backup' ) )
+			: sprintf( '[%s] %s — maca BackUp', self::site_name(), __( 'Restore failed', 'maca-backup' ) );
 
 		return self::send( $subject, $success ? 'restore_ok' : 'restore_fail', $data );
 	}
@@ -188,7 +188,7 @@ class Maca_Backup_Pro_Mailer {
 		if ( empty( $valid ) ) {
 			return new WP_Error(
 				'no_recipient',
-				__( 'No valid recipient email. Add one under Recipients or set the WordPress admin email.', 'maca-backup-pro' )
+				__( 'No valid recipient email. Add one under Recipients or set the WordPress admin email.', 'maca-backup' )
 			);
 		}
 
@@ -196,7 +196,7 @@ class Maca_Backup_Pro_Mailer {
 			/* translators: %s: site name */
 			'[%s] %s — maca BackUp',
 			self::site_name(),
-			__( 'Test email', 'maca-backup-pro' )
+			__( 'Test email', 'maca-backup' )
 		);
 
 		$data = array(
@@ -208,7 +208,7 @@ class Maca_Backup_Pro_Mailer {
 		if ( ! $ok ) {
 			return new WP_Error(
 				'mail_failed',
-				__( 'WordPress could not send the email. Check your site mail configuration (SMTP plugin or hosting mail).', 'maca-backup-pro' )
+				__( 'WordPress could not send the email. Check your site mail configuration (SMTP plugin or hosting mail).', 'maca-backup' )
 			);
 		}
 
@@ -303,15 +303,15 @@ class Maca_Backup_Pro_Mailer {
 	private static function detail_rows( string $type, array $data ): array {
 		$rows   = array();
 		$rows[] = array(
-			'label' => __( 'Website', 'maca-backup-pro' ),
+			'label' => __( 'Website', 'maca-backup' ),
 			'value' => self::site_name() . ' (' . home_url( '/' ) . ')',
 		);
 		$rows[] = array(
-			'label' => __( 'Time', 'maca-backup-pro' ),
+			'label' => __( 'Time', 'maca-backup' ),
 			'value' => self::local_datetime(),
 		);
 		$rows[] = array(
-			'label' => __( 'Event', 'maca-backup-pro' ),
+			'label' => __( 'Event', 'maca-backup' ),
 			'value' => self::event_label( $type ),
 		);
 
@@ -319,29 +319,29 @@ class Maca_Backup_Pro_Mailer {
 		if ( '' !== $type_label ) {
 			$rows[] = array(
 				'label' => str_starts_with( $type, 'restore' )
-					? __( 'Restore scope', 'maca-backup-pro' )
-					: __( 'Backup type', 'maca-backup-pro' ),
+					? __( 'Restore scope', 'maca-backup' )
+					: __( 'Backup type', 'maca-backup' ),
 				'value' => $type_label,
 			);
 		}
 
 		if ( isset( $data['size'] ) && '' !== $data['size'] && null !== $data['size'] ) {
 			$rows[] = array(
-				'label' => __( 'Backup size', 'maca-backup-pro' ),
+				'label' => __( 'Backup size', 'maca-backup' ),
 				'value' => size_format( (int) $data['size'] ),
 			);
 		}
 
 		if ( ! empty( $data['storage'] ) ) {
 			$rows[] = array(
-				'label' => __( 'Storage', 'maca-backup-pro' ),
+				'label' => __( 'Storage', 'maca-backup' ),
 				'value' => self::storage_label( (string) $data['storage'] ),
 			);
 		}
 
 		if ( isset( $data['duration'] ) ) {
 			$rows[] = array(
-				'label' => __( 'Duration', 'maca-backup-pro' ),
+				'label' => __( 'Duration', 'maca-backup' ),
 				'value' => Maca_Backup_Pro_Format::duration( (int) $data['duration'] ),
 			);
 		}
@@ -350,7 +350,7 @@ class Maca_Backup_Pro_Mailer {
 			$crc = strtoupper( preg_replace( '/[^a-f0-9]/i', '', (string) $data['checksum'] ) ?? '' );
 			if ( 8 === strlen( $crc ) ) {
 				$rows[] = array(
-					'label' => __( 'CRC32', 'maca-backup-pro' ),
+					'label' => __( 'CRC32', 'maca-backup' ),
 					'value' => $crc,
 				);
 			}
@@ -358,20 +358,20 @@ class Maca_Backup_Pro_Mailer {
 
 		if ( ! empty( $data['backup_id'] ) ) {
 			$rows[] = array(
-				'label' => __( 'Backup ID', 'maca-backup-pro' ),
+				'label' => __( 'Backup ID', 'maca-backup' ),
 				'value' => '#' . absint( $data['backup_id'] ),
 			);
 		}
 
 		if ( ! empty( $data['error'] ) ) {
 			$rows[] = array(
-				'label' => __( 'Reason', 'maca-backup-pro' ),
+				'label' => __( 'Reason', 'maca-backup' ),
 				'value' => (string) $data['error'],
 			);
 		}
 
 		$rows[] = array(
-			'label' => __( 'Plugin', 'maca-backup-pro' ),
+			'label' => __( 'Plugin', 'maca-backup' ),
 			'value' => 'maca BackUp v' . MACA_BACKUP_PRO_VERSION,
 		);
 
@@ -390,13 +390,13 @@ class Maca_Backup_Pro_Mailer {
 		$success    = in_array( $type, array( 'backup_ok', 'restore_ok', 'test' ), true );
 		$status     = esc_html( self::event_label( $type ) );
 		$admin_url  = esc_url( self::admin_url( $type, $data ) );
-		$cta        = esc_html__( 'Open maca BackUp', 'maca-backup-pro' );
+		$cta        = esc_html__( 'Open maca BackUp', 'maca-backup' );
 		if ( 'test' === $type ) {
-			$intro = esc_html__( 'This is a test message from maca BackUp. If you received it, email notifications are working.', 'maca-backup-pro' );
+			$intro = esc_html__( 'This is a test message from maca BackUp. If you received it, email notifications are working.', 'maca-backup' );
 		} else {
 			$intro = $success
-				? esc_html__( 'Good news — the job finished successfully.', 'maca-backup-pro' )
-				: esc_html__( 'Something went wrong. Details are below.', 'maca-backup-pro' );
+				? esc_html__( 'Good news — the job finished successfully.', 'maca-backup' )
+				: esc_html__( 'Something went wrong. Details are below.', 'maca-backup' );
 		}
 		$badge_col  = $success ? self::COLOR_TEAL : self::COLOR_FAIL;
 
@@ -452,7 +452,7 @@ class Maca_Backup_Pro_Mailer {
 			. '</td></tr>'
 			. '<tr><td style="background:#0b1224;padding:18px 20px;text-align:center;">'
 			. '<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:8px;">'
-			. esc_html__( 'More from maca on WordPress.org', 'maca-backup-pro' )
+			. esc_html__( 'More from maca on WordPress.org', 'maca-backup' )
 			. '</div>'
 			. '<div style="font-size:12px;line-height:1.8;">' . $footer_html . '</div>'
 			. '<div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.45);">'
@@ -481,9 +481,9 @@ class Maca_Backup_Pro_Mailer {
 			$lines[] = $row['label'] . ': ' . $row['value'];
 		}
 		$lines[] = '';
-		$lines[] = __( 'Open maca BackUp', 'maca-backup-pro' ) . ': ' . self::admin_url( $type, $data );
+		$lines[] = __( 'Open maca BackUp', 'maca-backup' ) . ': ' . self::admin_url( $type, $data );
 		$lines[] = '';
-		$lines[] = __( 'More from maca on WordPress.org', 'maca-backup-pro' ) . ':';
+		$lines[] = __( 'More from maca on WordPress.org', 'maca-backup' ) . ':';
 		foreach ( self::cross_sell_links() as $link ) {
 			$lines[] = '- ' . $link['label'] . ': ' . $link['url'];
 		}
@@ -562,11 +562,11 @@ class Maca_Backup_Pro_Mailer {
 	 */
 	private static function event_label( string $type ): string {
 		return match ( $type ) {
-			'backup_ok'    => __( 'Backup completed', 'maca-backup-pro' ),
-			'backup_fail'  => __( 'Backup failed', 'maca-backup-pro' ),
-			'restore_ok'   => __( 'Restore completed', 'maca-backup-pro' ),
-			'restore_fail' => __( 'Restore failed', 'maca-backup-pro' ),
-			'test'         => __( 'Test email', 'maca-backup-pro' ),
+			'backup_ok'    => __( 'Backup completed', 'maca-backup' ),
+			'backup_fail'  => __( 'Backup failed', 'maca-backup' ),
+			'restore_ok'   => __( 'Restore completed', 'maca-backup' ),
+			'restore_fail' => __( 'Restore failed', 'maca-backup' ),
+			'test'         => __( 'Test email', 'maca-backup' ),
 			default        => $type,
 		};
 	}
@@ -590,11 +590,11 @@ class Maca_Backup_Pro_Mailer {
 		}
 
 		$labels = array(
-			'full'     => __( 'Full site', 'maca-backup-pro' ),
-			'database' => __( 'Database', 'maca-backup-pro' ),
-			'files'    => __( 'Files', 'maca-backup-pro' ),
-			'path'     => __( 'Selected paths', 'maca-backup-pro' ),
-			'smart'    => __( 'Smart Restore', 'maca-backup-pro' ),
+			'full'     => __( 'Full site', 'maca-backup' ),
+			'database' => __( 'Database', 'maca-backup' ),
+			'files'    => __( 'Files', 'maca-backup' ),
+			'path'     => __( 'Selected paths', 'maca-backup' ),
+			'smart'    => __( 'Smart Restore', 'maca-backup' ),
 		);
 
 		return $labels[ $key ] ?? $key;

@@ -58,16 +58,16 @@ class Maca_Backup_Pro_Admin {
 	 */
 	public static function tabs(): array {
 		return array(
-			'dashboard' => __( 'Dashboard', 'maca-backup-pro' ),
-			'backups'   => __( 'Backups', 'maca-backup-pro' ),
-			'restore'   => __( 'Restore', 'maca-backup-pro' ),
-			'smart'     => __( 'Smart Restore', 'maca-backup-pro' ),
-			'schedule'  => __( 'Schedule', 'maca-backup-pro' ),
-			'storage'   => __( 'Storage', 'maca-backup-pro' ),
-			'logs'      => __( 'Logs', 'maca-backup-pro' ),
-			'settings'  => __( 'Settings', 'maca-backup-pro' ),
-			'help'      => __( 'Help', 'maca-backup-pro' ),
-			'support'   => __( 'Support', 'maca-backup-pro' ),
+			'dashboard' => __( 'Dashboard', 'maca-backup' ),
+			'backups'   => __( 'Backups', 'maca-backup' ),
+			'restore'   => __( 'Restore', 'maca-backup' ),
+			'smart'     => __( 'Smart Restore', 'maca-backup' ),
+			'schedule'  => __( 'Schedule', 'maca-backup' ),
+			'storage'   => __( 'Storage', 'maca-backup' ),
+			'logs'      => __( 'Logs', 'maca-backup' ),
+			'settings'  => __( 'Settings', 'maca-backup' ),
+			'help'      => __( 'Help', 'maca-backup' ),
+			'support'   => __( 'Support', 'maca-backup' ),
 		);
 	}
 
@@ -142,8 +142,8 @@ class Maca_Backup_Pro_Admin {
 		// Single submenu entry with same slug avoids a duplicate "Dashboard" clone.
 		add_submenu_page(
 			self::MENU_SLUG,
-			__( 'Dashboard', 'maca-backup-pro' ),
-			__( 'Dashboard', 'maca-backup-pro' ),
+			__( 'Dashboard', 'maca-backup' ),
+			__( 'Dashboard', 'maca-backup' ),
 			Maca_Backup_Pro_Security::CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render_app' )
@@ -357,7 +357,7 @@ class Maca_Backup_Pro_Admin {
 			add_settings_error(
 				'maca_backup_pro',
 				'legal_missing',
-				__( 'You must accept both the Terms of Use and the Privacy Policy to continue.', 'maca-backup-pro' ),
+				__( 'You must accept both the Terms of Use and the Privacy Policy to continue.', 'maca-backup' ),
 				'error'
 			);
 			return;
@@ -367,7 +367,7 @@ class Maca_Backup_Pro_Admin {
 			add_settings_error(
 				'maca_backup_pro',
 				'legal_fail',
-				__( 'Could not save your acceptance. Please try again.', 'maca-backup-pro' ),
+				__( 'Could not save your acceptance. Please try again.', 'maca-backup' ),
 				'error'
 			);
 			return;
@@ -376,7 +376,7 @@ class Maca_Backup_Pro_Admin {
 		add_settings_error(
 			'maca_backup_pro',
 			'legal_ok',
-			__( 'Thank you. You can now run backups and restores.', 'maca-backup-pro' ),
+			__( 'Thank you. You can now run backups and restores.', 'maca-backup' ),
 			'success'
 		);
 
@@ -401,7 +401,7 @@ class Maca_Backup_Pro_Admin {
 		$url = Maca_Backup_Pro_Legal::admin_support_url( 'accept' );
 		echo '<div class="notice notice-warning"><p>';
 		/* translators: %s: Support tab URL */
-		$notice = __( 'maca BackUp requires acceptance of the Terms and Privacy Policy before backup or restore. <a href="%s">Review and accept</a>.', 'maca-backup-pro' );
+		$notice = __( 'maca BackUp requires acceptance of the Terms and Privacy Policy before backup or restore. <a href="%s">Review and accept</a>.', 'maca-backup' );
 		printf(
 			wp_kses(
 				$notice,
@@ -480,10 +480,10 @@ class Maca_Backup_Pro_Admin {
 		);
 
 		echo '<div class="notice notice-error maca-bp-fail-notice"><p>';
-		echo '<strong>' . esc_html__( 'maca BackUp:', 'maca-backup-pro' ) . '</strong> ';
+		echo '<strong>' . esc_html__( 'maca BackUp:', 'maca-backup' ) . '</strong> ';
 		printf(
 			/* translators: 1: backup type, 2: datetime */
-			esc_html__( 'A %1$s backup failed on %2$s.', 'maca-backup-pro' ),
+			esc_html__( 'A %1$s backup failed on %2$s.', 'maca-backup' ),
 			esc_html( (string) $failed->type ),
 			esc_html( $when )
 		);
@@ -492,9 +492,9 @@ class Maca_Backup_Pro_Admin {
 			echo esc_html( $error );
 		}
 		echo '</p><p>';
-		echo '<a class="button button-small" href="' . esc_url( $logs ) . '">' . esc_html__( 'View logs', 'maca-backup-pro' ) . '</a> ';
-		echo '<a class="button button-small" href="' . esc_url( $backups ) . '">' . esc_html__( 'Backups', 'maca-backup-pro' ) . '</a> ';
-		echo '<a class="button-link" href="' . esc_url( $dismiss ) . '">' . esc_html__( 'Dismiss', 'maca-backup-pro' ) . '</a>';
+		echo '<a class="button button-small" href="' . esc_url( $logs ) . '">' . esc_html__( 'View logs', 'maca-backup' ) . '</a> ';
+		echo '<a class="button button-small" href="' . esc_url( $backups ) . '">' . esc_html__( 'Backups', 'maca-backup' ) . '</a> ';
+		echo '<a class="button-link" href="' . esc_url( $dismiss ) . '">' . esc_html__( 'Dismiss', 'maca-backup' ) . '</a>';
 		echo '</p></div>';
 	}
 
@@ -560,7 +560,7 @@ class Maca_Backup_Pro_Admin {
 		}
 
 		Maca_Backup_Pro_Settings::update( $input );
-		add_settings_error( 'maca_backup_pro', 'saved', __( 'Settings saved.', 'maca-backup-pro' ), 'success' );
+		add_settings_error( 'maca_backup_pro', 'saved', __( 'Settings saved.', 'maca-backup' ), 'success' );
 	}
 
 	/**
@@ -581,7 +581,7 @@ class Maca_Backup_Pro_Admin {
 			'test_email',
 			sprintf(
 				/* translators: %s: comma-separated email addresses */
-				__( 'Test email sent to %s. Check inbox and spam.', 'maca-backup-pro' ),
+				__( 'Test email sent to %s. Check inbox and spam.', 'maca-backup' ),
 				implode( ', ', $recipients )
 			),
 			'success'
@@ -630,7 +630,7 @@ class Maca_Backup_Pro_Admin {
 			'schedule',
 			sprintf(
 				/* translators: %s: schedule label */
-				__( 'Schedule “%s” saved.', 'maca-backup-pro' ),
+				__( 'Schedule “%s” saved.', 'maca-backup' ),
 				(string) ( $saved['label'] ?: $saved['id'] )
 			),
 			'success'
@@ -645,10 +645,10 @@ class Maca_Backup_Pro_Admin {
 	private function delete_schedule(): void {
 		$id = isset( $_POST['schedule_id'] ) ? sanitize_key( wp_unslash( $_POST['schedule_id'] ) ) : '';
 		if ( '' === $id || ! Maca_Backup_Pro_Scheduler::delete_schedule( $id ) ) {
-			add_settings_error( 'maca_backup_pro', 'schedule', __( 'Could not delete schedule.', 'maca-backup-pro' ), 'error' );
+			add_settings_error( 'maca_backup_pro', 'schedule', __( 'Could not delete schedule.', 'maca-backup' ), 'error' );
 			return;
 		}
-		add_settings_error( 'maca_backup_pro', 'schedule', __( 'Schedule deleted.', 'maca-backup-pro' ), 'success' );
+		add_settings_error( 'maca_backup_pro', 'schedule', __( 'Schedule deleted.', 'maca-backup' ), 'success' );
 	}
 
 	/**
@@ -661,15 +661,15 @@ class Maca_Backup_Pro_Admin {
 		$enabled = ! empty( $_POST['schedule_enabled'] );
 		$saved   = Maca_Backup_Pro_Scheduler::set_enabled( $id, $enabled );
 		if ( ! $saved ) {
-			add_settings_error( 'maca_backup_pro', 'schedule', __( 'Schedule not found.', 'maca-backup-pro' ), 'error' );
+			add_settings_error( 'maca_backup_pro', 'schedule', __( 'Schedule not found.', 'maca-backup' ), 'error' );
 			return;
 		}
 		add_settings_error(
 			'maca_backup_pro',
 			'schedule',
 			$enabled
-				? __( 'Schedule enabled.', 'maca-backup-pro' )
-				: __( 'Schedule disabled.', 'maca-backup-pro' ),
+				? __( 'Schedule enabled.', 'maca-backup' )
+				: __( 'Schedule disabled.', 'maca-backup' ),
 			'success'
 		);
 	}
@@ -717,7 +717,7 @@ class Maca_Backup_Pro_Admin {
 			)
 		);
 
-		add_settings_error( 'maca_backup_pro', 'storage', __( 'Storage settings saved.', 'maca-backup-pro' ), 'success' );
+		add_settings_error( 'maca_backup_pro', 'storage', __( 'Storage settings saved.', 'maca-backup' ), 'success' );
 	}
 
 	/**
@@ -727,13 +727,13 @@ class Maca_Backup_Pro_Admin {
 	 */
 	private function download_backup(): void {
 		if ( ! Maca_Backup_Pro_Security::can_manage() ) {
-			wp_die( esc_html__( 'Permission denied.', 'maca-backup-pro' ) );
+			wp_die( esc_html__( 'Permission denied.', 'maca-backup' ) );
 		}
 
 		$id     = isset( $_POST['backup_id'] ) ? absint( $_POST['backup_id'] ) : 0;
 		$backup = Maca_Backup_Pro_Backups_Table::get( $id );
 		if ( ! $backup || 'completed' !== (string) $backup->status ) {
-			wp_die( esc_html__( 'Backup not found.', 'maca-backup-pro' ) );
+			wp_die( esc_html__( 'Backup not found.', 'maca-backup' ) );
 		}
 
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
@@ -760,13 +760,13 @@ class Maca_Backup_Pro_Admin {
 		}
 
 		if ( ! class_exists( 'ZipArchive' ) ) {
-			wp_die( esc_html__( 'ZipArchive is required to download multi-part backups.', 'maca-backup-pro' ) );
+			wp_die( esc_html__( 'ZipArchive is required to download multi-part backups.', 'maca-backup' ) );
 		}
 
 		$transfer = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . $base . '-parts.zip';
 		$zip      = new ZipArchive();
 		if ( true !== $zip->open( $transfer, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
-			wp_die( esc_html__( 'Could not build download package.', 'maca-backup-pro' ) );
+			wp_die( esc_html__( 'Could not build download package.', 'maca-backup' ) );
 		}
 		foreach ( $parts as $part ) {
 			$zip->addFile( $part, basename( $part ) );
@@ -791,7 +791,7 @@ class Maca_Backup_Pro_Admin {
 	 */
 	private function import_backup(): void {
 		if ( ! Maca_Backup_Pro_Security::can_manage() ) {
-			wp_die( esc_html__( 'Permission denied.', 'maca-backup-pro' ) );
+			wp_die( esc_html__( 'Permission denied.', 'maca-backup' ) );
 		}
 
 		$file = isset( $_FILES['backup_file'] ) && is_array( $_FILES['backup_file'] ) ? $_FILES['backup_file'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
@@ -807,7 +807,7 @@ class Maca_Backup_Pro_Admin {
 			'import_ok',
 			sprintf(
 				/* translators: %d: backup ID */
-				__( 'Backup imported (#%d). You can restore it now.', 'maca-backup-pro' ),
+				__( 'Backup imported (#%d). You can restore it now.', 'maca-backup' ),
 				(int) $result
 			),
 			'success'
@@ -819,7 +819,7 @@ class Maca_Backup_Pro_Admin {
 				'type'    => 'success',
 				'message' => sprintf(
 					/* translators: %d: backup ID */
-					__( 'Backup imported (#%d). You can restore it now.', 'maca-backup-pro' ),
+					__( 'Backup imported (#%d). You can restore it now.', 'maca-backup' ),
 					(int) $result
 				),
 			),
@@ -837,8 +837,8 @@ class Maca_Backup_Pro_Admin {
 	 * @return string[]
 	 */
 	public function action_links( array $links ): array {
-		$open    = '<a href="' . esc_url( self::tab_url( 'dashboard' ) ) . '">' . esc_html__( 'Open', 'maca-backup-pro' ) . '</a>';
-		$support = '<a href="' . esc_url( self::tab_url( 'support' ) ) . '">' . esc_html__( 'Support', 'maca-backup-pro' ) . '</a>';
+		$open    = '<a href="' . esc_url( self::tab_url( 'dashboard' ) ) . '">' . esc_html__( 'Open', 'maca-backup' ) . '</a>';
+		$support = '<a href="' . esc_url( self::tab_url( 'support' ) ) . '">' . esc_html__( 'Support', 'maca-backup' ) . '</a>';
 		array_unshift( $links, $open, $support );
 		return $links;
 	}
@@ -855,9 +855,9 @@ class Maca_Backup_Pro_Admin {
 			return $links;
 		}
 
-		$links[] = '<a href="' . esc_url( self::tab_url( 'support' ) ) . '">' . esc_html__( 'Support', 'maca-backup-pro' ) . '</a>';
-		$links[] = '<a href="' . esc_url( Maca_Backup_Pro_Legal::TERMS_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Terms', 'maca-backup-pro' ) . '</a>';
-		$links[] = '<a href="' . esc_url( Maca_Backup_Pro_Legal::PRIVACY_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Privacy', 'maca-backup-pro' ) . '</a>';
+		$links[] = '<a href="' . esc_url( self::tab_url( 'support' ) ) . '">' . esc_html__( 'Support', 'maca-backup' ) . '</a>';
+		$links[] = '<a href="' . esc_url( Maca_Backup_Pro_Legal::TERMS_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Terms', 'maca-backup' ) . '</a>';
+		$links[] = '<a href="' . esc_url( Maca_Backup_Pro_Legal::PRIVACY_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Privacy', 'maca-backup' ) . '</a>';
 
 		return $links;
 	}
@@ -892,7 +892,7 @@ class Maca_Backup_Pro_Admin {
 	 */
 	private function render( string $view, array $vars = array() ): void {
 		if ( ! Maca_Backup_Pro_Security::can_manage() ) {
-			wp_die( esc_html__( 'Permission denied.', 'maca-backup-pro' ) );
+			wp_die( esc_html__( 'Permission denied.', 'maca-backup' ) );
 		}
 
 		// Heal missing history rows (completed job / leftover ZIPs without a backups table entry).
@@ -933,13 +933,13 @@ class Maca_Backup_Pro_Admin {
 	private function render_footer(): void {
 		$sep = ' <span class="maca-bp-footer__sep" aria-hidden="true">|</span> ';
 		echo '<footer class="maca-bp-footer">';
-		echo '<a href="' . esc_url( self::tab_url( 'help' ) ) . '">' . esc_html__( 'Help', 'maca-backup-pro' ) . '</a>';
+		echo '<a href="' . esc_url( self::tab_url( 'help' ) ) . '">' . esc_html__( 'Help', 'maca-backup' ) . '</a>';
 		echo $sep; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static separator markup.
-		echo '<a href="' . esc_url( self::tab_url( 'support' ) ) . '">' . esc_html__( 'Support', 'maca-backup-pro' ) . '</a>';
+		echo '<a href="' . esc_url( self::tab_url( 'support' ) ) . '">' . esc_html__( 'Support', 'maca-backup' ) . '</a>';
 		echo $sep; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static separator markup.
-		echo '<a href="' . esc_url( self::tab_url( 'support' ) . '#maca-bp-terms' ) . '">' . esc_html__( 'Terms', 'maca-backup-pro' ) . '</a>';
+		echo '<a href="' . esc_url( self::tab_url( 'support' ) . '#maca-bp-terms' ) . '">' . esc_html__( 'Terms', 'maca-backup' ) . '</a>';
 		echo $sep; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static separator markup.
-		echo '<a href="' . esc_url( self::tab_url( 'support' ) . '#maca-bp-privacy' ) . '">' . esc_html__( 'Privacy', 'maca-backup-pro' ) . '</a>';
+		echo '<a href="' . esc_url( self::tab_url( 'support' ) . '#maca-bp-privacy' ) . '">' . esc_html__( 'Privacy', 'maca-backup' ) . '</a>';
 		echo '</footer>';
 	}
 

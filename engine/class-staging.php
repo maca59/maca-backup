@@ -13,23 +13,29 @@ defined( 'ABSPATH' ) || exit;
 class Maca_Backup_Pro_Staging {
 
 	/**
-	 * Restore a backup into a staging directory (files only by default).
+	 * Restore a backup into a staging directory under the local backup storage path.
+	 *
+	 * Writes are always confined to the plugin's local backup directory
+	 * (uploads/maca-backups or a configured local storage path). User-supplied
+	 * absolute paths are ignored for WordPress.org filesystem guidelines.
 	 *
 	 * @param int    $backup_id Backup ID.
-	 * @param string $target    Absolute target dir (optional).
+	 * @param string $subdir    Optional relative folder name under the backup dir (letters, numbers, dash, underscore).
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	public static function restore( int $backup_id, string $target = '' ) {
+	public static function restore( int $backup_id, string $subdir = '' ) {
 		$backup = Maca_Backup_Pro_Backups_Table::get( $backup_id );
 		if ( ! $backup ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
-		if ( '' === $target ) {
-			$target = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . 'staging-' . $backup->backup_key;
+		$base = untrailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() );
+		if ( '' === $subdir || ! preg_match( '/^[a-zA-Z0-9_-]+$/', $subdir ) ) {
+			$subdir = 'staging-' . preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $backup->backup_key );
 		}
-		$target = untrailingslashit( $target );
+		$target = $base . '/' . $subdir;
 		wp_mkdir_p( $target );
+		Maca_Backup_Pro_Settings::protect_directory( $base );
 
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
 		if ( is_wp_error( $parts ) ) {
@@ -48,14 +54,18 @@ class Maca_Backup_Pro_Staging {
 			}
 			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 				$name = $zip->getNameIndex( $i );
-				if ( false === $name || str_ends_with( $name, '/' ) ) {
+				if ( false === $name ) {
 					continue;
 				}
-				if ( in_array( $name, array( 'manifest.json', 'files.json', 'database.sql' ), true ) ) {
-					// Still extract metadata for smoke tests.
+				$safe = Maca_Backup_Pro_Security::safe_zip_entry_path( $name );
+				if ( false === $safe ) {
+					continue;
 				}
-				$dest = $target . '/' . $name;
-				$dir  = dirname( $dest );
+				$dest = Maca_Backup_Pro_Security::path_under_directory( $target, $safe );
+				if ( false === $dest ) {
+					continue;
+				}
+				$dir = dirname( $dest );
 				if ( ! is_dir( $dir ) ) {
 					wp_mkdir_p( $dir );
 				}
@@ -79,17 +89,20 @@ class Maca_Backup_Pro_Staging {
 			$zip->close();
 		}
 
-		// Optional URL rewrite marker file for operators.
+		// Optional URL rewrite marker file for operators (inside staging dir only).
 		$marker = array(
-			'source_site' => home_url(),
-			'staging_path'=> $target,
-			'created_at'  => gmdate( 'c' ),
-			'note'        => 'Search-replace site URLs before using as a live staging site.',
+			'source_site'  => home_url(),
+			'staging_path' => $target,
+			'created_at'   => gmdate( 'c' ),
+			'note'         => 'Search-replace site URLs before using as a live staging site.',
 		);
-		file_put_contents( $target . '/maca-staging.json', wp_json_encode( $marker, JSON_PRETTY_PRINT ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		$marker_path = Maca_Backup_Pro_Security::path_under_directory( $target, 'maca-staging.json' );
+		if ( false !== $marker_path ) {
+			file_put_contents( $marker_path, wp_json_encode( $marker, JSON_PRETTY_PRINT ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
 
 		Maca_Backup_Pro_Logger::info(
-			__( 'Staging restore completed.', 'maca-backup-pro' ),
+			__( 'Staging restore completed.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'path'      => $target,
@@ -113,10 +126,10 @@ class Maca_Backup_Pro_Staging {
 	public static function verify( int $backup_id ) {
 		$backup = Maca_Backup_Pro_Backups_Table::get( $backup_id );
 		if ( ! $backup ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
-		$type = (string) ( $backup->type ?? 'full' );
+		$type     = (string) ( $backup->type ?? 'full' );
 		$needs_db = ! in_array( $type, array( 'files' ), true );
 
 		$checks = array(
@@ -138,7 +151,7 @@ class Maca_Backup_Pro_Staging {
 			return $parts;
 		}
 
-		$found_manifest = false;
+		$found_manifest   = false;
 		$found_files_json = false;
 		$db_bytes         = 0;
 		$file_entries     = 0;
@@ -158,6 +171,9 @@ class Maca_Backup_Pro_Staging {
 			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 				$name = $zip->getNameIndex( $i );
 				if ( false === $name || str_ends_with( $name, '/' ) ) {
+					continue;
+				}
+				if ( false === Maca_Backup_Pro_Security::safe_zip_entry_path( $name ) ) {
 					continue;
 				}
 
@@ -196,8 +212,8 @@ class Maca_Backup_Pro_Staging {
 
 		Maca_Backup_Pro_Logger::info(
 			$ok
-				? __( 'Backup verification passed.', 'maca-backup-pro' )
-				: __( 'Backup verification finished with issues.', 'maca-backup-pro' ),
+				? __( 'Backup verification passed.', 'maca-backup' )
+				: __( 'Backup verification finished with issues.', 'maca-backup' ),
 			array_merge(
 				array(
 					'backup_id' => $backup_id,

@@ -48,7 +48,7 @@ class Maca_Backup_Pro_Backup_Engine {
 				? Maca_Backup_Pro_Backups_Table::get( $parent_id )
 				: Maca_Backup_Pro_Backups_Table::latest_full_completed();
 			if ( ! $base || 'completed' !== $base->status ) {
-				return new WP_Error( 'parent', __( 'A completed full backup is required before incremental/differential backups.', 'maca-backup-pro' ) );
+				return new WP_Error( 'parent', __( 'A completed full backup is required before incremental/differential backups.', 'maca-backup' ) );
 			}
 			if ( 'incremental' === $type ) {
 				$latest = Maca_Backup_Pro_Backups_Table::latest_completed();
@@ -68,7 +68,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$work     = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . $key;
 
 		if ( ! wp_mkdir_p( $work ) ) {
-			return new WP_Error( 'mkdir', __( 'Could not create backup working directory.', 'maca-backup-pro' ) );
+			return new WP_Error( 'mkdir', __( 'Could not create backup working directory.', 'maca-backup' ) );
 		}
 
 		$backup_id = Maca_Backup_Pro_Backups_Table::insert(
@@ -87,7 +87,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		if ( $backup_id < 1 ) {
 			self::rrmdir( $work );
 			global $wpdb;
-			$message = __( 'Could not create backup record.', 'maca-backup-pro' );
+			$message = __( 'Could not create backup record.', 'maca-backup' );
 			if ( ! empty( $wpdb->last_error ) ) {
 				$message .= ' ' . $wpdb->last_error;
 			}
@@ -125,7 +125,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		);
 
 		Maca_Backup_Pro_Logger::info(
-			__( 'Backup started.', 'maca-backup-pro' ),
+			__( 'Backup started.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'job_id'    => $job_id,
@@ -183,7 +183,7 @@ class Maca_Backup_Pro_Backup_Engine {
 	 */
 	public static function can_start( string $type, array $options = array() ) {
 		if ( Maca_Backup_Pro_Jobs_Table::active( 'restore' ) ) {
-			return new WP_Error( 'busy', __( 'A restore is already running.', 'maca-backup-pro' ) );
+			return new WP_Error( 'busy', __( 'A restore is already running.', 'maca-backup' ) );
 		}
 
 		$type  = sanitize_key( $type );
@@ -192,7 +192,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$active = Maca_Backup_Pro_Jobs_Table::active_all( 'backup' );
 
 		if ( count( $active ) >= 2 ) {
-			return new WP_Error( 'busy', __( 'Two backups are already running. Wait for one to finish.', 'maca-backup-pro' ) );
+			return new WP_Error( 'busy', __( 'Two backups are already running. Wait for one to finish.', 'maca-backup' ) );
 		}
 
 		foreach ( $active as $job ) {
@@ -212,7 +212,7 @@ class Maca_Backup_Pro_Backup_Engine {
 						'busy',
 						sprintf(
 							/* translators: %s: running backup type */
-							__( 'A database backup is already running (%s). Wait for it to finish, or run a files-only backup.', 'maca-backup-pro' ),
+							__( 'A database backup is already running (%s). Wait for it to finish, or run a files-only backup.', 'maca-backup' ),
 							$running
 						)
 					);
@@ -222,7 +222,7 @@ class Maca_Backup_Pro_Backup_Engine {
 						'busy',
 						sprintf(
 							/* translators: %s: running backup type */
-							__( 'A file backup is already running (%s). Wait for it to finish, or run a database-only backup.', 'maca-backup-pro' ),
+							__( 'A file backup is already running (%s). Wait for it to finish, or run a database-only backup.', 'maca-backup' ),
 							$running
 						)
 					);
@@ -231,7 +231,7 @@ class Maca_Backup_Pro_Backup_Engine {
 					'busy',
 					sprintf(
 						/* translators: %s: running backup type */
-						__( 'Cannot start this backup while “%s” is running (overlapping database/files work).', 'maca-backup-pro' ),
+						__( 'Cannot start this backup while “%s” is running (overlapping database/files work).', 'maca-backup' ),
 						$running
 					)
 				);
@@ -289,7 +289,7 @@ class Maca_Backup_Pro_Backup_Engine {
 
 			$state = json_decode( (string) $job->state, true );
 			if ( ! is_array( $state ) ) {
-				return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid job state.', 'maca-backup-pro' ) );
+				return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid job state.', 'maca-backup' ) );
 			}
 
 			// Migrate oversized in-state file lists (legacy / stuck jobs) onto disk once.
@@ -432,7 +432,7 @@ class Maca_Backup_Pro_Backup_Engine {
 			$state['step'] = 'files';
 		}
 
-		$state['current_item']  = __( 'Scan complete', 'maca-backup-pro' );
+		$state['current_item']  = __( 'Scan complete', 'maca-backup' );
 		$state['current_batch'] = array();
 		$state['processed']     = 0;
 		$state['total']         = (int) ( $state['file_count'] ?? 0 );
@@ -615,7 +615,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$zip    = new Maca_Backup_Pro_Zip_Builder( (string) $state['work_dir'], $max_mb );
 
 		if ( ! $zip->open() ) {
-			throw new RuntimeException( esc_html__( 'ZipArchive is required for file backups.', 'maca-backup-pro' ) );
+			throw new RuntimeException( esc_html__( 'ZipArchive is required for file backups.', 'maca-backup' ) );
 		}
 
 		$last      = '';
@@ -637,7 +637,7 @@ class Maca_Backup_Pro_Backup_Engine {
 					throw new RuntimeException(
 						sprintf(
 							/* translators: %s: relative file path */
-							esc_html__( 'Could not add file to backup archive: %s', 'maca-backup-pro' ),
+							esc_html__( 'Could not add file to backup archive: %s', 'maca-backup' ),
 							esc_html( $rel )
 						)
 					);
@@ -937,7 +937,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$provider_id = (string) ( $state['storage'] ?? 'local' );
 		$provider    = Maca_Backup_Pro_Storage_Registry::instance()->get( $provider_id );
 		if ( ! $provider ) {
-			throw new RuntimeException( esc_html__( 'Storage provider not found.', 'maca-backup-pro' ) );
+			throw new RuntimeException( esc_html__( 'Storage provider not found.', 'maca-backup' ) );
 		}
 
 		$remote_paths = array();
@@ -972,7 +972,7 @@ class Maca_Backup_Pro_Backup_Engine {
 	private static function step_verify( array $state, int $backup_id ): array {
 		$ok = Maca_Backup_Pro_Verifier::verify_parts( $state['parts'] ?? array(), $state['checksums'] ?? array() );
 		if ( ! $ok ) {
-			throw new RuntimeException( esc_html__( 'Backup verification failed (checksum mismatch).', 'maca-backup-pro' ) );
+			throw new RuntimeException( esc_html__( 'Backup verification failed (checksum mismatch).', 'maca-backup' ) );
 		}
 		$state['step'] = 'done';
 		unset( $backup_id );
@@ -1072,7 +1072,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$saved = $backup_id > 0 ? Maca_Backup_Pro_Backups_Table::get( $backup_id ) : null;
 		if ( ! $saved || 'completed' !== (string) $saved->status ) {
 			Maca_Backup_Pro_Logger::error(
-				__( 'Backup finished but history row could not be saved.', 'maca-backup-pro' ),
+				__( 'Backup finished but history row could not be saved.', 'maca-backup' ),
 				array(
 					'backup_id' => $backup_id,
 					'job_id'    => $job_id,
@@ -1081,7 +1081,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		}
 
 		Maca_Backup_Pro_Logger::success(
-			__( 'Backup completed.', 'maca-backup-pro' ),
+			__( 'Backup completed.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'job_id'    => $job_id,
@@ -1127,11 +1127,11 @@ class Maca_Backup_Pro_Backup_Engine {
 	public static function cancel( ?int $job_id = null ) {
 		$job = $job_id ? Maca_Backup_Pro_Jobs_Table::get( $job_id ) : Maca_Backup_Pro_Jobs_Table::active( 'backup' );
 		if ( ! $job || 'backup' !== (string) $job->job_type ) {
-			return new WP_Error( 'missing', __( 'No running backup to stop.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'No running backup to stop.', 'maca-backup' ) );
 		}
 
 		if ( ! in_array( (string) $job->status, array( 'pending', 'running' ), true ) ) {
-			return new WP_Error( 'not_running', __( 'That backup is not running.', 'maca-backup-pro' ) );
+			return new WP_Error( 'not_running', __( 'That backup is not running.', 'maca-backup' ) );
 		}
 
 		$state = json_decode( (string) $job->state, true );
@@ -1139,7 +1139,7 @@ class Maca_Backup_Pro_Backup_Engine {
 			$state = array();
 		}
 
-		$message = __( 'Backup cancelled by user.', 'maca-backup-pro' );
+		$message = __( 'Backup cancelled by user.', 'maca-backup' );
 
 		Maca_Backup_Pro_Jobs_Table::update(
 			(int) $job->id,
@@ -1196,18 +1196,22 @@ class Maca_Backup_Pro_Backup_Engine {
 
 		$done = in_array( (string) $job->status, array( 'completed', 'failed', 'cancelled' ), true );
 
+		$schedule_id = sanitize_key( (string) ( $state['schedule_id'] ?? '' ) );
+
 		return array_merge(
 			array(
-				'done'      => $done,
-				'progress'  => (int) $job->progress,
-				'step'      => (string) $job->step,
-				'status'    => (string) $job->status,
-				'job_id'    => (int) $job->id,
-				'backup_id' => (int) $job->backup_id,
-				'job_type'  => (string) $job->job_type,
-				'error'     => (string) ( $job->error_message ?? '' ),
-				'started'   => (int) ( $state['started'] ?? 0 ),
-				'elapsed'   => max( 0, time() - (int) ( $state['started'] ?? time() ) ),
+				'done'        => $done,
+				'progress'    => (int) $job->progress,
+				'step'        => (string) $job->step,
+				'status'      => (string) $job->status,
+				'job_id'      => (int) $job->id,
+				'backup_id'   => (int) $job->backup_id,
+				'job_type'    => (string) $job->job_type,
+				'error'       => (string) ( $job->error_message ?? '' ),
+				'started'     => (int) ( $state['started'] ?? 0 ),
+				'elapsed'     => max( 0, time() - (int) ( $state['started'] ?? time() ) ),
+				'schedule_id' => $schedule_id,
+				'scheduled'   => '' !== $schedule_id,
 			),
 			self::progress_meta( $state )
 		);
@@ -1344,19 +1348,19 @@ class Maca_Backup_Pro_Backup_Engine {
 		);
 
 		if ( 'scan' === $step ) {
-			$meta['current_item'] = __( 'Scanning files…', 'maca-backup-pro' );
+			$meta['current_item'] = __( 'Scanning files…', 'maca-backup' );
 		} elseif ( 'manifest' === $step ) {
-			$meta['current_item'] = __( 'Writing manifest…', 'maca-backup-pro' );
+			$meta['current_item'] = __( 'Writing manifest…', 'maca-backup' );
 		} elseif ( 'upload' === $step ) {
-			$meta['current_item'] = __( 'Uploading backup…', 'maca-backup-pro' );
+			$meta['current_item'] = __( 'Uploading backup…', 'maca-backup' );
 		} elseif ( 'verify' === $step ) {
-			$meta['current_item'] = __( 'Verifying checksums…', 'maca-backup-pro' );
+			$meta['current_item'] = __( 'Verifying checksums…', 'maca-backup' );
 		} elseif ( 'database' === $step && '' === $meta['current_item'] ) {
-			$meta['current_item'] = __( 'Exporting database…', 'maca-backup-pro' );
+			$meta['current_item'] = __( 'Exporting database…', 'maca-backup' );
 			$meta['total']        = count( $state['tables'] ?? array() );
 			$meta['processed']    = (int) ( $state['table_offset'] ?? 0 );
 		} elseif ( 'files' === $step && '' === $meta['current_item'] ) {
-			$meta['current_item'] = __( 'Packing files…', 'maca-backup-pro' );
+			$meta['current_item'] = __( 'Packing files…', 'maca-backup' );
 			$meta['total']        = (int) ( $state['file_count'] ?? 0 );
 			if ( $meta['total'] < 1 && ! empty( $state['files'] ) && is_array( $state['files'] ) ) {
 				$meta['total'] = count( $state['files'] );

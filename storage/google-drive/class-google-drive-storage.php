@@ -19,7 +19,7 @@ class Maca_Backup_Pro_Google_Drive_Storage extends Maca_Backup_Pro_Abstract_Stor
 
 	/** @inheritdoc */
 	public function label(): string {
-		return __( 'Google Drive', 'maca-backup-pro' );
+		return __( 'Google Drive', 'maca-backup' );
 	}
 
 	/** @inheritdoc */
@@ -54,7 +54,7 @@ class Maca_Backup_Pro_Google_Drive_Storage extends Maca_Backup_Pro_Abstract_Stor
 
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		if ( empty( $data['access_token'] ) ) {
-			return new WP_Error( 'token', __( 'Google Drive token refresh failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'token', __( 'Google Drive token refresh failed.', 'maca-backup' ) );
 		}
 
 		return (string) $data['access_token'];
@@ -99,7 +99,7 @@ class Maca_Backup_Pro_Google_Drive_Storage extends Maca_Backup_Pro_Abstract_Stor
 
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		if ( empty( $data['id'] ) ) {
-			return new WP_Error( 'upload', __( 'Google Drive upload failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'upload', __( 'Google Drive upload failed.', 'maca-backup' ) );
 		}
 
 		return (string) $data['id'];
@@ -126,7 +126,7 @@ class Maca_Backup_Pro_Google_Drive_Storage extends Maca_Backup_Pro_Abstract_Stor
 
 		$code = wp_remote_retrieve_response_code( $response );
 		if ( $code < 200 || $code >= 300 ) {
-			return new WP_Error( 'download', __( 'Google Drive download failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'download', __( 'Google Drive download failed.', 'maca-backup' ) );
 		}
 
 		$dir = dirname( $local_path );

@@ -23,7 +23,7 @@ class Maca_Backup_Pro_Restore_Engine {
 	public static function start( int $backup_id, string $scope = 'full', array $options = array() ) {
 		$backup = Maca_Backup_Pro_Backups_Table::get( $backup_id );
 		if ( ! $backup ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
 		$verified = Maca_Backup_Pro_Verifier::verify_backup( $backup );
@@ -33,10 +33,10 @@ class Maca_Backup_Pro_Restore_Engine {
 
 		$active = Maca_Backup_Pro_Jobs_Table::active( 'restore' );
 		if ( $active ) {
-			return new WP_Error( 'busy', __( 'A restore is already running.', 'maca-backup-pro' ) );
+			return new WP_Error( 'busy', __( 'A restore is already running.', 'maca-backup' ) );
 		}
 		if ( Maca_Backup_Pro_Jobs_Table::active( 'backup' ) ) {
-			return new WP_Error( 'busy', __( 'Wait for running backups to finish before restoring.', 'maca-backup-pro' ) );
+			return new WP_Error( 'busy', __( 'Wait for running backups to finish before restoring.', 'maca-backup' ) );
 		}
 
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
@@ -65,7 +65,7 @@ class Maca_Backup_Pro_Restore_Engine {
 		);
 
 		if ( 'path' === sanitize_key( $scope ) && empty( $selected ) ) {
-			return new WP_Error( 'paths', __( 'Select at least one file or folder to restore.', 'maca-backup-pro' ) );
+			return new WP_Error( 'paths', __( 'Select at least one file or folder to restore.', 'maca-backup' ) );
 		}
 
 		$extract_root = isset( $options['extract_root'] ) ? (string) $options['extract_root'] : '';
@@ -107,7 +107,7 @@ class Maca_Backup_Pro_Restore_Engine {
 		);
 
 		Maca_Backup_Pro_Logger::info(
-			__( 'Restore started.', 'maca-backup-pro' ),
+			__( 'Restore started.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'job_id'    => $job_id,
@@ -160,7 +160,7 @@ class Maca_Backup_Pro_Restore_Engine {
 
 			$state = json_decode( (string) $job->state, true );
 			if ( ! is_array( $state ) ) {
-				return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid restore state.', 'maca-backup-pro' ) );
+				return self::fail( (int) $job->id, (int) $job->backup_id, __( 'Invalid restore state.', 'maca-backup' ) );
 			}
 
 			try {
@@ -233,7 +233,7 @@ class Maca_Backup_Pro_Restore_Engine {
 	public static function browse( int $backup_id, string $prefix = '' ) {
 		$backup = Maca_Backup_Pro_Backups_Table::get( $backup_id );
 		if ( ! $backup ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
@@ -332,7 +332,7 @@ class Maca_Backup_Pro_Restore_Engine {
 		foreach ( $archives as $archive ) {
 			$zip = new ZipArchive();
 			if ( true !== $zip->open( $archive ) ) {
-				throw new RuntimeException( esc_html__( 'Could not open backup for restore.', 'maca-backup-pro' ) );
+				throw new RuntimeException( esc_html__( 'Could not open backup for restore.', 'maca-backup' ) );
 			}
 
 			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
@@ -340,23 +340,43 @@ class Maca_Backup_Pro_Restore_Engine {
 				if ( false === $name || str_ends_with( $name, '/' ) ) {
 					continue;
 				}
-				if ( in_array( $name, array( 'manifest.json', 'files.json' ), true ) ) {
+				$safe = Maca_Backup_Pro_Security::safe_zip_entry_path( $name );
+				if ( false === $safe ) {
 					continue;
 				}
-				if ( 'database.sql' === $name ) {
+				if ( in_array( $safe, array( 'manifest.json', 'files.json' ), true ) ) {
 					continue;
 				}
-				if ( self::scope_allows_file( $scope, $name, $selected ) ) {
-					$files[]           = $name;
-					$file_map[ $name ] = $archive;
+				if ( 'database.sql' === $safe ) {
+					continue;
+				}
+				if ( self::scope_allows_file( $scope, $safe, $selected ) ) {
+					$files[]           = $safe;
+					$file_map[ $safe ] = $archive;
 				}
 			}
 
 			if ( $want_db && false !== $zip->locateName( 'database.sql' ) ) {
 				$extract = (string) $state['extract_dir'];
 				wp_mkdir_p( $extract );
-				$zip->extractTo( $extract, array( 'database.sql' ) );
-				$state['sql_path'] = $extract . '/database.sql';
+				$sql_dest = Maca_Backup_Pro_Security::path_under_directory( $extract, 'database.sql' );
+				if ( false !== $sql_dest ) {
+					$stream = $zip->getStream( 'database.sql' );
+					if ( $stream ) {
+						$out = fopen( $sql_dest, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+						if ( $out ) {
+							while ( ! feof( $stream ) ) {
+								$buf = fread( $stream, 8192 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
+								if ( false !== $buf ) {
+									fwrite( $out, $buf ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+								}
+							}
+							fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+							$state['sql_path'] = $sql_dest;
+						}
+						fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+					}
+				}
 			}
 
 			$zip->close();
@@ -460,23 +480,34 @@ class Maca_Backup_Pro_Restore_Engine {
 		$open     = array();
 
 		foreach ( $batch as $name ) {
-			$archive = $file_map[ $name ] ?? ( (array) ( $state['archives'] ?? array( $state['archive'] ?? '' ) ) )[0];
+			$safe = Maca_Backup_Pro_Security::safe_zip_entry_path( (string) $name );
+			if ( false === $safe ) {
+				continue;
+			}
+
+			$archive = $file_map[ $name ] ?? $file_map[ $safe ] ?? ( (array) ( $state['archives'] ?? array( $state['archive'] ?? '' ) ) )[0];
 			if ( ! isset( $open[ $archive ] ) ) {
 				$zip = new ZipArchive();
 				if ( true !== $zip->open( $archive ) ) {
-					throw new RuntimeException( esc_html__( 'Could not open archive during file restore.', 'maca-backup-pro' ) );
+					throw new RuntimeException( esc_html__( 'Could not open archive during file restore.', 'maca-backup' ) );
 				}
 				$open[ $archive ] = $zip;
 			}
 			$zip = $open[ $archive ];
 
-			$dest = $root . $name;
-			$dir  = dirname( $dest );
+			$dest = Maca_Backup_Pro_Security::path_under_directory( untrailingslashit( $root ), $safe );
+			if ( false === $dest ) {
+				continue;
+			}
+			$dir = dirname( $dest );
 			if ( ! is_dir( $dir ) ) {
 				wp_mkdir_p( $dir );
 			}
 
 			$stream = $zip->getStream( $name );
+			if ( ! $stream ) {
+				$stream = $zip->getStream( $safe );
+			}
 			if ( ! $stream ) {
 				continue;
 			}
@@ -569,7 +600,7 @@ class Maca_Backup_Pro_Restore_Engine {
 	public static function preview( int $backup_id, string $scope = 'full', array $selected = array(), bool $database = false ) {
 		$backup = Maca_Backup_Pro_Backups_Table::get( $backup_id );
 		if ( ! $backup ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
@@ -681,7 +712,7 @@ class Maca_Backup_Pro_Restore_Engine {
 		}
 
 		Maca_Backup_Pro_Logger::success(
-			__( 'Restore completed.', 'maca-backup-pro' ),
+			__( 'Restore completed.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'job_id'    => $job_id,
@@ -715,11 +746,11 @@ class Maca_Backup_Pro_Restore_Engine {
 	public static function cancel( ?int $job_id = null ) {
 		$job = $job_id ? Maca_Backup_Pro_Jobs_Table::get( $job_id ) : Maca_Backup_Pro_Jobs_Table::active( 'restore' );
 		if ( ! $job || 'restore' !== (string) $job->job_type ) {
-			return new WP_Error( 'missing', __( 'No running restore to stop.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'No running restore to stop.', 'maca-backup' ) );
 		}
 
 		if ( ! in_array( (string) $job->status, array( 'pending', 'running' ), true ) ) {
-			return new WP_Error( 'not_running', __( 'That restore is not running.', 'maca-backup-pro' ) );
+			return new WP_Error( 'not_running', __( 'That restore is not running.', 'maca-backup' ) );
 		}
 
 		$state = json_decode( (string) $job->state, true );
@@ -727,7 +758,7 @@ class Maca_Backup_Pro_Restore_Engine {
 			$state = array();
 		}
 
-		$message = __( 'Restore cancelled by user.', 'maca-backup-pro' );
+		$message = __( 'Restore cancelled by user.', 'maca-backup' );
 
 		Maca_Backup_Pro_Jobs_Table::update(
 			(int) $job->id,
@@ -778,9 +809,9 @@ class Maca_Backup_Pro_Restore_Engine {
 
 		$detail = '';
 		if ( 'prepare' === $step ) {
-			$detail = __( 'Preparing restore…', 'maca-backup-pro' );
+			$detail = __( 'Preparing restore…', 'maca-backup' );
 		} elseif ( 'database' === $step ) {
-			$detail = __( 'Restoring database…', 'maca-backup-pro' );
+			$detail = __( 'Restoring database…', 'maca-backup' );
 		} elseif ( 'files' === $step ) {
 			$files  = $state['files'] ?? array();
 			$offset = (int) ( $state['file_offset'] ?? 0 );
@@ -789,7 +820,7 @@ class Maca_Backup_Pro_Restore_Engine {
 			} elseif ( $offset > 0 && ! empty( $files[ $offset - 1 ] ) ) {
 				$detail = (string) $files[ $offset - 1 ];
 			} else {
-				$detail = __( 'Restoring files…', 'maca-backup-pro' );
+				$detail = __( 'Restoring files…', 'maca-backup' );
 			}
 		}
 

@@ -4,13 +4,14 @@
   Bygger en WordPress-kompatibel plugin-zip (forward slashes, inte backslash).
 
 .DESCRIPTION
-  - Zip skapas i repots root: maca-backup-x.y.z.zip (inte maca-backup-pro-*.zip)
+  - Zip skapas i repots root: maca-backup-x.y.z.zip
   - create-zip.ps1 ligger i repots root
-  - Höjer patch-version (x.y.z -> x.y.(z+1)) vid varje körning
-  - Mappen inuti zip heter alltid maca-backup-pro (PluginSlug; inte versionsnummer)
+  - Höjer patch-version (x.y.z -> x.y.(z+1)) vid varje körning (om inte -SkipVersionBump)
+  - -WordPressOrg: slug-mapp maca-backup (wp.org / Plugin Check). Annars maca-backup-pro.
   - Uppdaterar Version i maca-backup-pro.php före paketering
 
 .EXAMPLE
+  .\create-zip.ps1 -WordPressOrg -SkipVersionBump
   .\create-zip.ps1
   .\create-zip.ps1 -SkipVersionBump
   .\create-zip.ps1 -OutputPath .\maca-backup-1.0.1.zip
@@ -18,7 +19,7 @@
 [CmdletBinding()]
 param(
     [string] $OutputPath = '',
-    [string] $PluginSlug = 'maca-backup-pro',
+    [string] $PluginSlug = '',
     [string] $ZipBasename = 'maca-backup',
     [switch] $SkipVersionBump,
     # Default zip is wordpress.org–safe (no private updater). Use -IncludeMacaUpdater for maca.se builds.
@@ -27,6 +28,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($PluginSlug)) {
+    $PluginSlug = if ($WordPressOrg) { 'maca-backup' } else { 'maca-backup-pro' }
+}
 
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -131,12 +136,25 @@ $ExcludeDirs = @(
     'dist',
     'website',
     'logs',
-    '.wordpress-org'
+    '.wordpress-org',
+    'agent-transcripts',
+    'tests',
+    'bin'
 )
 
 $ExcludeFiles = @(
     '.gitignore',
+    '.gitattributes',
+    '.editorconfig',
     'create-zip.ps1',
+    'composer.json',
+    'composer.lock',
+    'package.json',
+    'package-lock.json',
+    'phpunit.xml',
+    'phpunit.xml.dist',
+    'phpcs.xml',
+    'phpcs.xml.dist',
     'README.md',
     'Thumbs.db',
     '.DS_Store'

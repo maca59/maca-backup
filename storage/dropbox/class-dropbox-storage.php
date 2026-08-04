@@ -19,7 +19,7 @@ class Maca_Backup_Pro_Dropbox_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 	/** @inheritdoc */
 	public function label(): string {
-		return __( 'Dropbox', 'maca-backup-pro' );
+		return __( 'Dropbox', 'maca-backup' );
 	}
 
 	/** @inheritdoc */
@@ -71,7 +71,7 @@ class Maca_Backup_Pro_Dropbox_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 		$code = wp_remote_retrieve_response_code( $response );
 		if ( $code < 200 || $code >= 300 ) {
-			return new WP_Error( 'upload', __( 'Dropbox upload failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'upload', __( 'Dropbox upload failed.', 'maca-backup' ) );
 		}
 
 		return $path;
@@ -97,7 +97,7 @@ class Maca_Backup_Pro_Dropbox_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 		$code = wp_remote_retrieve_response_code( $response );
 		if ( $code < 200 || $code >= 300 ) {
-			return new WP_Error( 'download', __( 'Dropbox download failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'download', __( 'Dropbox download failed.', 'maca-backup' ) );
 		}
 
 		$dir = dirname( $local_path );

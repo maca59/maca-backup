@@ -62,7 +62,7 @@ class Maca_Backup_Pro_Hub_Rest {
 		if ( '' === $stored ) {
 			return new WP_Error(
 				'maca_no_site_key',
-				__( 'No site key stored in WordPress (maca Sec Hub).', 'maca-backup-pro' ),
+				__( 'No site key stored in WordPress (maca Sec Hub).', 'maca-backup' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -71,7 +71,7 @@ class Maca_Backup_Pro_Hub_Rest {
 		if ( '' === $key ) {
 			return new WP_Error(
 				'maca_missing_key',
-				__( 'Site key is missing.', 'maca-backup-pro' ),
+				__( 'Site key is missing.', 'maca-backup' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -79,7 +79,7 @@ class Maca_Backup_Pro_Hub_Rest {
 		if ( ! hash_equals( $stored, $key ) ) {
 			return new WP_Error(
 				'maca_invalid_key',
-				__( 'Invalid site key.', 'maca-backup-pro' ),
+				__( 'Invalid site key.', 'maca-backup' ),
 				array( 'status' => 401 )
 			);
 		}

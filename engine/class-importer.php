@@ -20,7 +20,7 @@ class Maca_Backup_Pro_Importer {
 	 */
 	public static function from_upload( array $file ) {
 		if ( empty( $file['tmp_name'] ) || ! is_uploaded_file( (string) $file['tmp_name'] ) ) {
-			return new WP_Error( 'upload', __( 'No file was uploaded.', 'maca-backup-pro' ) );
+			return new WP_Error( 'upload', __( 'No file was uploaded.', 'maca-backup' ) );
 		}
 
 		$error = (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE );
@@ -44,13 +44,13 @@ class Maca_Backup_Pro_Importer {
 	 */
 	public static function from_path( string $source, string $origin_name = '', bool $is_upload = false ) {
 		if ( ! is_readable( $source ) ) {
-			return new WP_Error( 'readable', __( 'Uploaded file is not readable.', 'maca-backup-pro' ) );
+			return new WP_Error( 'readable', __( 'Uploaded file is not readable.', 'maca-backup' ) );
 		}
 
 		$key = 'mbp_import_' . gmdate( 'Ymd_His' ) . '_' . wp_generate_password( 6, false, false );
 		$dir = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . $key;
 		if ( ! wp_mkdir_p( $dir ) ) {
-			return new WP_Error( 'mkdir', __( 'Could not create import directory.', 'maca-backup-pro' ) );
+			return new WP_Error( 'mkdir', __( 'Could not create import directory.', 'maca-backup' ) );
 		}
 
 		$origin_name = '' !== $origin_name ? $origin_name : basename( $source );
@@ -71,7 +71,7 @@ class Maca_Backup_Pro_Importer {
 
 		if ( ! $moved || ! is_readable( $dest ) ) {
 			self::rrmdir( $dir );
-			return new WP_Error( 'move', __( 'Could not store the uploaded backup.', 'maca-backup-pro' ) );
+			return new WP_Error( 'move', __( 'Could not store the uploaded backup.', 'maca-backup' ) );
 		}
 
 		$normalized = self::normalize_import_dir( $dir, $dest );
@@ -83,7 +83,7 @@ class Maca_Backup_Pro_Importer {
 		$parts = Maca_Backup_Pro_Verifier::discover_local_parts( $dir );
 		if ( empty( $parts ) ) {
 			self::rrmdir( $dir );
-			return new WP_Error( 'parts', __( 'No backup ZIP found in the upload.', 'maca-backup-pro' ) );
+			return new WP_Error( 'parts', __( 'No backup ZIP found in the upload.', 'maca-backup' ) );
 		}
 
 		$meta = self::read_archive_meta( $parts );
@@ -127,11 +127,11 @@ class Maca_Backup_Pro_Importer {
 
 		if ( $id < 1 ) {
 			self::rrmdir( $dir );
-			return new WP_Error( 'db', __( 'Could not register the imported backup.', 'maca-backup-pro' ) );
+			return new WP_Error( 'db', __( 'Could not register the imported backup.', 'maca-backup' ) );
 		}
 
 		Maca_Backup_Pro_Logger::success(
-			__( 'Backup imported.', 'maca-backup-pro' ),
+			__( 'Backup imported.', 'maca-backup' ),
 			array(
 				'backup_id' => $id,
 				'key'       => $key,
@@ -184,12 +184,12 @@ class Maca_Backup_Pro_Importer {
 		}
 
 		if ( ! class_exists( 'ZipArchive' ) ) {
-			return new WP_Error( 'zip', __( 'ZipArchive is required to import backups.', 'maca-backup-pro' ) );
+			return new WP_Error( 'zip', __( 'ZipArchive is required to import backups.', 'maca-backup' ) );
 		}
 
 		$zip = new ZipArchive();
 		if ( true !== $zip->open( $file ) ) {
-			return new WP_Error( 'zip', __( 'Could not open the uploaded ZIP.', 'maca-backup-pro' ) );
+			return new WP_Error( 'zip', __( 'Could not open the uploaded ZIP.', 'maca-backup' ) );
 		}
 
 		$names = array();
@@ -212,18 +212,44 @@ class Maca_Backup_Pro_Importer {
 		);
 
 		// Transfer package: contains one or more maca backup part archives.
+		// Stream each part to basename only — never extractTo() with archive-relative paths (Zip Slip).
 		if ( ! $has_manifest && ! empty( $inner_parts ) ) {
 			foreach ( $inner_parts as $inner ) {
-				$target = trailingslashit( $dir ) . basename( $inner );
-				if ( ! $zip->extractTo( $dir, $inner ) ) {
+				$safe_name = Maca_Backup_Pro_Security::safe_zip_entry_path( $inner );
+				if ( false === $safe_name ) {
 					$zip->close();
-					return new WP_Error( 'extract', __( 'Could not extract backup parts from the upload.', 'maca-backup-pro' ) );
+					return new WP_Error( 'extract', __( 'Could not extract backup parts from the upload.', 'maca-backup' ) );
 				}
-				$extracted = trailingslashit( $dir ) . $inner;
-				if ( is_readable( $extracted ) && $extracted !== $target ) {
-					wp_mkdir_p( dirname( $target ) );
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
-					rename( $extracted, $target );
+				$target = trailingslashit( $dir ) . basename( $safe_name );
+				$dest   = Maca_Backup_Pro_Security::path_under_directory( $dir, basename( $safe_name ) );
+				if ( false === $dest ) {
+					$zip->close();
+					return new WP_Error( 'extract', __( 'Could not extract backup parts from the upload.', 'maca-backup' ) );
+				}
+
+				$stream = $zip->getStream( $inner );
+				if ( ! $stream ) {
+					$zip->close();
+					return new WP_Error( 'extract', __( 'Could not extract backup parts from the upload.', 'maca-backup' ) );
+				}
+				$out = fopen( $dest, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+				if ( ! $out ) {
+					fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+					$zip->close();
+					return new WP_Error( 'extract', __( 'Could not extract backup parts from the upload.', 'maca-backup' ) );
+				}
+				while ( ! feof( $stream ) ) {
+					$buf = fread( $stream, 8192 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
+					if ( false !== $buf ) {
+						fwrite( $out, $buf ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+					}
+				}
+				fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+				fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+				if ( ! is_readable( $target ) ) {
+					$zip->close();
+					return new WP_Error( 'extract', __( 'Could not extract backup parts from the upload.', 'maca-backup' ) );
 				}
 			}
 			$zip->close();
@@ -245,7 +271,7 @@ class Maca_Backup_Pro_Importer {
 		$zip->close();
 		return new WP_Error(
 			'format',
-			__( 'Not a maca BackUp archive. Expected a backup ZIP (with manifest.json) or a transfer package of backup parts.', 'maca-backup-pro' )
+			__( 'Not a maca BackUp archive. Expected a backup ZIP (with manifest.json) or a transfer package of backup parts.', 'maca-backup' )
 		);
 	}
 
@@ -265,7 +291,7 @@ class Maca_Backup_Pro_Importer {
 				return $ready;
 			}
 			if ( ! class_exists( 'ZipArchive' ) ) {
-				return new WP_Error( 'zip', __( 'ZipArchive is required to import backups.', 'maca-backup-pro' ) );
+				return new WP_Error( 'zip', __( 'ZipArchive is required to import backups.', 'maca-backup' ) );
 			}
 			$zip = new ZipArchive();
 			if ( true !== $zip->open( $ready ) ) {
@@ -292,7 +318,7 @@ class Maca_Backup_Pro_Importer {
 		}
 
 		if ( empty( $manifest ) ) {
-			return new WP_Error( 'manifest', __( 'Backup manifest.json is missing — cannot import this file.', 'maca-backup-pro' ) );
+			return new WP_Error( 'manifest', __( 'Backup manifest.json is missing — cannot import this file.', 'maca-backup' ) );
 		}
 
 		$manifest['imported_at'] = gmdate( 'c' );
@@ -314,12 +340,12 @@ class Maca_Backup_Pro_Importer {
 		return match ( $code ) {
 			UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => sprintf(
 				/* translators: %s: max upload size */
-				__( 'File is too large. Server limit is %s. Try uploading parts separately or raise upload_max_filesize.', 'maca-backup-pro' ),
+				__( 'File is too large. Server limit is %s. Try uploading parts separately or raise upload_max_filesize.', 'maca-backup' ),
 				size_format( wp_max_upload_size() )
 			),
-			UPLOAD_ERR_PARTIAL => __( 'The upload was incomplete. Please try again.', 'maca-backup-pro' ),
-			UPLOAD_ERR_NO_FILE => __( 'No file was uploaded.', 'maca-backup-pro' ),
-			default            => __( 'Upload failed.', 'maca-backup-pro' ),
+			UPLOAD_ERR_PARTIAL => __( 'The upload was incomplete. Please try again.', 'maca-backup' ),
+			UPLOAD_ERR_NO_FILE => __( 'No file was uploaded.', 'maca-backup' ),
+			default            => __( 'Upload failed.', 'maca-backup' ),
 		};
 	}
 

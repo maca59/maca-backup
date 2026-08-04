@@ -19,7 +19,7 @@ class Maca_Backup_Pro_Local_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 	/** @inheritdoc */
 	public function label(): string {
-		return __( 'Local storage', 'maca-backup-pro' );
+		return __( 'Local storage', 'maca-backup' );
 	}
 
 	/** @inheritdoc */
@@ -43,7 +43,7 @@ class Maca_Backup_Pro_Local_Storage extends Maca_Backup_Pro_Abstract_Storage {
 		}
 
 		if ( ! copy( $local_path, $dest ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy
-			return new WP_Error( 'copy', __( 'Could not copy backup to local storage.', 'maca-backup-pro' ) );
+			return new WP_Error( 'copy', __( 'Could not copy backup to local storage.', 'maca-backup' ) );
 		}
 
 		return $dest;
@@ -52,14 +52,14 @@ class Maca_Backup_Pro_Local_Storage extends Maca_Backup_Pro_Abstract_Storage {
 	/** @inheritdoc */
 	public function download( string $remote_path, string $local_path ) {
 		if ( ! is_readable( $remote_path ) ) {
-			return new WP_Error( 'missing', __( 'Local backup file not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Local backup file not found.', 'maca-backup' ) );
 		}
 		$dir = dirname( $local_path );
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 		}
 		if ( ! copy( $remote_path, $local_path ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy
-			return new WP_Error( 'copy', __( 'Could not copy local backup.', 'maca-backup-pro' ) );
+			return new WP_Error( 'copy', __( 'Could not copy local backup.', 'maca-backup' ) );
 		}
 		return true;
 	}

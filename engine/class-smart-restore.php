@@ -21,7 +21,7 @@ class Maca_Backup_Pro_Smart_Restore {
 	public static function compare( int $backup_id ) {
 		$backup = Maca_Backup_Pro_Backups_Table::get( $backup_id );
 		if ( ! $backup ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
@@ -196,13 +196,13 @@ class Maca_Backup_Pro_Smart_Restore {
 	 */
 	public static function compare_backups( int $backup_id_a, int $backup_id_b ) {
 		if ( $backup_id_a < 1 || $backup_id_b < 1 || $backup_id_a === $backup_id_b ) {
-			return new WP_Error( 'invalid', __( 'Select two different backups to compare.', 'maca-backup-pro' ) );
+			return new WP_Error( 'invalid', __( 'Select two different backups to compare.', 'maca-backup' ) );
 		}
 
 		$a = Maca_Backup_Pro_Backups_Table::get( $backup_id_a );
 		$b = Maca_Backup_Pro_Backups_Table::get( $backup_id_b );
 		if ( ! $a || ! $b ) {
-			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup not found.', 'maca-backup' ) );
 		}
 
 		$files_a = self::backup_file_map( $a );
@@ -277,7 +277,7 @@ class Maca_Backup_Pro_Smart_Restore {
 
 		$verdict = '';
 		if ( empty( $only_a ) && empty( $only_b ) && empty( $mismatch ) ) {
-			$verdict = __( 'Same file set — archive sizes may still differ due to ZIP compression.', 'maca-backup-pro' );
+			$verdict = __( 'Same file set — archive sizes may still differ due to ZIP compression.', 'maca-backup' );
 		} elseif (
 			$bytes_a > 50 * MB_IN_BYTES
 			&& $bytes_b > 50 * MB_IN_BYTES
@@ -288,18 +288,18 @@ class Maca_Backup_Pro_Smart_Restore {
 		) {
 			// Same ~content, wildly different ZIP size: compression/bloat/incomplete pack.
 			if ( $ratio_a > 0.7 && $ratio_b < 0.35 ) {
-				$verdict = __( 'Same amount of file content, but A’s ZIP is almost uncompressed while B is far smaller. B may be incomplete inside the archive, or A may be bloated (duplicate ZIP entries / STORE). Prefer a new full backup after updating; do not trust size alone.', 'maca-backup-pro' );
+				$verdict = __( 'Same amount of file content, but A’s ZIP is almost uncompressed while B is far smaller. B may be incomplete inside the archive, or A may be bloated (duplicate ZIP entries / STORE). Prefer a new full backup after updating; do not trust size alone.', 'maca-backup' );
 			} elseif ( $ratio_b > 0.7 && $ratio_a < 0.35 ) {
-				$verdict = __( 'Same amount of file content, but B’s ZIP is almost uncompressed while A is far smaller. A may be incomplete inside the archive, or B may be bloated (duplicate ZIP entries / STORE). Prefer a new full backup after updating; do not trust size alone.', 'maca-backup-pro' );
+				$verdict = __( 'Same amount of file content, but B’s ZIP is almost uncompressed while A is far smaller. A may be incomplete inside the archive, or B may be bloated (duplicate ZIP entries / STORE). Prefer a new full backup after updating; do not trust size alone.', 'maca-backup' );
 			} else {
-				$verdict = __( 'File lists are similar but archive sizes differ a lot — likely ZIP packing/compression issue, not that the site grew overnight.', 'maca-backup-pro' );
+				$verdict = __( 'File lists are similar but archive sizes differ a lot — likely ZIP packing/compression issue, not that the site grew overnight.', 'maca-backup' );
 			}
 		} elseif ( $count_a > 0 && ( $count_b / $count_a ) >= 4 && count( $only_b ) > count( $only_a ) ) {
-			$verdict = __( 'Backup B contains far more files than A — A may be incomplete, or B may include extra paths (e.g. duplicated ZIP entries).', 'maca-backup-pro' );
+			$verdict = __( 'Backup B contains far more files than A — A may be incomplete, or B may include extra paths (e.g. duplicated ZIP entries).', 'maca-backup' );
 		} elseif ( $count_b > 0 && ( $count_a / max( 1, $count_b ) ) >= 4 && count( $only_a ) > count( $only_b ) ) {
-			$verdict = __( 'Backup A contains far more files than B — B may be incomplete.', 'maca-backup-pro' );
+			$verdict = __( 'Backup A contains far more files than B — B may be incomplete.', 'maca-backup' );
 		} else {
-			$verdict = __( 'Backups differ. Review paths only in one archive and size mismatches below.', 'maca-backup-pro' );
+			$verdict = __( 'Backups differ. Review paths only in one archive and size mismatches below.', 'maca-backup' );
 		}
 
 		$cap = 40;
@@ -420,7 +420,7 @@ class Maca_Backup_Pro_Smart_Restore {
 				'empty',
 				sprintf(
 					/* translators: %d: backup ID */
-					__( 'Could not read file list for backup #%d.', 'maca-backup-pro' ),
+					__( 'Could not read file list for backup #%d.', 'maca-backup' ),
 					(int) $backup->id
 				)
 			);
@@ -489,7 +489,7 @@ class Maca_Backup_Pro_Smart_Restore {
 		}
 
 		if ( empty( $files ) && ! $database ) {
-			return new WP_Error( 'empty', __( 'Select files or the database to restore.', 'maca-backup-pro' ) );
+			return new WP_Error( 'empty', __( 'Select files or the database to restore.', 'maca-backup' ) );
 		}
 
 		return Maca_Backup_Pro_Restore_Engine::start(
@@ -623,14 +623,14 @@ class Maca_Backup_Pro_Smart_Restore {
 		if ( false === $idx ) {
 			return array(
 				'included' => false,
-				'note'     => __( 'No database dump in this backup.', 'maca-backup-pro' ),
+				'note'     => __( 'No database dump in this backup.', 'maca-backup' ),
 			);
 		}
 		$stat = $zip->statIndex( $idx );
 		return array(
 			'included' => true,
 			'size'     => (int) ( $stat['size'] ?? 0 ),
-			'note'     => __( 'Database dump present. Table-level diff runs during restore preview.', 'maca-backup-pro' ),
+			'note'     => __( 'Database dump present. Table-level diff runs during restore preview.', 'maca-backup' ),
 		);
 	}
 }

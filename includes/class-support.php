@@ -78,7 +78,7 @@ class Maca_Backup_Pro_Support {
 		if ( '' === $subject || '' === $message || '' === $email || ! is_email( $email ) ) {
 			return new WP_Error(
 				'invalid_input',
-				__( 'Subject, message, and a valid email are required.', 'maca-backup-pro' )
+				__( 'Subject, message, and a valid email are required.', 'maca-backup' )
 			);
 		}
 
@@ -131,7 +131,7 @@ class Maca_Backup_Pro_Support {
 
 		$message_text = is_array( $data ) && ! empty( $data['message'] )
 			? (string) $data['message']
-			: __( 'Support request failed. Please try again or email support@maca.se.', 'maca-backup-pro' );
+			: __( 'Support request failed. Please try again or email support@maca.se.', 'maca-backup' );
 
 		return new WP_Error( 'support_failed', $message_text, array( 'status' => $code ) );
 	}
@@ -152,7 +152,7 @@ class Maca_Backup_Pro_Support {
 		if ( '' === $subject || '' === $message || '' === $email || ! is_email( $email ) ) {
 			return new WP_Error(
 				'invalid_input',
-				__( 'Subject, message, and a valid email are required.', 'maca-backup-pro' )
+				__( 'Subject, message, and a valid email are required.', 'maca-backup' )
 			);
 		}
 
@@ -164,27 +164,27 @@ class Maca_Backup_Pro_Support {
 		}
 
 		$lines = array(
-			__( 'New support request from maca BackUp', 'maca-backup-pro' ),
+			__( 'New support request from maca BackUp', 'maca-backup' ),
 			'',
 			sprintf(
 				/* translators: 1: sender name, 2: sender email */
-				__( 'From: %1$s <%2$s>', 'maca-backup-pro' ),
+				__( 'From: %1$s <%2$s>', 'maca-backup' ),
 				'' !== $name ? $name : $email,
 				$email
 			),
 			sprintf(
 				/* translators: %s: site URL */
-				__( 'Site: %s', 'maca-backup-pro' ),
+				__( 'Site: %s', 'maca-backup' ),
 				$site_url
 			),
 			'',
-			__( 'Message:', 'maca-backup-pro' ),
+			__( 'Message:', 'maca-backup' ),
 			$message,
 			'',
 			'---',
 			sprintf(
 				/* translators: %s: date and time */
-				__( 'Sent via maca BackUp support form at %s', 'maca-backup-pro' ),
+				__( 'Sent via maca BackUp support form at %s', 'maca-backup' ),
 				wp_date( 'Y-m-d H:i:s' )
 			),
 		);
@@ -197,7 +197,7 @@ class Maca_Backup_Pro_Support {
 		if ( ! wp_mail( $to, '[maca BackUp] ' . $subject, implode( "\n", $lines ), $headers ) ) {
 			return new WP_Error(
 				'email_failed',
-				__( 'Could not send support e-mail. Please contact support@maca.se directly.', 'maca-backup-pro' )
+				__( 'Could not send support e-mail. Please contact support@maca.se directly.', 'maca-backup' )
 			);
 		}
 

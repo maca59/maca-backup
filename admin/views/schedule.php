@@ -49,22 +49,22 @@ $tz      = wp_timezone();
 $tz_name = $tz->getName();
 
 $weekdays = array(
-	0 => __( 'Sunday', 'maca-backup-pro' ),
-	1 => __( 'Monday', 'maca-backup-pro' ),
-	2 => __( 'Tuesday', 'maca-backup-pro' ),
-	3 => __( 'Wednesday', 'maca-backup-pro' ),
-	4 => __( 'Thursday', 'maca-backup-pro' ),
-	5 => __( 'Friday', 'maca-backup-pro' ),
-	6 => __( 'Saturday', 'maca-backup-pro' ),
+	0 => __( 'Sunday', 'maca-backup' ),
+	1 => __( 'Monday', 'maca-backup' ),
+	2 => __( 'Tuesday', 'maca-backup' ),
+	3 => __( 'Wednesday', 'maca-backup' ),
+	4 => __( 'Thursday', 'maca-backup' ),
+	5 => __( 'Friday', 'maca-backup' ),
+	6 => __( 'Saturday', 'maca-backup' ),
 );
 
 $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 ?>
 <section class="maca-bp-panel">
 	<div class="maca-bp-panel__head">
-		<h2><?php esc_html_e( 'Scheduled backups', 'maca-backup-pro' ); ?></h2>
+		<h2><?php esc_html_e( 'Scheduled backups', 'maca-backup' ); ?></h2>
 		<?php if ( $is_edit ) : ?>
-			<a class="button" href="<?php echo esc_url( $schedule_url ); ?>"><?php esc_html_e( 'Add new', 'maca-backup-pro' ); ?></a>
+			<a class="button" href="<?php echo esc_url( $schedule_url ); ?>"><?php esc_html_e( 'Add new', 'maca-backup' ); ?></a>
 		<?php endif; ?>
 	</div>
 	<?php
@@ -78,7 +78,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 		echo esc_html(
 			sprintf(
 				/* translators: %s: WordPress site timezone name or UTC offset */
-				__( 'Times below are local wall-clock time (%s). You can create several schedules and edit them anytime.', 'maca-backup-pro' ),
+				__( 'Times below are local wall-clock time (%s). You can create several schedules and edit them anytime.', 'maca-backup' ),
 				$tz_label
 			)
 		);
@@ -86,19 +86,19 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 	</p>
 
 	<?php if ( empty( $schedules ) ) : ?>
-		<p class="maca-bp-muted"><?php esc_html_e( 'No schedules yet. Create one below.', 'maca-backup-pro' ); ?></p>
+		<p class="maca-bp-muted"><?php esc_html_e( 'No schedules yet. Create one below.', 'maca-backup' ); ?></p>
 	<?php else : ?>
 		<table class="widefat striped maca-bp-table maca-bp-schedule-table">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Name', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Frequency', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Time', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Type', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Email', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Next run', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Status', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Actions', 'maca-backup-pro' ); ?></th>
+					<th><?php esc_html_e( 'Name', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Frequency', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Time', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Type', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Email', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Next run', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Status', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Actions', 'maca-backup' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -113,7 +113,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						<td>
 							<span class="maca-bp-schedule-time"><?php echo esc_html( $local_time ); ?></span>
 							<?php if ( 'hourly' !== (string) ( $row['frequency'] ?? '' ) && 'custom' !== (string) ( $row['frequency'] ?? '' ) ) : ?>
-								<span class="maca-bp-muted"><?php esc_html_e( 'local', 'maca-backup-pro' ); ?></span>
+								<span class="maca-bp-muted"><?php esc_html_e( 'local', 'maca-backup' ); ?></span>
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( (string) $row['backup_type'] ); ?></td>
@@ -127,23 +127,23 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						</td>
 						<td>
 							<span class="maca-bp-pill maca-bp-pill--<?php echo ! empty( $row['enabled'] ) ? 'completed' : 'cancelled'; ?>">
-								<?php echo ! empty( $row['enabled'] ) ? esc_html__( 'Enabled', 'maca-backup-pro' ) : esc_html__( 'Disabled', 'maca-backup-pro' ); ?>
+								<?php echo ! empty( $row['enabled'] ) ? esc_html__( 'Enabled', 'maca-backup' ) : esc_html__( 'Disabled', 'maca-backup' ); ?>
 							</span>
 						</td>
 						<td class="maca-bp-row-actions">
-							<a class="button button-small" href="<?php echo esc_url( add_query_arg( 'edit', (string) $row['id'], $schedule_url ) ); ?>"><?php esc_html_e( 'Edit', 'maca-backup-pro' ); ?></a>
+							<a class="button button-small" href="<?php echo esc_url( add_query_arg( 'edit', (string) $row['id'], $schedule_url ) ); ?>"><?php esc_html_e( 'Edit', 'maca-backup' ); ?></a>
 							<form method="post" class="maca-bp-inline-form">
 								<?php wp_nonce_field( Maca_Backup_Pro_Security::NONCE_ACTION ); ?>
 								<input type="hidden" name="maca_backup_pro_action" value="toggle_schedule" />
 								<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $row['id'] ); ?>" />
 								<input type="hidden" name="schedule_enabled" value="<?php echo empty( $row['enabled'] ) ? '1' : '0'; ?>" />
-								<button type="submit" class="button button-small"><?php echo empty( $row['enabled'] ) ? esc_html__( 'Enable', 'maca-backup-pro' ) : esc_html__( 'Disable', 'maca-backup-pro' ); ?></button>
+								<button type="submit" class="button button-small"><?php echo empty( $row['enabled'] ) ? esc_html__( 'Enable', 'maca-backup' ) : esc_html__( 'Disable', 'maca-backup' ); ?></button>
 							</form>
-							<form method="post" class="maca-bp-inline-form" onsubmit="return confirm('<?php echo esc_js( __( 'Delete this schedule?', 'maca-backup-pro' ) ); ?>');">
+							<form method="post" class="maca-bp-inline-form" onsubmit="return confirm('<?php echo esc_js( __( 'Delete this schedule?', 'maca-backup' ) ); ?>');">
 								<?php wp_nonce_field( Maca_Backup_Pro_Security::NONCE_ACTION ); ?>
 								<input type="hidden" name="maca_backup_pro_action" value="delete_schedule" />
 								<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $row['id'] ); ?>" />
-								<button type="submit" class="button button-small button-link-delete"><?php esc_html_e( 'Delete', 'maca-backup-pro' ); ?></button>
+								<button type="submit" class="button button-small button-link-delete"><?php esc_html_e( 'Delete', 'maca-backup' ); ?></button>
 							</form>
 						</td>
 					</tr>
@@ -154,10 +154,10 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 </section>
 
 <section class="maca-bp-panel<?php echo $from_onboarding ? ' maca-bp-panel--onboarding' : ''; ?>" id="maca-bp-schedule-editor">
-	<h2><?php echo $is_edit ? esc_html__( 'Edit schedule', 'maca-backup-pro' ) : esc_html__( 'Add schedule', 'maca-backup-pro' ); ?></h2>
+	<h2><?php echo $is_edit ? esc_html__( 'Edit schedule', 'maca-backup' ) : esc_html__( 'Add schedule', 'maca-backup' ); ?></h2>
 	<?php if ( $from_onboarding && ! $is_edit ) : ?>
 		<p class="maca-bp-onboarding-tip">
-			<?php esc_html_e( 'Create a schedule here anytime. You can also set one up from the dashboard wizard on first run.', 'maca-backup-pro' ); ?>
+			<?php esc_html_e( 'Create a schedule here anytime. You can also set one up from the dashboard wizard on first run.', 'maca-backup' ); ?>
 		</p>
 	<?php endif; ?>
 
@@ -169,24 +169,24 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 		<div class="maca-bp-schedule">
 			<div class="maca-bp-schedule__meta maca-bp-schedule__meta--top">
 				<label class="maca-bp-field">
-					<span><?php esc_html_e( 'Name', 'maca-backup-pro' ); ?></span>
-					<input type="text" name="schedule_label" value="<?php echo esc_attr( $label ); ?>" placeholder="<?php esc_attr_e( 'e.g. Nightly full backup', 'maca-backup-pro' ); ?>" />
+					<span><?php esc_html_e( 'Name', 'maca-backup' ); ?></span>
+					<input type="text" name="schedule_label" value="<?php echo esc_attr( $label ); ?>" placeholder="<?php esc_attr_e( 'e.g. Nightly full backup', 'maca-backup' ); ?>" />
 				</label>
 				<label class="maca-bp-check maca-bp-schedule__enabled">
 					<input type="checkbox" name="schedule_enabled" value="1" <?php checked( $enabled ); ?> />
-					<?php esc_html_e( 'Enabled', 'maca-backup-pro' ); ?>
+					<?php esc_html_e( 'Enabled', 'maca-backup' ); ?>
 				</label>
 			</div>
 
-			<div class="maca-bp-schedule__freqs" role="radiogroup" aria-label="<?php esc_attr_e( 'Frequency', 'maca-backup-pro' ); ?>">
+			<div class="maca-bp-schedule__freqs" role="radiogroup" aria-label="<?php esc_attr_e( 'Frequency', 'maca-backup' ); ?>">
 				<?php
 				$freqs = array(
-					'hourly'      => array( __( 'Hourly', 'maca-backup-pro' ), __( 'Every hour at :MM', 'maca-backup-pro' ) ),
-					'every_hours' => array( __( 'Every N hours', 'maca-backup-pro' ), __( 'e.g. every 4 hours', 'maca-backup-pro' ) ),
-					'daily'       => array( __( 'Daily', 'maca-backup-pro' ), __( 'Once per day', 'maca-backup-pro' ) ),
-					'weekly'      => array( __( 'Weekly', 'maca-backup-pro' ), __( 'Once per week', 'maca-backup-pro' ) ),
-					'monthly'     => array( __( 'Monthly', 'maca-backup-pro' ), __( 'Once per month', 'maca-backup-pro' ) ),
-					'custom'      => array( __( 'Custom', 'maca-backup-pro' ), __( 'Advanced cron', 'maca-backup-pro' ) ),
+					'hourly'      => array( __( 'Hourly', 'maca-backup' ), __( 'Every hour at :MM', 'maca-backup' ) ),
+					'every_hours' => array( __( 'Every N hours', 'maca-backup' ), __( 'e.g. every 4 hours', 'maca-backup' ) ),
+					'daily'       => array( __( 'Daily', 'maca-backup' ), __( 'Once per day', 'maca-backup' ) ),
+					'weekly'      => array( __( 'Weekly', 'maca-backup' ), __( 'Once per week', 'maca-backup' ) ),
+					'monthly'     => array( __( 'Monthly', 'maca-backup' ), __( 'Once per month', 'maca-backup' ) ),
+					'custom'      => array( __( 'Custom', 'maca-backup' ), __( 'Advanced cron', 'maca-backup' ) ),
 				);
 				foreach ( $freqs as $value => $meta ) :
 					?>
@@ -199,25 +199,25 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 			</div>
 
 			<div class="maca-bp-schedule__box" id="maca-bp-schedule-time-box" <?php echo 'custom' === $freq ? 'hidden' : ''; ?>
-				data-title-hourly="<?php echo esc_attr__( 'Minute past each hour (local)', 'maca-backup-pro' ); ?>"
-				data-title-every="<?php echo esc_attr__( 'Start time (local)', 'maca-backup-pro' ); ?>"
-				data-title-default="<?php echo esc_attr__( 'Run time (local)', 'maca-backup-pro' ); ?>"
-				data-preview-hourly="<?php echo esc_attr__( 'Runs every hour at', 'maca-backup-pro' ); ?>"
-				data-preview-every="<?php echo esc_attr__( 'Repeats from', 'maca-backup-pro' ); ?>"
-				data-preview-default="<?php echo esc_attr( sprintf( /* translators: %s: timezone */ __( 'Local (%s)', 'maca-backup-pro' ), $tz_label ) ); ?>">
+				data-title-hourly="<?php echo esc_attr__( 'Minute past each hour (local)', 'maca-backup' ); ?>"
+				data-title-every="<?php echo esc_attr__( 'Start time (local)', 'maca-backup' ); ?>"
+				data-title-default="<?php echo esc_attr__( 'Run time (local)', 'maca-backup' ); ?>"
+				data-preview-hourly="<?php echo esc_attr__( 'Runs every hour at', 'maca-backup' ); ?>"
+				data-preview-every="<?php echo esc_attr__( 'Repeats from', 'maca-backup' ); ?>"
+				data-preview-default="<?php echo esc_attr( sprintf( /* translators: %s: timezone */ __( 'Local (%s)', 'maca-backup' ), $tz_label ) ); ?>">
 				<div class="maca-bp-schedule__box-head">
 					<strong id="maca-bp-schedule-time-title">
 						<?php
 						if ( 'hourly' === $freq ) {
-							esc_html_e( 'Minute past each hour (local)', 'maca-backup-pro' );
+							esc_html_e( 'Minute past each hour (local)', 'maca-backup' );
 						} elseif ( 'every_hours' === $freq ) {
-							esc_html_e( 'Start time (local)', 'maca-backup-pro' );
+							esc_html_e( 'Start time (local)', 'maca-backup' );
 						} else {
-							esc_html_e( 'Run time (local)', 'maca-backup-pro' );
+							esc_html_e( 'Run time (local)', 'maca-backup' );
 						}
 						?>
 					</strong>
-					<span class="maca-bp-schedule__tz"><?php echo esc_html( sprintf( /* translators: %s: timezone name */ __( 'Site timezone: %s', 'maca-backup-pro' ), $tz_label ) ); ?></span>
+					<span class="maca-bp-schedule__tz"><?php echo esc_html( sprintf( /* translators: %s: timezone name */ __( 'Site timezone: %s', 'maca-backup' ), $tz_label ) ); ?></span>
 				</div>
 
 				<div class="maca-bp-schedule__time-row">
@@ -230,7 +230,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 
 					<div class="maca-bp-schedule__inputs">
 						<label class="maca-bp-schedule__time-field" id="maca-bp-schedule-hour-wrap" <?php echo 'hourly' === $freq ? 'hidden' : ''; ?>>
-							<span><?php esc_html_e( 'Hour', 'maca-backup-pro' ); ?></span>
+							<span><?php esc_html_e( 'Hour', 'maca-backup' ); ?></span>
 							<select name="schedule_hour_local" id="maca-bp-schedule-hour">
 								<?php for ( $h = 0; $h < 24; $h++ ) : ?>
 									<option value="<?php echo esc_attr( sprintf( '%02d', $h ) ); ?>" <?php selected( $local_h, $h ); ?>><?php echo esc_html( sprintf( '%02d', $h ) ); ?></option>
@@ -239,7 +239,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						</label>
 						<span class="maca-bp-schedule__colon" id="maca-bp-schedule-colon" <?php echo 'hourly' === $freq ? 'hidden' : ''; ?>>:</span>
 						<label class="maca-bp-schedule__time-field">
-							<span><?php esc_html_e( 'Minute', 'maca-backup-pro' ); ?></span>
+							<span><?php esc_html_e( 'Minute', 'maca-backup' ); ?></span>
 							<select name="schedule_minute_local" id="maca-bp-schedule-minute">
 								<?php for ( $m = 0; $m < 60; $m += 5 ) : ?>
 									<option value="<?php echo esc_attr( sprintf( '%02d', $m ) ); ?>" <?php selected( $local_m, $m ); ?>><?php echo esc_html( sprintf( '%02d', $m ) ); ?></option>
@@ -248,7 +248,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						</label>
 
 						<label class="maca-bp-schedule__extra" id="maca-bp-schedule-interval-wrap" <?php echo 'every_hours' !== $freq ? 'hidden' : ''; ?>>
-							<span><?php esc_html_e( 'Every', 'maca-backup-pro' ); ?></span>
+							<span><?php esc_html_e( 'Every', 'maca-backup' ); ?></span>
 							<select name="interval_hours" id="maca-bp-schedule-interval">
 								<?php foreach ( Maca_Backup_Pro_Scheduler::allowed_interval_hours() as $ih ) : ?>
 									<option value="<?php echo esc_attr( (string) $ih ); ?>" <?php selected( $interval_h, $ih ); ?>>
@@ -256,7 +256,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 										echo esc_html(
 											sprintf(
 												/* translators: %d: hours */
-												_n( '%d hour', '%d hours', $ih, 'maca-backup-pro' ),
+												_n( '%d hour', '%d hours', $ih, 'maca-backup' ),
 												$ih
 											)
 										);
@@ -267,7 +267,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						</label>
 
 						<label class="maca-bp-schedule__extra" id="maca-bp-schedule-weekday-wrap" <?php echo 'weekly' !== $freq ? 'hidden' : ''; ?>>
-							<span><?php esc_html_e( 'Weekday', 'maca-backup-pro' ); ?></span>
+							<span><?php esc_html_e( 'Weekday', 'maca-backup' ); ?></span>
 							<select name="schedule_weekday" id="maca-bp-schedule-weekday">
 								<?php foreach ( $weekdays as $num => $day_label ) : ?>
 									<option value="<?php echo esc_attr( (string) $num ); ?>" <?php selected( $weekday, $num ); ?>><?php echo esc_html( $day_label ); ?></option>
@@ -276,7 +276,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						</label>
 
 						<label class="maca-bp-schedule__extra" id="maca-bp-schedule-dom-wrap" <?php echo 'monthly' !== $freq ? 'hidden' : ''; ?>>
-							<span><?php esc_html_e( 'Day of month', 'maca-backup-pro' ); ?></span>
+							<span><?php esc_html_e( 'Day of month', 'maca-backup' ); ?></span>
 							<select name="schedule_dom" id="maca-bp-schedule-dom">
 								<?php for ( $d = 1; $d <= 28; $d++ ) : ?>
 									<option value="<?php echo esc_attr( (string) $d ); ?>" <?php selected( $dom, $d ); ?>><?php echo esc_html( (string) $d ); ?></option>
@@ -291,8 +291,8 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 						<span class="maca-bp-schedule__preview-label" id="maca-bp-preview-label">
 							<?php
 							echo 'hourly' === $freq
-								? esc_html__( 'Runs every hour at', 'maca-backup-pro' )
-								: esc_html( sprintf( /* translators: %s: timezone */ __( 'Local (%s)', 'maca-backup-pro' ), $tz_label ) );
+								? esc_html__( 'Runs every hour at', 'maca-backup' )
+								: esc_html( sprintf( /* translators: %s: timezone */ __( 'Local (%s)', 'maca-backup' ), $tz_label ) );
 							?>
 						</span>
 						<strong class="maca-bp-schedule__preview-value" id="maca-bp-preview-local">
@@ -308,25 +308,25 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 
 			<div class="maca-bp-schedule__box" id="maca-bp-schedule-custom-box" <?php echo 'custom' !== $freq ? 'hidden' : ''; ?>>
 				<label class="maca-bp-field">
-					<span><?php esc_html_e( 'Cron expression — min hour dom month dow (evaluated in UTC)', 'maca-backup-pro' ); ?></span>
+					<span><?php esc_html_e( 'Cron expression — min hour dom month dow (evaluated in UTC)', 'maca-backup' ); ?></span>
 					<input type="text" name="custom_cron" value="<?php echo esc_attr( $custom_cron ); ?>" placeholder="0 3 * * *" class="maca-bp-schedule__cron" />
 				</label>
-				<p class="maca-bp-muted"><?php esc_html_e( 'Advanced: prefer “Every N hours” above. Cron fields use UTC.', 'maca-backup-pro' ); ?></p>
+				<p class="maca-bp-muted"><?php esc_html_e( 'Advanced: prefer “Every N hours” above. Cron fields use UTC.', 'maca-backup' ); ?></p>
 			</div>
 
 			<div class="maca-bp-schedule__meta">
 				<label>
-					<span><?php esc_html_e( 'Backup type', 'maca-backup-pro' ); ?></span>
+					<span><?php esc_html_e( 'Backup type', 'maca-backup' ); ?></span>
 					<select name="backup_type">
-						<option value="full" <?php selected( $backup_type, 'full' ); ?>><?php esc_html_e( 'Full', 'maca-backup-pro' ); ?></option>
-						<option value="incremental" <?php selected( $backup_type, 'incremental' ); ?>><?php esc_html_e( 'Incremental', 'maca-backup-pro' ); ?></option>
-						<option value="differential" <?php selected( $backup_type, 'differential' ); ?>><?php esc_html_e( 'Differential', 'maca-backup-pro' ); ?></option>
-						<option value="database" <?php selected( $backup_type, 'database' ); ?>><?php esc_html_e( 'Database', 'maca-backup-pro' ); ?></option>
-						<option value="files" <?php selected( $backup_type, 'files' ); ?>><?php esc_html_e( 'Files', 'maca-backup-pro' ); ?></option>
+						<option value="full" <?php selected( $backup_type, 'full' ); ?>><?php esc_html_e( 'Full', 'maca-backup' ); ?></option>
+						<option value="incremental" <?php selected( $backup_type, 'incremental' ); ?>><?php esc_html_e( 'Incremental', 'maca-backup' ); ?></option>
+						<option value="differential" <?php selected( $backup_type, 'differential' ); ?>><?php esc_html_e( 'Differential', 'maca-backup' ); ?></option>
+						<option value="database" <?php selected( $backup_type, 'database' ); ?>><?php esc_html_e( 'Database', 'maca-backup' ); ?></option>
+						<option value="files" <?php selected( $backup_type, 'files' ); ?>><?php esc_html_e( 'Files', 'maca-backup' ); ?></option>
 					</select>
 				</label>
 				<label>
-					<span><?php esc_html_e( 'Email notifications', 'maca-backup-pro' ); ?></span>
+					<span><?php esc_html_e( 'Email notifications', 'maca-backup' ); ?></span>
 					<select name="schedule_email_mode">
 						<option value="inherit" <?php selected( $email_mode, 'inherit' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'inherit' ) ); ?></option>
 						<option value="off" <?php selected( $email_mode, 'off' ); ?>><?php echo esc_html( Maca_Backup_Pro_Scheduler::email_mode_label( 'off' ) ); ?></option>
@@ -336,15 +336,15 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 					</select>
 				</label>
 			</div>
-			<p class="maca-bp-muted"><?php esc_html_e( 'Site default comes from Settings → Email notifications. Use “Failures only” for frequent schedules (e.g. every 4 hours) to avoid inbox noise.', 'maca-backup-pro' ); ?></p>
+			<p class="maca-bp-muted"><?php esc_html_e( 'Site default comes from Settings → Email notifications. Use “Failures only” for frequent schedules (e.g. every 4 hours) to avoid inbox noise.', 'maca-backup' ); ?></p>
 		</div>
 
 		<p class="submit">
 			<button type="submit" class="button button-primary">
-				<?php echo $is_edit ? esc_html__( 'Update schedule', 'maca-backup-pro' ) : esc_html__( 'Add schedule', 'maca-backup-pro' ); ?>
+				<?php echo $is_edit ? esc_html__( 'Update schedule', 'maca-backup' ) : esc_html__( 'Add schedule', 'maca-backup' ); ?>
 			</button>
 			<?php if ( $is_edit ) : ?>
-				<a class="button" href="<?php echo esc_url( $schedule_url ); ?>"><?php esc_html_e( 'Cancel', 'maca-backup-pro' ); ?></a>
+				<a class="button" href="<?php echo esc_url( $schedule_url ); ?>"><?php esc_html_e( 'Cancel', 'maca-backup' ); ?></a>
 			<?php endif; ?>
 		</p>
 	</form>

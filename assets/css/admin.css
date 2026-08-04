@@ -680,6 +680,10 @@
 	color: var(--mbp-accent);
 }
 
+.maca-bp-tabs + .maca-bp-progress {
+	margin-top: 1rem;
+}
+
 .maca-bp-progress {
 	margin: 0 0 1.25rem;
 	padding: 1rem 1.1rem;

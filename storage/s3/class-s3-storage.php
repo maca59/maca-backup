@@ -23,7 +23,7 @@ class Maca_Backup_Pro_S3_Storage extends Maca_Backup_Pro_Abstract_Storage {
 	 * @return string
 	 */
 	public function label(): string {
-		return __( 'Amazon S3 / B2 / S3-compatible', 'maca-backup-pro' );
+		return __( 'Amazon S3 / B2 / S3-compatible', 'maca-backup' );
 	}
 
 	/**
@@ -87,7 +87,7 @@ class Maca_Backup_Pro_S3_Storage extends Maca_Backup_Pro_Abstract_Storage {
 	 */
 	private function client() {
 		if ( ! $this->is_configured() ) {
-			return new WP_Error( 'cfg', __( 'S3 storage is not configured.', 'maca-backup-pro' ) );
+			return new WP_Error( 'cfg', __( 'S3 storage is not configured.', 'maca-backup' ) );
 		}
 		$s = $this->settings();
 		return new Maca_Backup_Pro_S3_Client(

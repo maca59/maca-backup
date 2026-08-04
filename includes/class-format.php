@@ -27,7 +27,7 @@ class Maca_Backup_Pro_Format {
 		if ( $hours > 0 ) {
 			return sprintf(
 				/* translators: 1: hours, 2: minutes, 3: seconds */
-				__( '%1$d h %2$d min %3$d s', 'maca-backup-pro' ),
+				__( '%1$d h %2$d min %3$d s', 'maca-backup' ),
 				$hours,
 				$minutes,
 				$secs
@@ -37,7 +37,7 @@ class Maca_Backup_Pro_Format {
 		if ( $minutes > 0 ) {
 			return sprintf(
 				/* translators: 1: minutes, 2: seconds */
-				__( '%1$d min %2$d s', 'maca-backup-pro' ),
+				__( '%1$d min %2$d s', 'maca-backup' ),
 				$minutes,
 				$secs
 			);
@@ -45,7 +45,7 @@ class Maca_Backup_Pro_Format {
 
 		return sprintf(
 			/* translators: %d: seconds */
-			__( '%d s', 'maca-backup-pro' ),
+			__( '%d s', 'maca-backup' ),
 			$secs
 		);
 	}

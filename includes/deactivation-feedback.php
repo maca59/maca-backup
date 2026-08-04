@@ -16,14 +16,14 @@ require_once MACA_BACKUP_PRO_PATH . 'includes/maca-api.php';
  */
 function maca_backup_pro_deactivation_feedback_reasons() {
 	return array(
-		'missing_feature' => __( 'Saknar en funktion jag behöver', 'maca-backup-pro' ),
-		'hard_to_use'     => __( 'För svårt att konfigurera eller använda', 'maca-backup-pro' ),
-		'bug'             => __( 'Något fungerar inte som det ska', 'maca-backup-pro' ),
-		'too_slow'        => __( 'Backup tar för lång tid / timeout', 'maca-backup-pro' ),
-		'storage'         => __( 'Problem med lagring eller molnkoppling', 'maca-backup-pro' ),
-		'switching'       => __( 'Byter till ett annat backupplugin', 'maca-backup-pro' ),
-		'temporary'       => __( 'Behövde bara tillfälligt / testar', 'maca-backup-pro' ),
-		'other'           => __( 'Annat', 'maca-backup-pro' ),
+		'missing_feature' => __( 'Saknar en funktion jag behöver', 'maca-backup' ),
+		'hard_to_use'     => __( 'För svårt att konfigurera eller använda', 'maca-backup' ),
+		'bug'             => __( 'Något fungerar inte som det ska', 'maca-backup' ),
+		'too_slow'        => __( 'Backup tar för lång tid / timeout', 'maca-backup' ),
+		'storage'         => __( 'Problem med lagring eller molnkoppling', 'maca-backup' ),
+		'switching'       => __( 'Byter till ett annat backupplugin', 'maca-backup' ),
+		'temporary'       => __( 'Behövde bara tillfälligt / testar', 'maca-backup' ),
+		'other'           => __( 'Annat', 'maca-backup' ),
 	);
 }
 

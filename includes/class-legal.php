@@ -160,7 +160,7 @@ class Maca_Backup_Pro_Legal {
 	public static function blocked_message(): string {
 		return __(
 			'Please accept the Terms of Use and Privacy Policy on the Support tab before starting a backup or restore.',
-			'maca-backup-pro'
+			'maca-backup'
 		);
 	}
 

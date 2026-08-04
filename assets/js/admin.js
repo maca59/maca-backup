@@ -179,7 +179,35 @@
 		if (d.total > 0) {
 			label += ' (' + (d.processed || 0) + ' / ' + d.total + ')';
 		}
+		if (d.scheduled || (cfg.activeJob && cfg.activeJob.scheduled && parseInt(cfg.activeJob.id, 10) === activeJobId)) {
+			label = 'Scheduled: ' + label;
+		}
 		return label;
+	}
+
+	function updateStatusCard(d) {
+		var $val = $('#maca-bp-status-value');
+		if (!$val.length) {
+			return;
+		}
+		if (!d || d.status === 'idle' || !d.job_id) {
+			return;
+		}
+		if (d.done || d.status === 'completed') {
+			$val.text(cfg.i18n.done || 'Completed');
+			return;
+		}
+		if (d.status === 'failed') {
+			$val.text(cfg.i18n.failed || 'Failed');
+			return;
+		}
+		if (d.status === 'cancelled') {
+			$val.text(cfg.i18n.cancelled || 'Cancelled');
+			return;
+		}
+		var pct = parseInt(d.progress, 10) || 0;
+		var prefix = d.scheduled ? 'scheduled' : (d.status || 'running');
+		$val.text(prefix + ' (' + pct + '%)');
 	}
 
 	function formatProgressDetail(d) {
@@ -241,13 +269,27 @@
 		if (cfg.activeJob && parseInt(cfg.activeJob.id, 10) === parseInt(jobId, 10)) {
 			seedPct = parseInt(cfg.activeJob.progress, 10) || 0;
 			seedStarted = parseInt(cfg.activeJob.started, 10) || 0;
-			if (cfg.activeJob.step) {
+			if (cfg.activeJob.label) {
+				seedLabel = cfg.activeJob.label;
+			} else if (cfg.activeJob.step) {
 				seedLabel = cfg.activeJob.step + ' — ' + seedPct + '%';
+				if (cfg.activeJob.scheduled) {
+					seedLabel = 'Scheduled: ' + seedLabel;
+				}
+			} else if (cfg.activeJob.scheduled) {
+				seedLabel = 'Scheduled: ' + seedLabel;
 			}
 		}
 		startElapsedClock(seedStarted);
-		lastProgressData = { progress: seedPct, step: cfg.activeJob && cfg.activeJob.step ? cfg.activeJob.step : '', status: 'running' };
+		lastProgressData = {
+			progress: seedPct,
+			step: cfg.activeJob && cfg.activeJob.step ? cfg.activeJob.step : '',
+			status: 'running',
+			scheduled: !!(cfg.activeJob && cfg.activeJob.scheduled),
+			job_id: jobId
+		};
 		setProgress(seedPct, seedLabel, '', true);
+		updateStatusCard(lastProgressData);
 
 		function tick() {
 			post('maca_backup_pro_job_status', { job_id: jobId }).done(function (res) {
@@ -276,6 +318,7 @@
 				}
 				lastProgressData = d;
 				setProgress(d.progress || 0, formatProgressLabel(d), formatProgressDetail(d), true);
+				updateStatusCard(d);
 				pollTimer = window.setTimeout(tick, 600);
 			}).fail(function () {
 				pollTimer = window.setTimeout(tick, 2500);

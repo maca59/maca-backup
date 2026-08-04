@@ -63,12 +63,12 @@ class Maca_Backup_Pro_Assets {
 				'pluginSlug'         => MACA_BACKUP_PRO_BASENAME,
 				'ajaxUrl'            => admin_url( 'admin-ajax.php' ),
 				'nonce'              => wp_create_nonce( 'maca_backup_pro_deactivation_feedback' ),
-				'modalTitle'         => __( 'Innan du avaktiverar maca BackUp', 'maca-backup-pro' ),
-				'modalIntro'         => __( 'Hjälp oss förbättra — vad är huvudorsaken till att du avaktiverar?', 'maca-backup-pro' ),
-				'detailsPlaceholder' => __( 'Berätta gärna mer (valfritt)', 'maca-backup-pro' ),
-				'cancelLabel'        => __( 'Avbryt', 'maca-backup-pro' ),
-				'skipLabel'          => __( 'Hoppa över och avaktivera', 'maca-backup-pro' ),
-				'submitLabel'        => __( 'Skicka feedback och avaktivera', 'maca-backup-pro' ),
+				'modalTitle'         => __( 'Innan du avaktiverar maca BackUp', 'maca-backup' ),
+				'modalIntro'         => __( 'Hjälp oss förbättra — vad är huvudorsaken till att du avaktiverar?', 'maca-backup' ),
+				'detailsPlaceholder' => __( 'Berätta gärna mer (valfritt)', 'maca-backup' ),
+				'cancelLabel'        => __( 'Avbryt', 'maca-backup' ),
+				'skipLabel'          => __( 'Hoppa över och avaktivera', 'maca-backup' ),
+				'submitLabel'        => __( 'Skicka feedback och avaktivera', 'maca-backup' ),
 				'reasons'            => $reasons,
 			)
 		);
@@ -112,40 +112,40 @@ class Maca_Backup_Pro_Assets {
 				'legalAccepted' => Maca_Backup_Pro_Legal::is_accepted(),
 				'supportUrl'    => Maca_Backup_Pro_Legal::admin_support_url( 'accept' ),
 				'i18n'          => array(
-					'starting'     => __( 'Starting…', 'maca-backup-pro' ),
-					'running'      => __( 'Running in background…', 'maca-backup-pro' ),
-					'elapsed'      => __( 'Elapsed', 'maca-backup-pro' ),
-					'done'         => __( 'Completed', 'maca-backup-pro' ),
-					'failed'       => __( 'Failed', 'maca-backup-pro' ),
-					'cancelled'    => __( 'Cancelled', 'maca-backup-pro' ),
-					'confirmDel'   => __( 'Delete this backup permanently?', 'maca-backup-pro' ),
-					'confirmRes'   => __( 'Restore will overwrite selected files/database. Continue?', 'maca-backup-pro' ),
-					'confirmStop'  => __( 'Stop the running job? Partial files will be removed.', 'maca-backup-pro' ),
-					'selectBackup' => __( 'Select a backup first.', 'maca-backup-pro' ),
-					'compareNeedTwo' => __( 'Select two different backups to compare.', 'maca-backup-pro' ),
-					'compareRunning' => __( 'Comparing…', 'maca-backup-pro' ),
-					'compareFiles'   => __( 'Files in inventory', 'maca-backup-pro' ),
-					'compareArchive' => __( 'Archive size', 'maca-backup-pro' ),
-					'compareContent' => __( 'Uncompressed content', 'maca-backup-pro' ),
-					'compareSame'    => __( 'Identical paths', 'maca-backup-pro' ),
-					'compareOnlyA'   => __( 'Only in A', 'maca-backup-pro' ),
-					'compareOnlyB'   => __( 'Only in B', 'maca-backup-pro' ),
-					'compareMismatch'=> __( 'Size / CRC mismatch', 'maca-backup-pro' ),
+					'starting'     => __( 'Starting…', 'maca-backup' ),
+					'running'      => __( 'Running in background…', 'maca-backup' ),
+					'elapsed'      => __( 'Elapsed', 'maca-backup' ),
+					'done'         => __( 'Completed', 'maca-backup' ),
+					'failed'       => __( 'Failed', 'maca-backup' ),
+					'cancelled'    => __( 'Cancelled', 'maca-backup' ),
+					'confirmDel'   => __( 'Delete this backup permanently?', 'maca-backup' ),
+					'confirmRes'   => __( 'Restore will overwrite selected files/database. Continue?', 'maca-backup' ),
+					'confirmStop'  => __( 'Stop the running job? Partial files will be removed.', 'maca-backup' ),
+					'selectBackup' => __( 'Select a backup first.', 'maca-backup' ),
+					'compareNeedTwo' => __( 'Select two different backups to compare.', 'maca-backup' ),
+					'compareRunning' => __( 'Comparing…', 'maca-backup' ),
+					'compareFiles'   => __( 'Files in inventory', 'maca-backup' ),
+					'compareArchive' => __( 'Archive size', 'maca-backup' ),
+					'compareContent' => __( 'Uncompressed content', 'maca-backup' ),
+					'compareSame'    => __( 'Identical paths', 'maca-backup' ),
+					'compareOnlyA'   => __( 'Only in A', 'maca-backup' ),
+					'compareOnlyB'   => __( 'Only in B', 'maca-backup' ),
+					'compareMismatch'=> __( 'Size / CRC mismatch', 'maca-backup' ),
 					/* translators: %d: number of additional paths not listed */
-					'compareMore'    => __( '…and %d more', 'maca-backup-pro' ),
-					'testing'       => __( 'Running test restore…', 'maca-backup-pro' ),
-					'testPass'     => __( 'Test restore passed — archive can be restored.', 'maca-backup-pro' ),
-					'testFail'     => __( 'Test restore found issues.', 'maca-backup-pro' ),
-					'checkArchive' => __( 'Archive readable', 'maca-backup-pro' ),
-					'checkManifest'=> __( 'Manifest present', 'maca-backup-pro' ),
-					'checkDatabase'=> __( 'Database dump OK', 'maca-backup-pro' ),
-					'checkFiles'   => __( 'Files extracted', 'maca-backup-pro' ),
-					'checkSkip'    => __( 'Not applicable', 'maca-backup-pro' ),
+					'compareMore'    => __( '…and %d more', 'maca-backup' ),
+					'testing'       => __( 'Running test restore…', 'maca-backup' ),
+					'testPass'     => __( 'Test restore passed — archive can be restored.', 'maca-backup' ),
+					'testFail'     => __( 'Test restore found issues.', 'maca-backup' ),
+					'checkArchive' => __( 'Archive readable', 'maca-backup' ),
+					'checkManifest'=> __( 'Manifest present', 'maca-backup' ),
+					'checkDatabase'=> __( 'Database dump OK', 'maca-backup' ),
+					'checkFiles'   => __( 'Files extracted', 'maca-backup' ),
+					'checkSkip'    => __( 'Not applicable', 'maca-backup' ),
 					'legalRequired'=> Maca_Backup_Pro_Legal::blocked_message(),
-					'supportSending'    => __( 'Sending…', 'maca-backup-pro' ),
-					'supportSuccess'    => __( 'Thank you! Your request has been sent. We will reply to the email address above — check your inbox (and spam folder).', 'maca-backup-pro' ),
-					'supportError'      => __( 'Something went wrong. Please try again or email support@maca.se.', 'maca-backup-pro' ),
-					'supportValidation' => __( 'Please fill in subject, message, and email.', 'maca-backup-pro' ),
+					'supportSending'    => __( 'Sending…', 'maca-backup' ),
+					'supportSuccess'    => __( 'Thank you! Your request has been sent. We will reply to the email address above — check your inbox (and spam folder).', 'maca-backup' ),
+					'supportError'      => __( 'Something went wrong. Please try again or email support@maca.se.', 'maca-backup' ),
+					'supportValidation' => __( 'Please fill in subject, message, and email.', 'maca-backup' ),
 				),
 			)
 		);
@@ -173,18 +173,38 @@ class Maca_Backup_Pro_Assets {
 			return null;
 		}
 
-		$state   = json_decode( (string) $job->state, true );
-		$started = is_array( $state ) ? (int) ( $state['started'] ?? 0 ) : 0;
+		$state       = json_decode( (string) $job->state, true );
+		$started     = is_array( $state ) ? (int) ( $state['started'] ?? 0 ) : 0;
+		$schedule_id = is_array( $state ) ? sanitize_key( (string) ( $state['schedule_id'] ?? '' ) ) : '';
+		$step        = (string) $job->step;
+		$progress    = (int) $job->progress;
+		$label       = $step
+			? sprintf( '%s — %d%%', $step, $progress )
+			: sprintf(
+				/* translators: %d: progress percent */
+				__( 'Running — %d%%', 'maca-backup' ),
+				$progress
+			);
+		if ( '' !== $schedule_id ) {
+			$label = sprintf(
+				/* translators: %s: progress label */
+				__( 'Scheduled: %s', 'maca-backup' ),
+				$label
+			);
+		}
 
 		return array(
-			'id'        => (int) $job->id,
-			'job_type'  => (string) $job->job_type,
-			'status'    => $status,
-			'progress'  => (int) $job->progress,
-			'step'      => (string) $job->step,
-			'backup_id' => (int) $job->backup_id,
-			'started'   => $started,
-			'parallel'  => count( $jobs ) > 1 ? count( $jobs ) : ( 'backup' === (string) $job->job_type ? count( $jobs ) : 0 ),
+			'id'          => (int) $job->id,
+			'job_type'    => (string) $job->job_type,
+			'status'      => $status,
+			'progress'    => $progress,
+			'step'        => $step,
+			'label'       => $label,
+			'schedule_id' => $schedule_id,
+			'scheduled'   => '' !== $schedule_id,
+			'backup_id'   => (int) $job->backup_id,
+			'started'     => $started,
+			'parallel'    => count( $jobs ) > 1 ? count( $jobs ) : ( 'backup' === (string) $job->job_type ? count( $jobs ) : 0 ),
 		);
 	}
 }

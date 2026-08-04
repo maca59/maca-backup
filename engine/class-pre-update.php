@@ -74,7 +74,7 @@ class Maca_Backup_Pro_Pre_Update {
 
 		if ( is_wp_error( $result ) ) {
 			Maca_Backup_Pro_Logger::error(
-				__( 'Pre-update backup failed.', 'maca-backup-pro' ) . ' ' . $result->get_error_message()
+				__( 'Pre-update backup failed.', 'maca-backup' ) . ' ' . $result->get_error_message()
 			);
 			return $response;
 		}
@@ -91,7 +91,7 @@ class Maca_Backup_Pro_Pre_Update {
 		}
 
 		Maca_Backup_Pro_Logger::info(
-			__( 'Pre-update backup started.', 'maca-backup-pro' ),
+			__( 'Pre-update backup started.', 'maca-backup' ),
 			array(
 				'job_id' => $job_id,
 				'scope'  => $scope,

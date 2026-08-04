@@ -12,16 +12,16 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals -- View/partial vars provided by the admin renderer.
 ?>
 <section class="maca-bp-panel">
-	<h2><?php esc_html_e( 'Smart Restore', 'maca-backup-pro' ); ?></h2>
-	<p class="maca-bp-muted"><?php esc_html_e( 'Compare the live site with a backup. Restore only new, changed, or selected files — instead of overwriting everything. Or browse the backup and pick a single file or folder.', 'maca-backup-pro' ); ?></p>
+	<h2><?php esc_html_e( 'Smart Restore', 'maca-backup' ); ?></h2>
+	<p class="maca-bp-muted"><?php esc_html_e( 'Compare the live site with a backup. Restore only new, changed, or selected files — instead of overwriting everything. Or browse the backup and pick a single file or folder.', 'maca-backup' ); ?></p>
 
 	<div class="maca-bp-form-grid">
 		<label>
-			<span><?php esc_html_e( 'Backup to compare', 'maca-backup-pro' ); ?></span>
+			<span><?php esc_html_e( 'Backup to compare', 'maca-backup' ); ?></span>
 			<select id="maca-bp-smart-backup">
-				<option value=""><?php esc_html_e( 'Select…', 'maca-backup-pro' ); ?></option>
+				<option value=""><?php esc_html_e( 'Select…', 'maca-backup' ); ?></option>
 				<?php if ( empty( $history ) ) : ?>
-					<option value="" disabled><?php esc_html_e( 'No completed backups available', 'maca-backup-pro' ); ?></option>
+					<option value="" disabled><?php esc_html_e( 'No completed backups available', 'maca-backup' ); ?></option>
 				<?php else : ?>
 					<?php foreach ( $history as $row ) : ?>
 						<option value="<?php echo esc_attr( (string) $row->id ); ?>">
@@ -37,29 +37,17 @@ defined( 'ABSPATH' ) || exit;
 	</div>
 
 	<div class="maca-bp-actions" style="margin-top:1rem;">
-		<button type="button" class="button button-primary" id="maca-bp-smart-compare"><?php esc_html_e( 'Compare', 'maca-backup-pro' ); ?></button>
-		<button type="button" class="button" id="maca-bp-smart-browse"><?php esc_html_e( 'Browse backup', 'maca-backup-pro' ); ?></button>
-		<button type="button" class="button" id="maca-bp-smart-restore" disabled><?php esc_html_e( 'Restore selected', 'maca-backup-pro' ); ?></button>
+		<button type="button" class="button button-primary" id="maca-bp-smart-compare"><?php esc_html_e( 'Compare', 'maca-backup' ); ?></button>
+		<button type="button" class="button" id="maca-bp-smart-browse"><?php esc_html_e( 'Browse backup', 'maca-backup' ); ?></button>
+		<button type="button" class="button" id="maca-bp-smart-restore" disabled><?php esc_html_e( 'Restore selected', 'maca-backup' ); ?></button>
 	</div>
 
 	<div id="maca-bp-smart-tree-wrap" class="maca-bp-tree-wrap" hidden>
-		<p class="maca-bp-muted"><?php esc_html_e( 'Select files or folders from the backup to restore.', 'maca-backup-pro' ); ?></p>
+		<p class="maca-bp-muted"><?php esc_html_e( 'Select files or folders from the backup to restore.', 'maca-backup' ); ?></p>
 		<div id="maca-bp-smart-tree" class="maca-bp-tree" data-tree="smart"></div>
 		<p class="maca-bp-muted maca-bp-tree-selected" id="maca-bp-smart-selected-count"></p>
 	</div>
 
 	<div id="maca-bp-smart-summary" class="maca-bp-grid maca-bp-grid--stats" style="margin-top:1.25rem;" hidden></div>
 	<div id="maca-bp-smart-results" class="maca-bp-smart-results" hidden></div>
-	<div id="maca-bp-progress" class="maca-bp-progress" hidden>
-		<div class="maca-bp-progress__head">
-			<div class="maca-bp-progress__bar"><span style="width:0%"></span></div>
-			<button type="button" class="button maca-bp-progress__stop" hidden>
-				<?php esc_html_e( 'Stop', 'maca-backup-pro' ); ?>
-			</button>
-		</div>
-		<p class="maca-bp-progress__label"></p>
-		<p class="maca-bp-progress__elapsed" aria-live="off"></p>
-		<p class="maca-bp-progress__detail" aria-live="polite"></p>
-		<p class="maca-bp-progress__note" hidden><?php esc_html_e( 'Runs in the background — you can leave this page.', 'maca-backup-pro' ); ?></p>
-	</div>
 </section>

@@ -27,7 +27,7 @@ class Maca_Backup_Pro_S3_Client {
 	public function put_object( string $local_path, string $key ) {
 		$body = file_get_contents( $local_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		if ( false === $body ) {
-			return new WP_Error( 'read', __( 'Could not read file for S3 upload.', 'maca-backup-pro' ) );
+			return new WP_Error( 'read', __( 'Could not read file for S3 upload.', 'maca-backup' ) );
 		}
 
 		$headers = array(
@@ -53,7 +53,7 @@ class Maca_Backup_Pro_S3_Client {
 		}
 		$ok = file_put_contents( $local_path, (string) $result ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		return false === $ok
-			? new WP_Error( 'write', __( 'Could not write S3 download.', 'maca-backup-pro' ) )
+			? new WP_Error( 'write', __( 'Could not write S3 download.', 'maca-backup' ) )
 			: true;
 	}
 
@@ -86,7 +86,7 @@ class Maca_Backup_Pro_S3_Client {
 		$path_style = ! empty( $this->cfg['path_style'] );
 
 		if ( '' === $bucket || '' === $access || '' === $secret ) {
-			return new WP_Error( 'cfg', __( 'S3 is not fully configured.', 'maca-backup-pro' ) );
+			return new WP_Error( 'cfg', __( 'S3 is not fully configured.', 'maca-backup' ) );
 		}
 
 		$key = ltrim( str_replace( '\\', '/', $key ), '/' );
@@ -164,7 +164,7 @@ class Maca_Backup_Pro_S3_Client {
 				's3',
 				sprintf(
 					/* translators: %d: HTTP status */
-					__( 'S3 request failed (HTTP %d).', 'maca-backup-pro' ),
+					__( 'S3 request failed (HTTP %d).', 'maca-backup' ),
 					$code
 				)
 			);

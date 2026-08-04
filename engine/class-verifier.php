@@ -48,12 +48,12 @@ class Maca_Backup_Pro_Verifier {
 	 */
 	public static function verify_backup( object $backup ) {
 		if ( 'completed' !== $backup->status ) {
-			return new WP_Error( 'not_ready', __( 'Backup is not completed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'not_ready', __( 'Backup is not completed.', 'maca-backup' ) );
 		}
 
 		$path = (string) $backup->path;
 		if ( '' === $path ) {
-			return new WP_Error( 'missing', __( 'Backup path missing.', 'maca-backup-pro' ) );
+			return new WP_Error( 'missing', __( 'Backup path missing.', 'maca-backup' ) );
 		}
 
 		$parts = self::ensure_local_parts( $backup );
@@ -62,7 +62,7 @@ class Maca_Backup_Pro_Verifier {
 		}
 
 		if ( ! class_exists( 'ZipArchive' ) ) {
-			return new WP_Error( 'zip', __( 'ZipArchive extension required.', 'maca-backup-pro' ) );
+			return new WP_Error( 'zip', __( 'ZipArchive extension required.', 'maca-backup' ) );
 		}
 
 		$has_manifest = false;
@@ -73,7 +73,7 @@ class Maca_Backup_Pro_Verifier {
 			}
 			$zip = new ZipArchive();
 			if ( true !== $zip->open( $ready ) ) {
-				return new WP_Error( 'open', __( 'Could not open backup archive.', 'maca-backup-pro' ) );
+				return new WP_Error( 'open', __( 'Could not open backup archive.', 'maca-backup' ) );
 			}
 			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 				$name = $zip->getNameIndex( $i );
@@ -92,7 +92,7 @@ class Maca_Backup_Pro_Verifier {
 		}
 
 		if ( ! $has_manifest ) {
-			return new WP_Error( 'manifest', __( 'Backup manifest missing — verification failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'manifest', __( 'Backup manifest missing — verification failed.', 'maca-backup' ) );
 		}
 
 		return true;
@@ -129,7 +129,7 @@ class Maca_Backup_Pro_Verifier {
 
 		$provider = Maca_Backup_Pro_Storage_Registry::instance()->get( (string) $backup->storage );
 		if ( ! $provider ) {
-			return new WP_Error( 'storage', __( 'Storage provider unavailable.', 'maca-backup-pro' ) );
+			return new WP_Error( 'storage', __( 'Storage provider unavailable.', 'maca-backup' ) );
 		}
 
 		if ( ! is_dir( $dir ) ) {
@@ -243,7 +243,7 @@ class Maca_Backup_Pro_Verifier {
 
 		$passphrase = Maca_Backup_Pro_Settings::backup_passphrase();
 		if ( '' === $passphrase ) {
-			return new WP_Error( 'encrypted', __( 'Backup is encrypted. Set the backup passphrase in Settings.', 'maca-backup-pro' ) );
+			return new WP_Error( 'encrypted', __( 'Backup is encrypted. Set the backup passphrase in Settings.', 'maca-backup' ) );
 		}
 
 		$out = preg_replace( '/\.enc$/i', '', $path );

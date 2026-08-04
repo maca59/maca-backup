@@ -126,7 +126,7 @@ class Maca_Backup_Pro_Database_Exporter {
 				'offset'      => $offset,
 				'done'        => true,
 				'statements'  => 0,
-				'error'       => __( 'SQL file not readable.', 'maca-backup-pro' ),
+				'error'       => __( 'SQL file not readable.', 'maca-backup' ),
 			);
 		}
 

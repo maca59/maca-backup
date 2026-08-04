@@ -261,7 +261,7 @@ class Maca_Backup_Pro_Jobs_Table {
 		}
 
 		$failed = 0;
-		$msg    = __( 'Job timed out (no progress). It was marked failed so the dashboard stays accurate.', 'maca-backup-pro' );
+		$msg    = __( 'Job timed out (no progress). It was marked failed so the dashboard stays accurate.', 'maca-backup' );
 		foreach ( $rows as $row ) {
 			if ( ! self::is_stale( $row ) ) {
 				continue;

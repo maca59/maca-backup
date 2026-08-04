@@ -19,7 +19,7 @@ class Maca_Backup_Pro_Ftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 	/** @inheritdoc */
 	public function label(): string {
-		return __( 'FTP', 'maca-backup-pro' );
+		return __( 'FTP', 'maca-backup' );
 	}
 
 	/** @inheritdoc */
@@ -35,7 +35,7 @@ class Maca_Backup_Pro_Ftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 	 */
 	private function connect() {
 		if ( ! function_exists( 'ftp_connect' ) ) {
-			return new WP_Error( 'ext', __( 'PHP FTP extension is not available.', 'maca-backup-pro' ) );
+			return new WP_Error( 'ext', __( 'PHP FTP extension is not available.', 'maca-backup' ) );
 		}
 
 		$s    = $this->settings();
@@ -43,12 +43,12 @@ class Maca_Backup_Pro_Ftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 		$port = (int) ( $s['port'] ?? 21 );
 		$conn = ftp_connect( $host, $port, 20 );
 		if ( ! $conn ) {
-			return new WP_Error( 'connect', __( 'FTP connection failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'connect', __( 'FTP connection failed.', 'maca-backup' ) );
 		}
 
 		if ( ! ftp_login( $conn, (string) ( $s['user'] ?? '' ), $this->secret( 'pass' ) ) ) {
 			ftp_close( $conn );
-			return new WP_Error( 'auth', __( 'FTP login failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'auth', __( 'FTP login failed.', 'maca-backup' ) );
 		}
 
 		if ( ! empty( $s['passive'] ) ) {
@@ -74,7 +74,7 @@ class Maca_Backup_Pro_Ftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 		ftp_close( $conn );
 
 		if ( ! $ok ) {
-			return new WP_Error( 'upload', __( 'FTP upload failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'upload', __( 'FTP upload failed.', 'maca-backup' ) );
 		}
 
 		return $remote;
@@ -95,7 +95,7 @@ class Maca_Backup_Pro_Ftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 		$ok = ftp_get( $conn, $local_path, $remote_path, FTP_BINARY );
 		ftp_close( $conn );
 
-		return $ok ? true : new WP_Error( 'download', __( 'FTP download failed.', 'maca-backup-pro' ) );
+		return $ok ? true : new WP_Error( 'download', __( 'FTP download failed.', 'maca-backup' ) );
 	}
 
 	/** @inheritdoc */

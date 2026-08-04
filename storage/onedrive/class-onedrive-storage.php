@@ -19,7 +19,7 @@ class Maca_Backup_Pro_OneDrive_Storage extends Maca_Backup_Pro_Abstract_Storage 
 
 	/** @inheritdoc */
 	public function label(): string {
-		return __( 'OneDrive', 'maca-backup-pro' );
+		return __( 'OneDrive', 'maca-backup' );
 	}
 
 	/** @inheritdoc */
@@ -55,7 +55,7 @@ class Maca_Backup_Pro_OneDrive_Storage extends Maca_Backup_Pro_Abstract_Storage 
 
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		if ( empty( $data['access_token'] ) ) {
-			return new WP_Error( 'token', __( 'OneDrive token refresh failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'token', __( 'OneDrive token refresh failed.', 'maca-backup' ) );
 		}
 
 		return (string) $data['access_token'];
@@ -103,7 +103,7 @@ class Maca_Backup_Pro_OneDrive_Storage extends Maca_Backup_Pro_Abstract_Storage 
 
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 		if ( empty( $data['id'] ) ) {
-			return new WP_Error( 'upload', __( 'OneDrive upload failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'upload', __( 'OneDrive upload failed.', 'maca-backup' ) );
 		}
 
 		return (string) $data['id'];

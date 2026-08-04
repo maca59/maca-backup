@@ -170,7 +170,7 @@ class Maca_Backup_Pro_Ajax {
 		}
 
 		if ( ! $job ) {
-			wp_send_json_error( array( 'message' => __( 'No running job to stop.', 'maca-backup-pro' ) ) );
+			wp_send_json_error( array( 'message' => __( 'No running job to stop.', 'maca-backup' ) ) );
 		}
 
 		$result = ( 'restore' === (string) $job->job_type )
@@ -314,7 +314,7 @@ class Maca_Backup_Pro_Ajax {
 		$backup_id = isset( $_POST['backup_id'] ) ? (int) $_POST['backup_id'] : 0;
 		$ok        = Maca_Backup_Pro_Backup_Engine::delete_backup( $backup_id );
 		if ( ! $ok ) {
-			wp_send_json_error( array( 'message' => __( 'Could not delete backup.', 'maca-backup-pro' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Could not delete backup.', 'maca-backup' ) ) );
 		}
 		wp_send_json_success( array( 'deleted' => $backup_id ) );
 	}
@@ -342,8 +342,9 @@ class Maca_Backup_Pro_Ajax {
 	public function staging_restore(): void {
 		Maca_Backup_Pro_Security::verify_ajax();
 		$backup_id = isset( $_POST['backup_id'] ) ? (int) $_POST['backup_id'] : 0;
-		$target    = isset( $_POST['target'] ) ? sanitize_text_field( wp_unslash( $_POST['target'] ) ) : '';
-		$result    = Maca_Backup_Pro_Staging::restore( $backup_id, $target );
+		// Optional relative folder name only — never an absolute filesystem path.
+		$subdir = isset( $_POST['target'] ) ? sanitize_key( wp_unslash( $_POST['target'] ) ) : '';
+		$result = Maca_Backup_Pro_Staging::restore( $backup_id, $subdir );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
@@ -393,7 +394,7 @@ class Maca_Backup_Pro_Ajax {
 				array(
 					'message' => __(
 						'Thank you! Your request has been sent. We will reply to the email address above — check your inbox (and spam folder).',
-						'maca-backup-pro'
+						'maca-backup'
 					),
 				)
 			);
@@ -402,7 +403,7 @@ class Maca_Backup_Pro_Ajax {
 				array(
 					'message' => __(
 						'Something went wrong. Please try again or email support@maca.se.',
-						'maca-backup-pro'
+						'maca-backup'
 					),
 				)
 			);
@@ -428,12 +429,12 @@ class Maca_Backup_Pro_Ajax {
 		$storage_id = isset( $_POST['storage_provider'] ) ? sanitize_key( wp_unslash( $_POST['storage_provider'] ) ) : 'local';
 		$provider   = Maca_Backup_Pro_Storage_Registry::instance()->get( $storage_id );
 		if ( ! $provider ) {
-			wp_send_json_error( array( 'message' => __( 'Unknown storage provider.', 'maca-backup-pro' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Unknown storage provider.', 'maca-backup' ) ) );
 		}
 		if ( 'local' !== $storage_id && ! $provider->is_configured() ) {
 			wp_send_json_error(
 				array(
-					'message'     => __( 'Configure this storage destination first, or choose Local storage.', 'maca-backup-pro' ),
+					'message'     => __( 'Configure this storage destination first, or choose Local storage.', 'maca-backup' ),
 					'storage_url' => Maca_Backup_Pro_Admin::tab_url( 'storage' ),
 				)
 			);
@@ -503,7 +504,7 @@ class Maca_Backup_Pro_Ajax {
 				'job_id'      => $job_id,
 				'schedule_id' => $schedule_id,
 				'run_mode'    => $mode,
-				'message'     => __( 'Setup complete.', 'maca-backup-pro' ),
+				'message'     => __( 'Setup complete.', 'maca-backup' ),
 			)
 		);
 	}

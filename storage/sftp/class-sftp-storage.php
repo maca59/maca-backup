@@ -19,7 +19,7 @@ class Maca_Backup_Pro_Sftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 	/** @inheritdoc */
 	public function label(): string {
-		return __( 'SFTP', 'maca-backup-pro' );
+		return __( 'SFTP', 'maca-backup' );
 	}
 
 	/** @inheritdoc */
@@ -35,13 +35,13 @@ class Maca_Backup_Pro_Sftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 	 */
 	private function sftp() {
 		if ( ! function_exists( 'ssh2_connect' ) ) {
-			return new WP_Error( 'ext', __( 'PHP ssh2 extension is required for SFTP.', 'maca-backup-pro' ) );
+			return new WP_Error( 'ext', __( 'PHP ssh2 extension is required for SFTP.', 'maca-backup' ) );
 		}
 
 		$s    = $this->settings();
 		$conn = ssh2_connect( (string) $s['host'], (int) ( $s['port'] ?? 22 ) );
 		if ( ! $conn ) {
-			return new WP_Error( 'connect', __( 'SFTP connection failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'connect', __( 'SFTP connection failed.', 'maca-backup' ) );
 		}
 
 		$key = $this->secret( 'key' );
@@ -59,12 +59,12 @@ class Maca_Backup_Pro_Sftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 		}
 
 		if ( ! $ok ) {
-			return new WP_Error( 'auth', __( 'SFTP authentication failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'auth', __( 'SFTP authentication failed.', 'maca-backup' ) );
 		}
 
 		$sftp = ssh2_sftp( $conn );
 		if ( ! $sftp ) {
-			return new WP_Error( 'sftp', __( 'Could not initialize SFTP subsystem.', 'maca-backup-pro' ) );
+			return new WP_Error( 'sftp', __( 'Could not initialize SFTP subsystem.', 'maca-backup' ) );
 		}
 
 		return $sftp;
@@ -83,13 +83,13 @@ class Maca_Backup_Pro_Sftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 		$stream = fopen( 'ssh2.sftp://' . (int) $sftp . $remote, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 
 		if ( ! $stream ) {
-			return new WP_Error( 'open', __( 'Could not open remote SFTP path.', 'maca-backup-pro' ) );
+			return new WP_Error( 'open', __( 'Could not open remote SFTP path.', 'maca-backup' ) );
 		}
 
 		$in = fopen( $local_path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( ! $in ) {
 			fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-			return new WP_Error( 'local', __( 'Could not read local file for SFTP upload.', 'maca-backup-pro' ) );
+			return new WP_Error( 'local', __( 'Could not read local file for SFTP upload.', 'maca-backup' ) );
 		}
 
 		stream_copy_to_stream( $in, $stream );
@@ -113,12 +113,12 @@ class Maca_Backup_Pro_Sftp_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 		$in = fopen( 'ssh2.sftp://' . (int) $sftp . $remote_path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( ! $in ) {
-			return new WP_Error( 'open', __( 'Could not open remote file.', 'maca-backup-pro' ) );
+			return new WP_Error( 'open', __( 'Could not open remote file.', 'maca-backup' ) );
 		}
 		$out = fopen( $local_path, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( ! $out ) {
 			fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-			return new WP_Error( 'local', __( 'Could not write local file.', 'maca-backup-pro' ) );
+			return new WP_Error( 'local', __( 'Could not write local file.', 'maca-backup' ) );
 		}
 		stream_copy_to_stream( $in, $out );
 		fclose( $in ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose

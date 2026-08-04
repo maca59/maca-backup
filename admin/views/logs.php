@@ -12,17 +12,17 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals -- View/partial vars provided by the admin renderer.
 ?>
 <section class="maca-bp-panel">
-	<h2><?php esc_html_e( 'Logs', 'maca-backup-pro' ); ?></h2>
+	<h2><?php esc_html_e( 'Logs', 'maca-backup' ); ?></h2>
 	<?php if ( empty( $logs ) ) : ?>
-		<p class="maca-bp-muted"><?php esc_html_e( 'No log entries yet.', 'maca-backup-pro' ); ?></p>
+		<p class="maca-bp-muted"><?php esc_html_e( 'No log entries yet.', 'maca-backup' ); ?></p>
 	<?php else : ?>
 		<table class="widefat striped maca-bp-table">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Time', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Level', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Message', 'maca-backup-pro' ); ?></th>
-					<th><?php esc_html_e( 'Backup', 'maca-backup-pro' ); ?></th>
+					<th><?php esc_html_e( 'Time', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Level', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Message', 'maca-backup' ); ?></th>
+					<th><?php esc_html_e( 'Backup', 'maca-backup' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>

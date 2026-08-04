@@ -73,15 +73,15 @@ class Maca_Backup_Pro_Encryption {
 	 */
 	public static function encrypt_file( string $src, string $dest, string $passphrase ) {
 		if ( ! is_readable( $src ) ) {
-			return new WP_Error( 'src', __( 'Source file not readable.', 'maca-backup-pro' ) );
+			return new WP_Error( 'src', __( 'Source file not readable.', 'maca-backup' ) );
 		}
 		if ( '' === $passphrase ) {
-			return new WP_Error( 'pass', __( 'Passphrase required for encryption.', 'maca-backup-pro' ) );
+			return new WP_Error( 'pass', __( 'Passphrase required for encryption.', 'maca-backup' ) );
 		}
 
 		$plain = file_get_contents( $src ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		if ( false === $plain ) {
-			return new WP_Error( 'read', __( 'Could not read source file.', 'maca-backup-pro' ) );
+			return new WP_Error( 'read', __( 'Could not read source file.', 'maca-backup' ) );
 		}
 
 		$salt = random_bytes( 16 );
@@ -90,13 +90,13 @@ class Maca_Backup_Pro_Encryption {
 		$tag  = '';
 		$cipher = openssl_encrypt( $plain, self::FILE_METHOD, $key, OPENSSL_RAW_DATA, $iv, $tag, '', 16 );
 		if ( false === $cipher ) {
-			return new WP_Error( 'enc', __( 'Encryption failed.', 'maca-backup-pro' ) );
+			return new WP_Error( 'enc', __( 'Encryption failed.', 'maca-backup' ) );
 		}
 
 		$payload = self::FILE_MAGIC . $salt . $iv . $tag . $cipher;
 		$ok      = file_put_contents( $dest, $payload ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		if ( false === $ok ) {
-			return new WP_Error( 'write', __( 'Could not write encrypted file.', 'maca-backup-pro' ) );
+			return new WP_Error( 'write', __( 'Could not write encrypted file.', 'maca-backup' ) );
 		}
 
 		return true;
@@ -112,15 +112,15 @@ class Maca_Backup_Pro_Encryption {
 	 */
 	public static function decrypt_file( string $src, string $dest, string $passphrase ) {
 		if ( ! is_readable( $src ) ) {
-			return new WP_Error( 'src', __( 'Encrypted file not readable.', 'maca-backup-pro' ) );
+			return new WP_Error( 'src', __( 'Encrypted file not readable.', 'maca-backup' ) );
 		}
 		if ( '' === $passphrase ) {
-			return new WP_Error( 'pass', __( 'Passphrase required for decryption.', 'maca-backup-pro' ) );
+			return new WP_Error( 'pass', __( 'Passphrase required for decryption.', 'maca-backup' ) );
 		}
 
 		$data = file_get_contents( $src ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		if ( false === $data || strlen( $data ) < 52 || ! str_starts_with( $data, self::FILE_MAGIC ) ) {
-			return new WP_Error( 'format', __( 'Invalid encrypted backup format.', 'maca-backup-pro' ) );
+			return new WP_Error( 'format', __( 'Invalid encrypted backup format.', 'maca-backup' ) );
 		}
 
 		$salt   = substr( $data, 8, 16 );
@@ -130,12 +130,12 @@ class Maca_Backup_Pro_Encryption {
 		$key    = hash_pbkdf2( 'sha256', $passphrase, $salt, 100000, 32, true );
 		$plain  = openssl_decrypt( $cipher, self::FILE_METHOD, $key, OPENSSL_RAW_DATA, $iv, $tag );
 		if ( false === $plain ) {
-			return new WP_Error( 'dec', __( 'Decryption failed — check passphrase.', 'maca-backup-pro' ) );
+			return new WP_Error( 'dec', __( 'Decryption failed — check passphrase.', 'maca-backup' ) );
 		}
 
 		$ok = file_put_contents( $dest, $plain ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		if ( false === $ok ) {
-			return new WP_Error( 'write', __( 'Could not write decrypted file.', 'maca-backup-pro' ) );
+			return new WP_Error( 'write', __( 'Could not write decrypted file.', 'maca-backup' ) );
 		}
 
 		return true;
