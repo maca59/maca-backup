@@ -156,6 +156,8 @@ $ExcludeFiles = @(
     'phpcs.xml',
     'phpcs.xml.dist',
     'README.md',
+    'TERMS.md',
+    'PRIVACY.md',
     'Thumbs.db',
     '.DS_Store'
 )
