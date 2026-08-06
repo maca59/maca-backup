@@ -33,7 +33,7 @@ $mailto         = 'mailto:' . $email . '?subject=' . rawurlencode( 'maca BackUp 
 <section class="maca-bp-panel maca-bp-support">
 	<h2><?php esc_html_e( 'Support', 'maca-backup' ); ?></h2>
 	<p class="maca-bp-muted">
-		<?php esc_html_e( 'Send a support request to Maca Development. We reply to the email address below — you do not need to log in on maca.se.', 'maca-backup' ); ?>
+		<?php esc_html_e( 'Send a support request to Maca Development. We reply to the email address below.', 'maca-backup' ); ?>
 	</p>
 
 	<div class="maca-bp-support__grid">
@@ -122,7 +122,7 @@ $mailto         = 'mailto:' . $email . '?subject=' . rawurlencode( 'maca BackUp 
 				</li>
 				<li>
 					<a href="<?php echo esc_url( $product_url ); ?>" target="_blank" rel="noopener noreferrer">
-						<?php esc_html_e( 'Product page (maca.se)', 'maca-backup' ); ?>
+						<?php esc_html_e( 'Source on GitHub', 'maca-backup' ); ?>
 					</a>
 				</li>
 			</ul>
@@ -144,7 +144,7 @@ $mailto         = 'mailto:' . $email . '?subject=' . rawurlencode( 'maca BackUp 
 	<div class="maca-bp-panel__head">
 		<h2><?php esc_html_e( 'Terms of Use', 'maca-backup' ); ?></h2>
 		<a class="maca-bp-legal__external" href="<?php echo esc_url( $terms_url ); ?>" target="_blank" rel="noopener noreferrer">
-			<?php esc_html_e( 'View on maca.se', 'maca-backup' ); ?>
+			<?php esc_html_e( 'View on GitHub', 'maca-backup' ); ?>
 		</a>
 	</div>
 	<div class="maca-bp-legal__doc">
@@ -156,7 +156,7 @@ $mailto         = 'mailto:' . $email . '?subject=' . rawurlencode( 'maca BackUp 
 	<div class="maca-bp-panel__head">
 		<h2><?php esc_html_e( 'Privacy Policy', 'maca-backup' ); ?></h2>
 		<a class="maca-bp-legal__external" href="<?php echo esc_url( $privacy_url ); ?>" target="_blank" rel="noopener noreferrer">
-			<?php esc_html_e( 'View on maca.se', 'maca-backup' ); ?>
+			<?php esc_html_e( 'View on GitHub', 'maca-backup' ); ?>
 		</a>
 	</div>
 	<div class="maca-bp-legal__doc">

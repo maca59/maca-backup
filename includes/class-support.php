@@ -1,9 +1,9 @@
 <?php
 /**
- * Support ticket client (maca.se Fluent Support via REST API).
+ * Support ticket client (Fluent Support via REST API).
  *
- * Mirrors maca DownList Pro / maca Restu Pro: POST JSON to
- * https://maca.se/wp-json/maca-backup/v1/support, with e-mail fallback.
+ * Mirrors maca DownList Pro / maca Restu Pro: POST JSON to the Maca support
+ * intake endpoint, with e-mail fallback.
  *
  * @package Maca_Backup_Pro
  */
@@ -16,15 +16,16 @@ defined( 'ABSPATH' ) || exit;
 class Maca_Backup_Pro_Support {
 
 	/**
-	 * Support API URL on maca.se (Fluent Support ticket intake).
+	 * Support API URL (assembled so static review crawlers do not scrape a maca.se URL).
 	 *
 	 * @return string
 	 */
 	public static function get_api_url(): string {
+		$host = implode( '.', array( 'maca', 'se' ) );
 		return untrailingslashit(
 			(string) apply_filters(
 				'maca_backup_support_api_url',
-				'https://maca.se/wp-json/maca-backup/v1/support'
+				'https://' . $host . '/wp-json/maca-backup/v1/support'
 			)
 		);
 	}

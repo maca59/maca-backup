@@ -2,7 +2,7 @@
 
 **Document version 1.1**
 
-These Terms of Use govern your use of the WordPress plugin **maca BackUp**, provided by Maca Development ([maca.se](https://maca.se/)). By accepting these terms in wp-admin, you agree to them on behalf of the site where the plugin is installed.
+These Terms of Use govern your use of the WordPress plugin **maca BackUp**, provided by Maca Development. By accepting these terms in wp-admin, you agree to them on behalf of the site where the plugin is installed.
 
 ## 1. License
 
@@ -10,7 +10,7 @@ maca BackUp is distributed under the GNU General Public License (GPL), version 2
 
 ## 2. Where backups are stored
 
-Backup archives remain on **your** WordPress server and/or in **your own** remote storage accounts (local disk, FTP/SFTP, S3-compatible storage, Google Drive, Dropbox, OneDrive, or other destinations you configure). maca does **not** host, store, receive, or mirror your backup files on maca servers.
+Backup archives remain on **your** WordPress server and/or in **your own** remote storage accounts (local disk, FTP/SFTP, S3-compatible storage, Google Drive, Dropbox, OneDrive, or other destinations you configure). Maca Development does **not** host, store, receive, or mirror your backup files.
 
 ## 3. Your responsibilities
 
@@ -21,11 +21,11 @@ Backup archives remain on **your** WordPress server and/or in **your own** remot
 
 ## 4. Optional telemetry and hub
 
-Hub/telemetry is **off by default**. If you enable it under Settings → maca Hub, the plugin may send limited operational information—such as the site URL, plugin version, and backup history metadata (type, date/time, size, status)—to `api.maca.se` for product improvement and hub heartbeat status. Backup file contents are not included. You may turn this off again at any time.
+Hub/telemetry is **off by default**. If you enable it under Settings → maca Hub, the plugin may send limited operational information—such as the site URL, plugin version, and backup history metadata (type, date/time, size, status)—to the Maca Hub API endpoint for product improvement and hub heartbeat status. Backup file contents are not included. You may turn this off again at any time.
 
 ## 5. Support requests
 
-Use the support form on the plugin Support tab in wp-admin. Information you provide (name, email, message, subject, and optional site / system details) may be sent to maca.se and processed via Fluent Support so we can assist you. Email to [support@maca.se](mailto:support@maca.se) is a secondary contact option.
+Use the support form on the plugin Support tab in wp-admin. Information you provide (name, email, message, subject, and optional site / system details) may be sent to Maca Development so we can assist you. Email to [support@maca.se](mailto:support@maca.se) is a secondary contact option.
 
 ## 6. No warranty
 
@@ -37,6 +37,6 @@ We may update these terms from time to time. Material changes are reflected in a
 
 ## 8. Contact
 
-- Product: [maca.se/maca-backup](https://maca.se/maca-backup/)
+- Source / product: [github.com/maca59/maca-backup](https://github.com/maca59/maca-backup)
+- Issues: [github.com/maca59/maca-backup/issues](https://github.com/maca59/maca-backup/issues)
 - Support: the form on the plugin Support tab, or [support@maca.se](mailto:support@maca.se)
-- Source: [github.com/maca59/maca-backup](https://github.com/maca59/maca-backup)

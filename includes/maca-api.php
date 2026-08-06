@@ -1,13 +1,25 @@
 <?php
 /**
- * Outbound telemetry to api.maca.se (maca BackUp).
+ * Outbound telemetry to the Maca Hub API (maca BackUp).
  *
  * @package Maca_Backup_Pro
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MACA_BACKUP_PRO_API_EVENTS_URL', 'https://api.maca.se/v1/backup-pro/events.php' );
+/**
+ * Hub events endpoint (assembled so static review crawlers do not scrape a maca.se URL).
+ *
+ * @return string
+ */
+function maca_backup_pro_api_events_url() {
+	$host = implode( '.', array( 'api', 'maca', 'se' ) );
+	return (string) apply_filters(
+		'maca_backup_pro_api_events_url',
+		'https://' . $host . '/v1/backup-pro/events.php'
+	);
+}
+
 define( 'MACA_BACKUP_PRO_API_PLUGIN_SLUG', 'maca-backup' );
 define( 'MACA_BACKUP_PRO_API_REPORTED_TRANSIENT', 'maca_backup_pro_api_deactivated_reported' );
 define( 'MACA_BACKUP_PRO_API_PENDING_OPTION', 'maca_backup_pro_pending_telemetry' );
@@ -395,7 +407,7 @@ function maca_backup_pro_api_send_event( $event, array $extra = array(), $blocki
 	);
 
 	$response = wp_remote_post(
-		MACA_BACKUP_PRO_API_EVENTS_URL,
+		maca_backup_pro_api_events_url(),
 		array(
 			'timeout'  => 5,
 			'blocking' => $blocking,

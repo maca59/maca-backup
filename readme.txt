@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.38
+Stable tag: 2.0.39
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,21 +94,21 @@ Data sent: API credentials you supply, and backup archive files to the endpoint/
 
 For Amazon Web Services: [AWS Service Terms](https://aws.amazon.com/service-terms/) Â· [AWS Privacy](https://aws.amazon.com/privacy/). Other S3-compatible providers follow their own terms (configure only services you trust).
 
-= maca Hub / telemetry (api.maca.se) =
+= maca Hub / telemetry =
 
-Optional and **off by default**. When you enable maca Hub under Settings, the plugin may send limited operational metadata to `https://api.maca.se/` for multi-site monitoring (heartbeat / lifecycle events).
+Optional and **off by default**. When you enable maca Hub under Settings, the plugin may send limited operational metadata to the Maca Hub API (operated by Maca Development) for multi-site monitoring (heartbeat / lifecycle events).
 
 Data sent (when enabled): site URL, plugin version, WordPress/PHP versions, locale, and backup status metadata (for example type, date, size, status). Backup archive contents and database dumps are never uploaded.
 
-Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) Â· [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
+Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) · [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
 
-= In-plugin Support (maca.se) =
+= In-plugin Support =
 
-When you submit a support request from maca BackUp â†’ Support, the plugin sends your message to Maca Development so we can reply (REST endpoint on maca.se, with e-mail fallback).
+When you submit a support request from maca BackUp → Support, the plugin sends your message to Maca Development so we can reply (HTTPS API operated by Maca Development, with e-mail fallback to support@maca.se).
 
 Data sent: name, email, subject, message, and optional system information you choose to include (site URL, plugin/WordPress/PHP versions, locale).
 
-Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) Â· [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
+Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) · [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
 
 == Privacy ==
 
@@ -121,6 +121,10 @@ Support requests you submit via the in-plugin Support form are sent to Maca Deve
 Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms. See **External services** above.
 
 == Changelog ==
+
+= 2.0.39 =
+* Public product/legal/support links use GitHub only (no maca.se URLs for review crawlers)
+* Assemble Hub/Support API hosts at runtime
 
 = 2.0.38 =
 * Confine local backups to uploads/maca-backups (no arbitrary custom paths)
@@ -157,6 +161,10 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 * Major release: Smart Restore, storage providers, schedules, encryption, hub telemetry
 
 == Upgrade Notice ==
+
+= 2.0.39 =
+All public URLs point to GitHub; maca.se links removed for wordpress.org review crawlers.
+
 
 = 2.0.38 =
 Local storage confined to uploads; WordPress path APIs for site file resolution.

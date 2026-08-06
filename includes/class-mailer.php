@@ -425,7 +425,7 @@ class Maca_Backup_Pro_Mailer {
 				. '</a>';
 		}
 
-		$home = esc_url( 'https://maca.se/' );
+		$home = esc_url( 'https://github.com/maca59/maca-backup' );
 
 		return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:' . $bg . ';font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:' . $bg . ';padding:24px 12px;">'
@@ -456,7 +456,7 @@ class Maca_Backup_Pro_Mailer {
 			. '</div>'
 			. '<div style="font-size:12px;line-height:1.8;">' . $footer_html . '</div>'
 			. '<div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.45);">'
-			. '<a href="' . $home . '" style="color:rgba(255,255,255,0.7);text-decoration:none;">maca.se</a>'
+			. '<a href="' . $home . '" style="color:rgba(255,255,255,0.7);text-decoration:none;">GitHub</a>'
 			. '</div>'
 			. '</td></tr>'
 			. '</table>'
@@ -487,7 +487,7 @@ class Maca_Backup_Pro_Mailer {
 		foreach ( self::cross_sell_links() as $link ) {
 			$lines[] = '- ' . $link['label'] . ': ' . $link['url'];
 		}
-		$lines[] = 'maca.se: https://maca.se/';
+		$lines[] = 'GitHub: https://github.com/maca59/maca-backup';
 
 		return implode( "\n", $lines );
 	}
