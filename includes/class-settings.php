@@ -150,21 +150,35 @@ class Maca_Backup_Pro_Settings {
 	/**
 	 * Absolute local backup directory.
 	 *
+	 * Always under the uploads directory ({uploads}/maca-backups), optionally a
+	 * subdirectory of that folder. Arbitrary paths outside uploads are ignored
+	 * (wordpress.org filesystem guidelines).
+	 *
 	 * @return string
 	 */
 	public static function local_backup_dir(): string {
-		$settings = self::all();
-		$custom   = isset( $settings['storage']['local']['path'] ) ? (string) $settings['storage']['local']['path'] : '';
-
-		if ( '' !== $custom && is_dir( $custom ) ) {
-			return untrailingslashit( $custom );
+		$default = Maca_Backup_Pro_Paths::default_backup_dir();
+		if ( '' === $default ) {
+			return '';
 		}
 
-		$upload = wp_upload_dir();
-		$dir    = trailingslashit( $upload['basedir'] ) . 'maca-backups';
+		$settings = self::all();
+		$custom   = isset( $settings['storage']['local']['path'] ) ? trim( (string) $settings['storage']['local']['path'] ) : '';
+
+		$dir = $default;
+		if ( '' !== $custom ) {
+			$candidate = wp_normalize_path( untrailingslashit( $custom ) );
+			// Allow only paths inside uploads (typically …/uploads/maca-backups[…]).
+			if ( Maca_Backup_Pro_Paths::is_under_uploads( $candidate ) ) {
+				$dir = $candidate;
+			}
+		}
 
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
+		}
+
+		if ( is_dir( $dir ) ) {
 			self::protect_directory( $dir );
 		}
 
@@ -172,20 +186,31 @@ class Maca_Backup_Pro_Settings {
 	}
 
 	/**
-	 * Write index.php + .htaccess to block direct access.
+	 * Write index.php + .htaccess to block direct access (uploads tree only).
 	 *
 	 * @param string $dir Directory.
 	 * @return void
 	 */
 	public static function protect_directory( string $dir ): void {
+		$dir = wp_normalize_path( untrailingslashit( $dir ) );
+		if ( '' === $dir || ! Maca_Backup_Pro_Paths::is_under_uploads( $dir ) ) {
+			return;
+		}
+
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+
 		$index = trailingslashit( $dir ) . 'index.php';
 		if ( ! file_exists( $index ) ) {
-			file_put_contents( $index, "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Tiny guard file inside uploads.
+			file_put_contents( $index, "<?php\n// Silence is golden.\n" );
 		}
 
 		$htaccess = trailingslashit( $dir ) . '.htaccess';
 		if ( ! file_exists( $htaccess ) ) {
-			file_put_contents( $htaccess, "Deny from all\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Tiny guard file inside uploads.
+			file_put_contents( $htaccess, "Deny from all\n" );
 		}
 	}
 

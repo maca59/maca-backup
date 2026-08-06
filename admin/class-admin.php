@@ -710,6 +710,17 @@ class Maca_Backup_Pro_Admin {
 			}
 		}
 
+		// Local storage: only a safe subfolder under uploads/maca-backups (never an arbitrary absolute path).
+		$subdir = isset( $storage['local']['subdir'] ) ? (string) $storage['local']['subdir'] : '';
+		$subdir = sanitize_file_name( $subdir );
+		$subdir = preg_replace( '/[^A-Za-z0-9_\-]/', '', $subdir ) ?? '';
+		unset( $storage['local']['path'], $storage['local']['subdir'] );
+		if ( '' !== $subdir ) {
+			$storage['local']['path'] = trailingslashit( Maca_Backup_Pro_Paths::default_backup_dir() ) . $subdir;
+		} else {
+			$storage['local']['path'] = '';
+		}
+
 		Maca_Backup_Pro_Settings::update(
 			array(
 				'storage_provider' => $provider,

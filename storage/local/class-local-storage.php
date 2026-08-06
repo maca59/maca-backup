@@ -30,19 +30,33 @@ class Maca_Backup_Pro_Local_Storage extends Maca_Backup_Pro_Abstract_Storage {
 
 	/** @inheritdoc */
 	public function upload( string $local_path, string $remote_path ) {
-		$dest_dir = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . dirname( $remote_path );
+		$base = Maca_Backup_Pro_Settings::local_backup_dir();
+		if ( '' === $base || ! Maca_Backup_Pro_Paths::is_under_uploads( $base ) ) {
+			return new WP_Error( 'local', __( 'Local backup directory is not available under uploads.', 'maca-backup' ) );
+		}
+
+		$remote_path = ltrim( str_replace( '\\', '/', $remote_path ), '/' );
+		$safe_rel    = Maca_Backup_Pro_Security::safe_zip_entry_path( $remote_path );
+		if ( false === $safe_rel ) {
+			return new WP_Error( 'path', __( 'Invalid local storage path.', 'maca-backup' ) );
+		}
+
+		$dest = Maca_Backup_Pro_Security::path_under_directory( $base, $safe_rel );
+		if ( false === $dest ) {
+			return new WP_Error( 'path', __( 'Invalid local storage path.', 'maca-backup' ) );
+		}
+
+		$dest_dir = dirname( $dest );
 		if ( ! is_dir( $dest_dir ) ) {
 			wp_mkdir_p( $dest_dir );
 		}
-
-		$dest = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . ltrim( $remote_path, '/' );
 
 		// Already in place (engine wrote there).
 		if ( wp_normalize_path( $local_path ) === wp_normalize_path( $dest ) ) {
 			return $dest;
 		}
 
-		if ( ! copy( $local_path, $dest ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy
+		if ( ! copy( $local_path, $dest ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Copy within uploads/maca-backups only.
 			return new WP_Error( 'copy', __( 'Could not copy backup to local storage.', 'maca-backup' ) );
 		}
 

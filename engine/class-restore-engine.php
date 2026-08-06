@@ -646,7 +646,7 @@ class Maca_Backup_Pro_Restore_Engine {
 					continue;
 				}
 				if ( self::scope_allows_file( $scope, $name, $selected ) ) {
-					$exists       = file_exists( trailingslashit( ABSPATH ) . $name );
+					$exists       = file_exists( Maca_Backup_Pro_Paths::absolute( (string) $name ) );
 					$will_write[] = array(
 						'path'   => $name,
 						'exists' => $exists,

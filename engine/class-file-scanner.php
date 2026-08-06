@@ -201,25 +201,36 @@ class Maca_Backup_Pro_File_Scanner {
 	 * @return string
 	 */
 	public static function scope_root( string $scope, array $options = array() ): string {
-		return match ( $scope ) {
-			'wp-content' => WP_CONTENT_DIR,
-			'uploads'    => (string) ( wp_upload_dir()['basedir'] ?? WP_CONTENT_DIR . '/uploads' ),
-			'plugins'    => WP_PLUGIN_DIR,
-			'themes'     => get_theme_root(),
-			'custom'     => isset( $options['path'] ) ? (string) $options['path'] : ABSPATH,
-			default      => ABSPATH,
-		};
+		if ( 'custom' === $scope && ! empty( $options['path'] ) ) {
+			$custom = wp_normalize_path( (string) $options['path'] );
+			// Custom scan roots must stay under the site or uploads tree.
+			$site = trailingslashit( Maca_Backup_Pro_Paths::site_root() );
+			if ( str_starts_with( $custom, $site ) || Maca_Backup_Pro_Paths::is_under_uploads( $custom ) ) {
+				return untrailingslashit( $custom );
+			}
+			return Maca_Backup_Pro_Paths::site_root();
+		}
+
+		$map = array(
+			'wp-content' => 'wp-content',
+			'uploads'    => 'uploads',
+			'plugins'    => 'plugins',
+			'themes'     => 'themes',
+			'mu-plugins' => 'mu-plugins',
+		);
+		$key = $map[ $scope ] ?? 'full';
+		return Maca_Backup_Pro_Paths::scope_directory( $key );
 	}
 
 	/**
-	 * Path relative to ABSPATH using forward slashes.
+	 * Path relative to the site root using forward slashes.
 	 *
 	 * @param string $absolute Absolute path.
 	 * @return string|null
 	 */
 	public static function relative_to_abspath( string $absolute ): ?string {
 		$abs  = wp_normalize_path( $absolute );
-		$base = trailingslashit( wp_normalize_path( ABSPATH ) );
+		$base = trailingslashit( Maca_Backup_Pro_Paths::site_root() );
 
 		// Case-insensitive compare for Windows hosts.
 		if ( 0 !== strcasecmp( substr( $abs . '/', 0, strlen( $base ) ), $base ) && 0 !== strcasecmp( $abs, rtrim( $base, '/' ) ) ) {

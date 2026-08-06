@@ -12,6 +12,12 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals -- View/partial vars provided by the admin renderer.
 $storage = $settings['storage'] ?? array();
+$maca_backup_local_subdir = '';
+$maca_backup_saved_path   = isset( $storage['local']['path'] ) ? wp_normalize_path( untrailingslashit( (string) $storage['local']['path'] ) ) : '';
+$maca_backup_default_dir  = wp_normalize_path( untrailingslashit( Maca_Backup_Pro_Paths::default_backup_dir() ) );
+if ( '' !== $maca_backup_saved_path && str_starts_with( $maca_backup_saved_path, trailingslashit( $maca_backup_default_dir ) ) ) {
+	$maca_backup_local_subdir = basename( $maca_backup_saved_path );
+}
 ?>
 <section class="maca-bp-panel">
 	<h2><?php esc_html_e( 'Storage destinations', 'maca-backup' ); ?></h2>
@@ -35,10 +41,26 @@ $storage = $settings['storage'] ?? array();
 
 		<details class="maca-bp-details" open>
 			<summary><?php esc_html_e( 'Local', 'maca-backup' ); ?></summary>
+			<p class="maca-bp-muted">
+				<?php
+				printf(
+					/* translators: %s: absolute backup directory under uploads */
+					esc_html__( 'Backups are stored under your uploads directory: %s', 'maca-backup' ),
+					esc_html( Maca_Backup_Pro_Settings::local_backup_dir() )
+				);
+				?>
+			</p>
 			<label class="maca-bp-field">
-				<span><?php esc_html_e( 'Custom path (optional)', 'maca-backup' ); ?></span>
-				<input type="text" name="storage[local][path]" value="<?php echo esc_attr( (string) ( $storage['local']['path'] ?? '' ) ); ?>" placeholder="<?php echo esc_attr( Maca_Backup_Pro_Settings::local_backup_dir() ); ?>" />
+				<span><?php esc_html_e( 'Optional subfolder under uploads/maca-backups', 'maca-backup' ); ?></span>
+				<input
+					type="text"
+					name="storage[local][subdir]"
+					value="<?php echo esc_attr( $maca_backup_local_subdir ); ?>"
+					placeholder="<?php esc_attr_e( 'Leave empty for default', 'maca-backup' ); ?>"
+					pattern="[A-Za-z0-9_\-]+"
+				/>
 			</label>
+			<p class="maca-bp-muted"><?php esc_html_e( 'Only letters, numbers, dashes, and underscores. Paths outside uploads are not allowed.', 'maca-backup' ); ?></p>
 		</details>
 
 		<details class="maca-bp-details">

@@ -517,7 +517,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$out = array();
 		foreach ( $files as $rel ) {
 			$rel = str_replace( '\\', '/', (string) $rel );
-			$abs = trailingslashit( ABSPATH ) . $rel;
+			$abs = Maca_Backup_Pro_Paths::absolute( (string) $rel );
 			if ( ! is_readable( $abs ) ) {
 				continue;
 			}
@@ -630,7 +630,7 @@ class Maca_Backup_Pro_Backup_Engine {
 			}
 			$last                  = (string) $rel;
 			$state['current_item'] = $last;
-			$abs                   = trailingslashit( ABSPATH ) . $rel;
+			$abs                   = Maca_Backup_Pro_Paths::absolute( (string) $rel );
 			if ( is_readable( $abs ) ) {
 				$size = (int) filesize( $abs );
 				if ( ! $zip->add_file( $abs, $rel ) ) {
@@ -834,7 +834,7 @@ class Maca_Backup_Pro_Backup_Engine {
 		$inventory = array();
 		foreach ( $files as $rel ) {
 			$rel = str_replace( '\\', '/', (string) $rel );
-			$abs = trailingslashit( ABSPATH ) . $rel;
+			$abs = Maca_Backup_Pro_Paths::absolute( (string) $rel );
 			if ( ! is_readable( $abs ) ) {
 				continue;
 			}

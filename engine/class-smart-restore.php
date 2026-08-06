@@ -78,7 +78,7 @@ class Maca_Backup_Pro_Smart_Restore {
 		$checked   = array();
 
 		foreach ( $backup_files as $rel => $meta ) {
-			$abs             = trailingslashit( ABSPATH ) . $rel;
+			$abs             = Maca_Backup_Pro_Paths::absolute( (string) $rel );
 			$checked[ $rel ] = true;
 
 			if ( ! file_exists( $abs ) ) {
@@ -116,10 +116,14 @@ class Maca_Backup_Pro_Smart_Restore {
 		}
 
 		$deleted     = array();
-		$scan_scopes = array( 'wp-content/plugins', 'wp-content/themes', 'wp-content/uploads', 'wp-content/mu-plugins' );
-		foreach ( $scan_scopes as $prefix ) {
-			$root = trailingslashit( ABSPATH ) . $prefix;
-			if ( ! is_dir( $root ) ) {
+		$scan_scopes = array(
+			'plugins'    => Maca_Backup_Pro_Paths::scope_directory( 'plugins' ),
+			'themes'     => Maca_Backup_Pro_Paths::scope_directory( 'themes' ),
+			'uploads'    => Maca_Backup_Pro_Paths::scope_directory( 'uploads' ),
+			'mu-plugins' => Maca_Backup_Pro_Paths::scope_directory( 'mu-plugins' ),
+		);
+		foreach ( $scan_scopes as $root ) {
+			if ( '' === $root || ! is_dir( $root ) ) {
 				continue;
 			}
 			$iterator = new RecursiveIteratorIterator(

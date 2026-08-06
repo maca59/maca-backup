@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.37
+Stable tag: 2.0.38
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,7 +44,7 @@ Developed by **Maca Development**. Source and issue tracker: https://github.com/
 
 = Where are backups stored? =
 
-By default in your uploads directory under a maca-backups folder, or in a remote destination you configure under Storage.
+By default in your uploads directory under a maca-backups folder (resolved via wp_upload_dir()), or in a remote destination you configure under Storage. Custom absolute paths outside uploads are not used.
 
 = Do I need a license key? =
 
@@ -122,6 +122,10 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 
 == Changelog ==
 
+= 2.0.38 =
+* Confine local backups to uploads/maca-backups (no arbitrary custom paths)
+* Resolve site paths via WP APIs (wp_upload_dir, WP_PLUGIN_DIR, get_theme_root, get_home_path)
+
 = 2.0.37 =
 * Point Terms/Privacy links to public GitHub documents (maca.se pages were unreachable for wordpress.org review)
 
@@ -153,6 +157,10 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 * Major release: Smart Restore, storage providers, schedules, encryption, hub telemetry
 
 == Upgrade Notice ==
+
+= 2.0.38 =
+Local storage confined to uploads; WordPress path APIs for site file resolution.
+
 
 = 2.0.37 =
 Terms and Privacy documents hosted on GitHub for reliable review links.
