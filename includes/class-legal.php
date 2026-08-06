@@ -39,9 +39,11 @@ class Maca_Backup_Pro_Legal {
 	 */
 	public const FLUENT_FORM_ID = 4;
 
-	public const TERMS_URL = 'https://maca.se/maca-backup/terms/';
+	/** Public Terms of Use (GitHub — always reachable for wordpress.org reviews). */
+	public const TERMS_URL = 'https://github.com/maca59/maca-backup/blob/master/TERMS.md';
 
-	public const PRIVACY_URL = 'https://maca.se/maca-backup/privacy/';
+	/** Public Privacy Policy (GitHub — always reachable for wordpress.org reviews). */
+	public const PRIVACY_URL = 'https://github.com/maca59/maca-backup/blob/master/PRIVACY.md';
 
 	public const SUPPORT_EMAIL = 'support@maca.se';
 

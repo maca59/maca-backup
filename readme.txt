@@ -4,11 +4,11 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.36
+Stable tag: 2.0.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Backup and restore for WordPress — full site, database, files, Smart Restore, and modular cloud storage.
+Backup and restore for WordPress â€” full site, database, files, Smart Restore, and modular cloud storage.
 
 == Description ==
 
@@ -22,7 +22,7 @@ maca BackUp protects your WordPress site with full, database-only, and files-onl
 * Local storage plus FTP, SFTP, Google Drive, Dropbox, OneDrive, and S3-compatible destinations
 * AES-256-GCM backup encryption (optional)
 * Pre-update backups before WordPress, plugin, or theme updates
-* Smart Restore — compare and restore only changed files
+* Smart Restore â€” compare and restore only changed files
 * Import/export archives for migration between hosts
 * Optional maca Hub heartbeat for multi-site monitoring
 * Live maca Hub status (latest backup, active job, schedules) via Hub Connector
@@ -34,7 +34,7 @@ Developed by **Maca Development**. Source and issue tracker: https://github.com/
 
 == Installation ==
 
-1. Upload the `maca-backup` folder to `/wp-content/plugins/` or install via Plugins → Add New (search for “maca BackUp”) / Upload Plugin.
+1. Upload the `maca-backup` folder to `/wp-content/plugins/` or install via Plugins â†’ Add New (search for â€œmaca BackUpâ€) / Upload Plugin.
 2. Activate maca BackUp through the Plugins screen.
 3. Open **maca BackUp** in the admin menu.
 4. Accept the Terms and Privacy Policy on the Support tab.
@@ -56,7 +56,7 @@ WordPress 6.0+, PHP 8.2+, and the PHP ZipArchive extension for file backups and 
 
 = How do I get support? =
 
-Use the Support form inside the plugin (maca BackUp → Support), or open an issue on GitHub: https://github.com/maca59/maca-backup/issues
+Use the Support form inside the plugin (maca BackUp â†’ Support), or open an issue on GitHub: https://github.com/maca59/maca-backup/issues
 
 == External services ==
 
@@ -68,7 +68,7 @@ Optional remote storage. When configured under Storage, the plugin uses Google O
 
 Data sent: OAuth tokens/credentials you supply, and backup archive files (binary) when a backup or restore uses Google Drive.
 
-Service provided by Google. [Terms of Service](https://policies.google.com/terms) · [Privacy Policy](https://policies.google.com/privacy) · [Google APIs Terms](https://developers.google.com/terms)
+Service provided by Google. [Terms of Service](https://policies.google.com/terms) Â· [Privacy Policy](https://policies.google.com/privacy) Â· [Google APIs Terms](https://developers.google.com/terms)
 
 = Microsoft OneDrive =
 
@@ -76,7 +76,7 @@ Optional remote storage via Microsoft Graph. When configured, the plugin uploads
 
 Data sent: OAuth tokens/credentials you supply, and backup archive files when OneDrive is the active destination.
 
-Service provided by Microsoft. [Microsoft Services Agreement](https://www.microsoft.com/servicesagreement) · [Privacy Statement](https://privacy.microsoft.com/privacystatement)
+Service provided by Microsoft. [Microsoft Services Agreement](https://www.microsoft.com/servicesagreement) Â· [Privacy Statement](https://privacy.microsoft.com/privacystatement)
 
 = Dropbox =
 
@@ -84,7 +84,7 @@ Optional remote storage. When configured, the plugin uses the Dropbox API to upl
 
 Data sent: access token/credentials you supply, and backup archive files when Dropbox is used.
 
-Service provided by Dropbox. [Terms of Service](https://www.dropbox.com/terms) · [Privacy Policy](https://www.dropbox.com/privacy)
+Service provided by Dropbox. [Terms of Service](https://www.dropbox.com/terms) Â· [Privacy Policy](https://www.dropbox.com/privacy)
 
 = Amazon S3 / S3-compatible storage =
 
@@ -92,7 +92,7 @@ Optional remote storage (Amazon S3, Backblaze B2, and other S3-compatible endpoi
 
 Data sent: API credentials you supply, and backup archive files to the endpoint/region/bucket you configure.
 
-For Amazon Web Services: [AWS Service Terms](https://aws.amazon.com/service-terms/) · [AWS Privacy](https://aws.amazon.com/privacy/). Other S3-compatible providers follow their own terms (configure only services you trust).
+For Amazon Web Services: [AWS Service Terms](https://aws.amazon.com/service-terms/) Â· [AWS Privacy](https://aws.amazon.com/privacy/). Other S3-compatible providers follow their own terms (configure only services you trust).
 
 = maca Hub / telemetry (api.maca.se) =
 
@@ -100,15 +100,15 @@ Optional and **off by default**. When you enable maca Hub under Settings, the pl
 
 Data sent (when enabled): site URL, plugin version, WordPress/PHP versions, locale, and backup status metadata (for example type, date, size, status). Backup archive contents and database dumps are never uploaded.
 
-Service provided by Maca Development. [Terms](https://maca.se/maca-backup/terms/) · [Privacy](https://maca.se/maca-backup/privacy/)
+Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) Â· [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
 
 = In-plugin Support (maca.se) =
 
-When you submit a support request from maca BackUp → Support, the plugin sends your message to Maca Development so we can reply (REST endpoint on maca.se, with e-mail fallback).
+When you submit a support request from maca BackUp â†’ Support, the plugin sends your message to Maca Development so we can reply (REST endpoint on maca.se, with e-mail fallback).
 
 Data sent: name, email, subject, message, and optional system information you choose to include (site URL, plugin/WordPress/PHP versions, locale).
 
-Service provided by Maca Development. [Terms](https://maca.se/maca-backup/terms/) · [Privacy](https://maca.se/maca-backup/privacy/)
+Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) Â· [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
 
 == Privacy ==
 
@@ -122,6 +122,9 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 
 == Changelog ==
 
+= 2.0.37 =
+* Point Terms/Privacy links to public GitHub documents (maca.se pages were unreachable for wordpress.org review)
+
 = 2.0.36 =
 * WordPress.org review: text domain matches plugin slug (maca-backup)
 * Document external services (Google Drive, OneDrive, Dropbox, S3, maca Hub, Support) in readme
@@ -130,8 +133,8 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 
 = 2.0.34 =
 * Per-schedule email notifications (inherit site default, off, failures only, success only, or both)
-* Site Settings remain the fallback for schedules set to “Use site default”
-* Email when a scheduled backup fails to start (respects that schedule’s email mode)
+* Site Settings remain the fallback for schedules set to â€œUse site defaultâ€
+* Email when a scheduled backup fails to start (respects that scheduleâ€™s email mode)
 * Fix duplicate backup/restore notification emails when AJAX and cron finish the same job
 * Fix inflated full-backup size when concurrent workers packed the same files repeatedly into the ZIP
 * Live progress: elapsed timer ticks every second; status polls return faster so the bar/detail update more often
@@ -150,6 +153,10 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 * Major release: Smart Restore, storage providers, schedules, encryption, hub telemetry
 
 == Upgrade Notice ==
+
+= 2.0.37 =
+Terms and Privacy documents hosted on GitHub for reliable review links.
+
 
 = 2.0.36 =
 WordPress.org compliance: text domain, external services documentation, safer staging and ZIP handling.
