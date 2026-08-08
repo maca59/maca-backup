@@ -78,6 +78,10 @@ class Maca_Backup_Pro_Restore_Engine {
 			? (bool) $options['restore_database']
 			: in_array( sanitize_key( $scope ), array( 'full', 'database' ), true );
 
+		// Capture destination URLs BEFORE the dump overwrites home/siteurl.
+		$dest_home    = untrailingslashit( home_url() );
+		$dest_siteurl = untrailingslashit( site_url() );
+
 		$state = array(
 			'backup_id'        => $backup_id,
 			'scope'            => sanitize_key( $scope ),
@@ -93,6 +97,11 @@ class Maca_Backup_Pro_Restore_Engine {
 			'started'          => time(),
 			'preview'          => $options['preview'] ?? null,
 			'chain'            => $options['chain'] ?? array(),
+			'dest_home'        => $dest_home,
+			'dest_siteurl'     => $dest_siteurl,
+			'source_home'      => '',
+			'source_siteurl'   => '',
+			'urls_rewritten'   => false,
 		);
 
 		$job_id = Maca_Backup_Pro_Jobs_Table::insert(
@@ -171,6 +180,9 @@ class Maca_Backup_Pro_Restore_Engine {
 					case 'database':
 						$state = self::step_database( $state );
 						break;
+					case 'migrate_urls':
+						$state = self::step_migrate_urls( $state );
+						break;
 					case 'files':
 						$state = self::step_files( $state );
 						break;
@@ -189,11 +201,12 @@ class Maca_Backup_Pro_Restore_Engine {
 			}
 
 			$progress = match ( (string) $state['step'] ) {
-				'prepare'  => 10,
-				'database' => 40,
-				'files'    => 70,
-				'done'     => 100,
-				default    => 20,
+				'prepare'      => 10,
+				'database'     => 35,
+				'migrate_urls' => 55,
+				'files'        => 75,
+				'done'         => 100,
+				default        => 20,
 			};
 
 			Maca_Backup_Pro_Jobs_Table::update(
@@ -379,6 +392,18 @@ class Maca_Backup_Pro_Restore_Engine {
 				}
 			}
 
+			// Source URLs from manifest (for post-restore search-replace).
+			if ( '' === (string) ( $state['source_home'] ?? '' ) && false !== $zip->locateName( 'manifest.json' ) ) {
+				$raw = $zip->getFromName( 'manifest.json' );
+				if ( is_string( $raw ) && '' !== $raw ) {
+					$manifest = json_decode( $raw, true );
+					if ( is_array( $manifest ) ) {
+						$state['source_home']    = untrailingslashit( (string) ( $manifest['home_url'] ?? $manifest['site_url'] ?? '' ) );
+						$state['source_siteurl'] = untrailingslashit( (string) ( $manifest['siteurl'] ?? $manifest['site_url'] ?? $state['source_home'] ) );
+					}
+				}
+			}
+
 			$zip->close();
 		}
 
@@ -430,9 +455,55 @@ class Maca_Backup_Pro_Restore_Engine {
 
 		$state['sql_offset'] = (int) $result['offset'];
 		if ( ! empty( $result['done'] ) ) {
-			$state['step'] = ( 'database' === $state['scope'] || empty( $state['files'] ) ) ? 'done' : 'files';
+			// Always rewrite URLs after a DB restore when migrating hosts.
+			$state['step'] = 'migrate_urls';
 		}
 
+		return $state;
+	}
+
+	/**
+	 * Rewrite source URLs to the destination site after database restore.
+	 *
+	 * @param array<string, mixed> $state State.
+	 * @return array<string, mixed>
+	 */
+	private static function step_migrate_urls( array $state ): array {
+		if ( empty( $state['urls_rewritten'] ) ) {
+			$dest_home    = untrailingslashit( (string) ( $state['dest_home'] ?? '' ) );
+			$dest_siteurl = untrailingslashit( (string) ( $state['dest_siteurl'] ?? '' ) );
+			$src_home     = untrailingslashit( (string) ( $state['source_home'] ?? '' ) );
+			$src_siteurl  = untrailingslashit( (string) ( $state['source_siteurl'] ?? '' ) );
+
+			if ( '' === $dest_home ) {
+				$dest_home = untrailingslashit( home_url() );
+			}
+			if ( '' === $dest_siteurl ) {
+				$dest_siteurl = untrailingslashit( site_url() );
+			}
+
+			// If manifest lacked URLs, still force destination home/siteurl.
+			$pairs = Maca_Backup_Pro_Migrator::url_pairs( $src_home, $src_siteurl, $dest_home, $dest_siteurl );
+			$stats = Maca_Backup_Pro_Migrator::rewrite_site_urls( $pairs, $dest_home, $dest_siteurl );
+
+			$state['urls_rewritten'] = true;
+			$state['url_replace']    = $stats;
+
+			Maca_Backup_Pro_Logger::info(
+				sprintf(
+					/* translators: 1: rows updated, 2: tables scanned */
+					__( 'Migration URL rewrite: %1$d rows across %2$d tables.', 'maca-backup' ),
+					(int) ( $stats['replaced'] ?? 0 ),
+					(int) ( $stats['tables'] ?? 0 )
+				),
+				array(
+					'source_home' => $src_home,
+					'dest_home'   => $dest_home,
+				)
+			);
+		}
+
+		$state['step'] = ( 'database' === $state['scope'] || empty( $state['files'] ) ) ? 'done' : 'files';
 		return $state;
 	}
 
@@ -561,6 +632,12 @@ class Maca_Backup_Pro_Restore_Engine {
 	 */
 	public static function scope_allows_file( string $scope, string $name, array $selected ): bool {
 		$name = str_replace( '\\', '/', $name );
+
+		// Never overwrite local credentials / prefix during a migration restore.
+		$base = basename( $name );
+		if ( 'wp-config.php' === $base || 'wp-config-sample.php' === $base ) {
+			return false;
+		}
 
 		if ( ! empty( $selected ) ) {
 			return self::path_matches_selection( $name, $selected );
@@ -729,6 +806,13 @@ class Maca_Backup_Pro_Restore_Engine {
 				'job_id'    => $job_id,
 			)
 		);
+
+		if ( function_exists( 'wp_cache_flush' ) ) {
+			wp_cache_flush();
+		}
+		if ( function_exists( 'flush_rewrite_rules' ) ) {
+			flush_rewrite_rules( false );
+		}
 
 		Maca_Backup_Pro_Mailer::notify_restore(
 			true,

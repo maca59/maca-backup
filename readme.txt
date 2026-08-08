@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.48
+Stable tag: 2.0.50
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,15 @@ Support requests you submit via the in-plugin Support form are sent to Maca Deve
 Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms. See **External services** above.
 
 == Changelog ==
+
+= 2.0.50 =
+* Migration restore: rewrite source URLs to the destination site (serialized-aware) after database restore
+* Keep restore job alive by skipping maca_backup_* control tables during SQL replay
+* Do not overwrite wp-config.php on restore; flush rewrite rules when restore completes
+* Harden database.sql parsing so a failed split cannot silently skip the rest of the dump
+
+= 2.0.49 =
+* (version bump alignment)
 
 = 2.0.47 =
 * Import verifies and stores archive CRC32 so backups can be compared after migration

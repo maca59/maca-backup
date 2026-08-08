@@ -157,8 +157,9 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 	<article class="maca-bp-help__section" id="maca-bp-help-migrate">
 		<h3><?php esc_html_e( '6. Download & import', 'maca-backup' ); ?></h3>
 		<ul>
-			<li><?php esc_html_e( 'On the old site, download a completed backup from the Dashboard or Backups tab.', 'maca-backup' ); ?></li>
-			<li><?php esc_html_e( 'On the new site, import the ZIP (or encrypted archive) under Backups or Restore, then run a restore.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'On the old site, download a completed full backup from the Dashboard or Backups tab.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'On the new site, import the ZIP under Backups or Restore, then run Restore with scope “Entire site” (or Database only). Import alone does not apply content.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'After the database is restored, maca BackUp rewrites the old site URL to this site’s URL (including serialized options) and keeps wp-config.php unchanged.', 'maca-backup' ); ?></li>
 			<li><?php esc_html_e( 'Large archives upload automatically in chunks (bypassing the PHP single-request limit). Keep the page open until import finishes.', 'maca-backup' ); ?></li>
 		</ul>
 	</article>

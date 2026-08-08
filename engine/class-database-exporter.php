@@ -142,14 +142,36 @@ class Maca_Backup_Pro_Database_Exporter {
 			);
 		}
 
-		$content = file_get_contents( $sql_path, false, null, $offset ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		if ( false === $content || '' === $content ) {
+		$filesize = (int) filesize( $sql_path );
+		if ( $offset >= $filesize ) {
 			return array( 'offset' => $offset, 'done' => true, 'statements' => 0 );
 		}
 
-		$statements = self::split_sql( $content );
-		$executed   = 0;
-		$consumed   = 0;
+		// Read a growing window so huge single INSERTs still parse without loading the whole dump.
+		$window     = 2 * 1024 * 1024;
+		$max_window = 32 * 1024 * 1024;
+		$content    = '';
+		$statements = array();
+
+		while ( $window <= $max_window ) {
+			$read_len = min( $window, $filesize - $offset );
+			$chunk    = file_get_contents( $sql_path, false, null, $offset, $read_len ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			if ( false === $chunk || '' === $chunk ) {
+				return array( 'offset' => $offset, 'done' => true, 'statements' => 0 );
+			}
+			$content    = $chunk;
+			$statements = self::split_sql( $content );
+			if ( ! empty( $statements ) ) {
+				break;
+			}
+			if ( $offset + strlen( $content ) >= $filesize ) {
+				break;
+			}
+			$window *= 2;
+		}
+
+		$executed = 0;
+		$consumed = 0;
 
 		foreach ( $statements as $stmt ) {
 			if ( $executed >= $max_statements ) {
@@ -158,6 +180,12 @@ class Maca_Backup_Pro_Database_Exporter {
 			$sql = trim( $stmt['sql'] );
 			$consumed += $stmt['length'];
 			if ( '' === $sql || str_starts_with( $sql, '--' ) ) {
+				continue;
+			}
+
+			// Never overwrite the live plugin control plane mid-restore.
+			if ( self::is_plugin_control_sql( $sql ) ) {
+				++$executed;
 				continue;
 			}
 
@@ -175,8 +203,30 @@ class Maca_Backup_Pro_Database_Exporter {
 		}
 
 		$new_offset = $offset + $consumed;
-		$filesize   = (int) filesize( $sql_path );
-		$done       = $new_offset >= $filesize || empty( $statements );
+
+		// Never treat "no complete statement in this chunk" as done while bytes remain —
+		// that silently skipped the rest of the dump (including wp_posts).
+		if ( $new_offset >= $filesize ) {
+			$done = true;
+		} elseif ( empty( $statements ) ) {
+			$remain = trim( $content );
+			// Trailing comments / whitespace are fine.
+			if ( '' === $remain || (bool) preg_match( '/^(?:--[^\n]*\s*)+$/', $remain ) ) {
+				return array(
+					'offset'     => $filesize,
+					'done'       => true,
+					'statements' => 0,
+				);
+			}
+			return array(
+				'offset'     => $offset,
+				'done'       => false,
+				'statements' => 0,
+				'error'      => __( 'Could not parse the next SQL statement in database.sql (possible quote/escape issue or oversized row).', 'maca-backup' ),
+			);
+		} else {
+			$done = false;
+		}
 
 		return array(
 			'offset'     => $new_offset,
@@ -186,30 +236,45 @@ class Maca_Backup_Pro_Database_Exporter {
 	}
 
 	/**
-	 * Naive SQL splitter on semicolons outside quotes.
+	 * Statements that would DROP/CREATE/INSERT this plugin's live tables.
+	 *
+	 * Restoring them mid-job deletes the active restore row and aborts the migration.
+	 *
+	 * @param string $sql Statement.
+	 * @return bool
+	 */
+	public static function is_plugin_control_sql( string $sql ): bool {
+		return (bool) preg_match(
+			'/`[^`]*maca_backup_(?:jobs|backups|logs)`/i',
+			$sql
+		);
+	}
+
+	/**
+	 * Split SQL on semicolons outside quotes (backslash-aware).
 	 *
 	 * @param string $sql SQL blob.
 	 * @return array<int, array{sql:string, length:int}>
 	 */
 	private static function split_sql( string $sql ): array {
-		$out     = array();
-		$buffer  = '';
-		$in_str  = false;
-		$quote   = '';
-		$length  = strlen( $sql );
+		$out    = array();
+		$buffer = '';
+		$in_str = false;
+		$quote  = '';
+		$length = strlen( $sql );
 
 		for ( $i = 0; $i < $length; $i++ ) {
 			$ch = $sql[ $i ];
 			if ( $in_str ) {
 				$buffer .= $ch;
-				if ( $ch === $quote && ( 0 === $i || '\\' !== $sql[ $i - 1 ] ) ) {
+				if ( $ch === $quote && ! self::is_escaped_at( $sql, $i ) ) {
 					$in_str = false;
 				}
 				continue;
 			}
 			if ( "'" === $ch || '"' === $ch || '`' === $ch ) {
-				$in_str = true;
-				$quote  = $ch;
+				$in_str  = true;
+				$quote   = $ch;
 				$buffer .= $ch;
 				continue;
 			}
@@ -226,5 +291,20 @@ class Maca_Backup_Pro_Database_Exporter {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Whether the character at $index is escaped by an odd number of backslashes.
+	 *
+	 * @param string $sql   Full string.
+	 * @param int    $index Character index.
+	 * @return bool
+	 */
+	private static function is_escaped_at( string $sql, int $index ): bool {
+		$slashes = 0;
+		for ( $j = $index - 1; $j >= 0 && '\\' === $sql[ $j ]; $j-- ) {
+			++$slashes;
+		}
+		return ( $slashes % 2 ) === 1;
 	}
 }
