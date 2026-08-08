@@ -54,6 +54,7 @@ class Maca_Backup_Pro_Plugin {
 		Maca_Backup_Pro_Scheduler::instance()->boot();
 		Maca_Backup_Pro_Ajax::instance()->boot();
 		Maca_Backup_Pro_Pre_Update::boot();
+		Maca_Backup_Pro_Download::register();
 
 		add_action( 'maca_backup_pro_hub_heartbeat', 'maca_backup_pro_api_hub_heartbeat' );
 		add_action( 'init', 'maca_backup_pro_api_schedule_hub_heartbeat', 20 );

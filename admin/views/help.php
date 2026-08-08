@@ -159,7 +159,7 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 		<ul>
 			<li><?php esc_html_e( 'On the old site, download a completed backup from the Dashboard or Backups tab.', 'maca-backup' ); ?></li>
 			<li><?php esc_html_e( 'On the new site, import the ZIP (or encrypted archive) under Backups or Restore, then run a restore.', 'maca-backup' ); ?></li>
-			<li><?php esc_html_e( 'Watch the PHP upload size limit shown on the import form; for very large files, use remote storage or ask your host to raise limits.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'Large archives upload automatically in chunks (bypassing the PHP single-request limit). Keep the page open until import finishes.', 'maca-backup' ); ?></li>
 		</ul>
 	</article>
 

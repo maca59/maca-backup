@@ -45,6 +45,20 @@ class Maca_Backup_Pro_Paths {
 	}
 
 	/**
+	 * Uploads baseurl from wp_upload_dir().
+	 *
+	 * @return string Uploads base URL (no trailing slash), or empty string on failure.
+	 */
+	public static function uploads_baseurl(): string {
+		$upload = wp_upload_dir( null, false );
+		if ( ! is_array( $upload ) || ! empty( $upload['error'] ) || empty( $upload['baseurl'] ) ) {
+			return '';
+		}
+
+		return untrailingslashit( (string) $upload['baseurl'] );
+	}
+
+	/**
 	 * Default local backup directory: {uploads}/maca-backups.
 	 *
 	 * @return string

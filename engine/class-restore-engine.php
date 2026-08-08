@@ -391,6 +391,12 @@ class Maca_Backup_Pro_Restore_Engine {
 			$state['files'] = array();
 		}
 
+		if ( $want_db && ( empty( $state['sql_path'] ) || ! is_readable( (string) $state['sql_path'] ) ) ) {
+			throw new RuntimeException(
+				esc_html__( 'This backup has no database.sql — WordPress pages and other content cannot be restored. Use a full or database backup.', 'maca-backup' )
+			);
+		}
+
 		return $state;
 	}
 
@@ -403,6 +409,11 @@ class Maca_Backup_Pro_Restore_Engine {
 	private static function step_database( array $state ): array {
 		$sql = (string) ( $state['sql_path'] ?? '' );
 		if ( ! $sql || ! is_readable( $sql ) ) {
+			if ( ! empty( $state['restore_database'] ) ) {
+				throw new RuntimeException(
+					esc_html__( 'Database dump missing — cannot restore pages/posts. Re-run restore with a full backup that includes the database.', 'maca-backup' )
+				);
+			}
 			$state['step'] = ( 'database' === $state['scope'] ) ? 'done' : 'files';
 			return $state;
 		}

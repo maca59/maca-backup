@@ -49,6 +49,8 @@ class Maca_Backup_Pro_Ajax {
 			'maca_backup_pro_delete_backup'     => 'delete_backup',
 			'maca_backup_pro_verify_backup'     => 'verify_backup',
 			'maca_backup_pro_staging'           => 'staging_restore',
+			'maca_backup_pro_import_backup'     => 'import_backup',
+			'maca_backup_pro_import_chunk'      => 'import_chunk',
 			'maca_backup_pro_submit_support'    => 'submit_support',
 			'maca_backup_pro_onboarding_finish' => 'onboarding_finish',
 		);
@@ -349,6 +351,119 @@ class Maca_Backup_Pro_Ajax {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
 		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Import an uploaded backup archive (shows live upload progress in admin UI).
+	 *
+	 * @return void
+	 */
+	public function import_backup(): void {
+		Maca_Backup_Pro_Security::verify_ajax();
+		if ( ! Maca_Backup_Pro_Legal::is_accepted() ) {
+			wp_send_json_error( array( 'message' => Maca_Backup_Pro_Legal::blocked_message() ) );
+		}
+
+		if ( function_exists( 'ignore_user_abort' ) ) {
+			ignore_user_abort( true );
+		}
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( 0 );
+		}
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
+		$file = isset( $_FILES['backup_file'] ) && is_array( $_FILES['backup_file'] ) ? $_FILES['backup_file'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$result = Maca_Backup_Pro_Importer::from_upload( $file );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'backup_id' => (int) $result,
+				'message'   => sprintf(
+					/* translators: %d: backup ID */
+					__( 'Backup imported (#%d). You can restore it now.', 'maca-backup' ),
+					(int) $result
+				),
+			)
+		);
+	}
+
+	/**
+	 * Chunked import for archives larger than PHP/WordPress upload limits.
+	 *
+	 * Phases: init | upload | finish | abort
+	 *
+	 * @return void
+	 */
+	public function import_chunk(): void {
+		Maca_Backup_Pro_Security::verify_ajax();
+		if ( ! Maca_Backup_Pro_Legal::is_accepted() ) {
+			wp_send_json_error( array( 'message' => Maca_Backup_Pro_Legal::blocked_message() ) );
+		}
+
+		if ( function_exists( 'ignore_user_abort' ) ) {
+			ignore_user_abort( true );
+		}
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( 0 );
+		}
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
+		$phase = isset( $_POST['phase'] ) ? sanitize_key( wp_unslash( $_POST['phase'] ) ) : '';
+
+		if ( 'init' === $phase ) {
+			$name   = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( (string) $_POST['filename'] ) ) : 'backup.zip';
+			$size   = isset( $_POST['size'] ) ? absint( $_POST['size'] ) : 0;
+			$chunks = isset( $_POST['chunks'] ) ? absint( $_POST['chunks'] ) : 0;
+			$result = Maca_Backup_Pro_Importer::start_chunked( $name, $size, $chunks );
+			if ( is_wp_error( $result ) ) {
+				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+			}
+			wp_send_json_success( $result );
+		}
+
+		if ( 'upload' === $phase ) {
+			$token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['token'] ) ) : '';
+			$index = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : 0;
+			$file  = isset( $_FILES['chunk'] ) && is_array( $_FILES['chunk'] ) ? $_FILES['chunk'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$result = Maca_Backup_Pro_Importer::receive_chunk( $token, $index, $file );
+			if ( is_wp_error( $result ) ) {
+				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+			}
+			wp_send_json_success( $result );
+		}
+
+		if ( 'finish' === $phase ) {
+			$token  = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['token'] ) ) : '';
+			$result = Maca_Backup_Pro_Importer::finalize_chunked( $token );
+			if ( is_wp_error( $result ) ) {
+				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+			}
+			wp_send_json_success(
+				array(
+					'backup_id' => (int) $result,
+					'message'   => sprintf(
+						/* translators: %d: backup ID */
+						__( 'Backup imported (#%d). You can restore it now.', 'maca-backup' ),
+						(int) $result
+					),
+				)
+			);
+		}
+
+		if ( 'abort' === $phase ) {
+			$token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['token'] ) ) : '';
+			Maca_Backup_Pro_Importer::abort_chunked( $token );
+			wp_send_json_success( array( 'aborted' => true ) );
+		}
+
+		wp_send_json_error( array( 'message' => __( 'Unknown import phase.', 'maca-backup' ) ) );
 	}
 
 	/**

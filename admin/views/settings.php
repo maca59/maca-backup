@@ -38,6 +38,7 @@ $excludes = is_array( $settings['exclude_paths'] ?? null ) ? implode( "\n", $set
 			<label class="maca-bp-field--full">
 				<span><?php esc_html_e( 'Exclude paths (one per line, relative to site root)', 'maca-backup' ); ?></span>
 				<textarea name="exclude_paths" rows="5"><?php echo esc_textarea( $excludes ); ?></textarea>
+				<p class="description"><?php esc_html_e( 'Media Library (wp-content/uploads) is always included and cannot be excluded. Full backups ignore exclude paths except plugin cache/staging folders.', 'maca-backup' ); ?></p>
 			</label>
 		</div>
 

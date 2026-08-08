@@ -1,4 +1,4 @@
-.maca-backup-pro-deactivate-modal {
+.maca-backup-deactivate-modal {
 	position: fixed;
 	inset: 0;
 	z-index: 100000;
@@ -8,13 +8,13 @@
 	padding: 20px;
 }
 
-.maca-backup-pro-deactivate-modal__backdrop {
+.maca-backup-deactivate-modal__backdrop {
 	position: absolute;
 	inset: 0;
 	background: rgba(0, 0, 0, 0.55);
 }
 
-.maca-backup-pro-deactivate-modal__dialog {
+.maca-backup-deactivate-modal__dialog {
 	position: relative;
 	width: 100%;
 	max-width: 520px;
@@ -25,33 +25,33 @@
 	padding: 24px;
 }
 
-.maca-backup-pro-deactivate-modal__title {
+.maca-backup-deactivate-modal__title {
 	margin: 0 0 8px;
 	font-size: 18px;
 	line-height: 1.4;
 }
 
-.maca-backup-pro-deactivate-modal__intro {
+.maca-backup-deactivate-modal__intro {
 	margin: 0 0 16px;
 	color: #50575e;
 }
 
-.maca-backup-pro-deactivate-modal__options {
+.maca-backup-deactivate-modal__options {
 	margin: 0 0 16px;
 }
 
-.maca-backup-pro-deactivate-modal__option {
+.maca-backup-deactivate-modal__option {
 	display: block;
 	margin: 0 0 10px;
 	cursor: pointer;
 }
 
-.maca-backup-pro-deactivate-modal__option input {
+.maca-backup-deactivate-modal__option input {
 	margin: 0 6px 0 0;
 	vertical-align: middle;
 }
 
-.maca-backup-pro-deactivate-modal__details {
+.maca-backup-deactivate-modal__details {
 	display: none;
 	width: 100%;
 	min-height: 72px;
@@ -59,11 +59,11 @@
 	box-sizing: border-box;
 }
 
-.maca-backup-pro-deactivate-modal__details.is-visible {
+.maca-backup-deactivate-modal__details.is-visible {
 	display: block;
 }
 
-.maca-backup-pro-deactivate-modal__actions {
+.maca-backup-deactivate-modal__actions {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;

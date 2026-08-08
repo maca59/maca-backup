@@ -34,14 +34,14 @@ class Maca_Backup_Pro_Assets {
 		require_once MACA_BACKUP_PRO_PATH . 'includes/deactivation-feedback.php';
 
 		wp_enqueue_style(
-			'maca-backup-pro-admin-plugins',
+			'maca-backup-admin-plugins',
 			MACA_BACKUP_PRO_URL . 'assets/css/admin-plugins.css',
 			array(),
 			MACA_BACKUP_PRO_VERSION
 		);
 
 		wp_enqueue_script(
-			'maca-backup-pro-admin-plugins',
+			'maca-backup-admin-plugins',
 			MACA_BACKUP_PRO_URL . 'assets/js/admin-plugins.js',
 			array(),
 			MACA_BACKUP_PRO_VERSION,
@@ -57,7 +57,7 @@ class Maca_Backup_Pro_Assets {
 		}
 
 		wp_localize_script(
-			'maca-backup-pro-admin-plugins',
+			'maca-backup-admin-plugins',
 			'macaBackupProPlugins',
 			array(
 				'pluginSlug'         => MACA_BACKUP_PRO_BASENAME,
@@ -86,14 +86,14 @@ class Maca_Backup_Pro_Assets {
 		}
 
 		wp_enqueue_style(
-			'maca-backup-pro-admin',
+			'maca-backup-admin',
 			MACA_BACKUP_PRO_URL . 'assets/css/admin.css',
 			array(),
 			MACA_BACKUP_PRO_VERSION
 		);
 
 		wp_enqueue_script(
-			'maca-backup-pro-admin',
+			'maca-backup-admin',
 			MACA_BACKUP_PRO_URL . 'assets/js/admin.js',
 			array( 'jquery' ),
 			MACA_BACKUP_PRO_VERSION,
@@ -101,19 +101,24 @@ class Maca_Backup_Pro_Assets {
 		);
 
 		wp_localize_script(
-			'maca-backup-pro-admin',
+			'maca-backup-admin',
 			'macaBackupPro',
 			array(
 				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
 				'nonce'         => wp_create_nonce( 'maca_backup_pro_ajax' ),
-				'restUrl'       => esc_url_raw( rest_url( 'maca-backup-pro/v1' ) ),
+				'restUrl'       => esc_url_raw( rest_url( 'maca-backup/v1' ) ),
 				'restNonce'     => wp_create_nonce( 'wp_rest' ),
+				'restoreUrl'    => esc_url_raw( Maca_Backup_Pro_Admin::tab_url( 'restore' ) ),
+				'importChunkBytes' => Maca_Backup_Pro_Importer::recommended_chunk_bytes(),
+				'importDirectMax'  => Maca_Backup_Pro_Importer::direct_upload_limit(),
+				'importMaxBytes'   => Maca_Backup_Pro_Importer::max_import_bytes(),
 				'activeJob'     => self::active_job_for_js(),
 				'legalAccepted' => Maca_Backup_Pro_Legal::is_accepted(),
 				'supportUrl'    => Maca_Backup_Pro_Legal::admin_support_url( 'accept' ),
 				'i18n'          => array(
 					'starting'     => __( 'Starting…', 'maca-backup' ),
 					'running'      => __( 'Running in background…', 'maca-backup' ),
+					'progressNote' => __( 'Runs in the background — you can leave this page.', 'maca-backup' ),
 					'elapsed'      => __( 'Elapsed', 'maca-backup' ),
 					'done'         => __( 'Completed', 'maca-backup' ),
 					'failed'       => __( 'Failed', 'maca-backup' ),
@@ -142,6 +147,30 @@ class Maca_Backup_Pro_Assets {
 					'checkFiles'   => __( 'Files extracted', 'maca-backup' ),
 					'checkSkip'    => __( 'Not applicable', 'maca-backup' ),
 					'legalRequired'=> Maca_Backup_Pro_Legal::blocked_message(),
+					'importUploading'  => __( 'Uploading backup…', 'maca-backup' ),
+					'importProcessing' => __( 'Processing archive…', 'maca-backup' ),
+					'importStay'       => __( 'Keep this page open until the import finishes.', 'maca-backup' ),
+					'importCancel'     => __( 'Cancel the upload?', 'maca-backup' ),
+					'importTooLarge'   => __( 'This file exceeds the maximum import size.', 'maca-backup' ),
+					'importChunkFail'  => __( 'Chunked upload failed. Please try again.', 'maca-backup' ),
+					'importNextTitle'  => __( 'Backup imported', 'maca-backup' ),
+					'importNextIntro'  => __( 'The archive is registered on this site. Next, restore it onto the live files/database.', 'maca-backup' ),
+					'importNextStep'   => __( 'Step %1$d of %2$d', 'maca-backup' ),
+					'importStepDone'   => __( 'Import complete', 'maca-backup' ),
+					'importStepScope'  => __( 'Choose what to restore', 'maca-backup' ),
+					'importStepScopeHelp' => __( 'Pick a scope below (entire site, database only, uploads, …). Use Custom path to restore selected files.', 'maca-backup' ),
+					'importStepTest'   => __( 'Test the archive (recommended)', 'maca-backup' ),
+					'importStepTestHelp' => __( 'Test restore extracts the archive in a temporary folder without changing the live site.', 'maca-backup' ),
+					'importStepRun'    => __( 'Restore to the live site', 'maca-backup' ),
+					'importStepRunHelp' => __( 'This overwrites the selected files/database on this site. Preview first if you want a dry run of paths.', 'maca-backup' ),
+					'importBtnNext'    => __( 'Next', 'maca-backup' ),
+					'importBtnLater'   => __( 'Later', 'maca-backup' ),
+					'importBtnContinue'=> __( 'Continue to restore', 'maca-backup' ),
+					'importBtnSkipTest'=> __( 'Skip test', 'maca-backup' ),
+					'importBtnTest'    => __( 'Run test', 'maca-backup' ),
+					'importBtnPreview' => __( 'Preview changes', 'maca-backup' ),
+					'importBtnRestore' => __( 'Restore now', 'maca-backup' ),
+					'importBtnClose'   => __( 'Done', 'maca-backup' ),
 					'supportSending'    => __( 'Sending…', 'maca-backup' ),
 					'supportSuccess'    => __( 'Thank you! Your request has been sent. We will reply to the email address above — check your inbox (and spam folder).', 'maca-backup' ),
 					'supportError'      => __( 'Something went wrong. Please try again or email support@maca.se.', 'maca-backup' ),

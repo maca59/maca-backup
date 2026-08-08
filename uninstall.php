@@ -14,7 +14,7 @@ if ( ! defined( 'MACA_BACKUP_PRO_PATH' ) ) {
 	define( 'MACA_BACKUP_PRO_PATH', $plugin_dir );
 }
 if ( ! defined( 'MACA_BACKUP_PRO_FILE' ) ) {
-	define( 'MACA_BACKUP_PRO_FILE', $plugin_dir . 'maca-backup-pro.php' );
+	define( 'MACA_BACKUP_PRO_FILE', $plugin_dir . 'maca-backup.php' );
 }
 if ( ! defined( 'MACA_BACKUP_PRO_DB_VERSION' ) ) {
 	define( 'MACA_BACKUP_PRO_DB_VERSION', '1.0.0' );

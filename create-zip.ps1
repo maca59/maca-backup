@@ -7,30 +7,31 @@
   - Zip skapas i repots root: maca-backup-x.y.z.zip
   - create-zip.ps1 ligger i repots root
   - Höjer patch-version (x.y.z -> x.y.(z+1)) vid varje körning (om inte -SkipVersionBump)
-  - -WordPressOrg: slug-mapp maca-backup (wp.org / Plugin Check). Annars maca-backup-pro.
-  - Uppdaterar Version i maca-backup-pro.php före paketering
+  - Plugin-mapp i zip är alltid maca-backup (wp.org-slug), om inte -PluginSlug anges
+  - Uppdaterar Version i maca-backup.php före paketering
 
 .EXAMPLE
-  .\create-zip.ps1 -WordPressOrg -SkipVersionBump
-  .\create-zip.ps1
   .\create-zip.ps1 -SkipVersionBump
+  .\create-zip.ps1
+  .\create-zip.ps1 -IncludeMacaUpdater
   .\create-zip.ps1 -OutputPath .\maca-backup-1.0.1.zip
 #>
 [CmdletBinding()]
 param(
     [string] $OutputPath = '',
-    [string] $PluginSlug = '',
+    [string] $PluginSlug = 'maca-backup',
     [string] $ZipBasename = 'maca-backup',
     [switch] $SkipVersionBump,
     # Default zip is wordpress.org–safe (no private updater). Use -IncludeMacaUpdater for maca.se builds.
     [switch] $IncludeMacaUpdater,
+    # Kept for callers; slug is always maca-backup unless -PluginSlug overrides.
     [switch] $WordPressOrg
 )
 
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($PluginSlug)) {
-    $PluginSlug = if ($WordPressOrg) { 'maca-backup' } else { 'maca-backup-pro' }
+    $PluginSlug = 'maca-backup'
 }
 
 Add-Type -AssemblyName System.IO.Compression
@@ -41,7 +42,7 @@ if ([string]::IsNullOrWhiteSpace($Root)) {
     $Root = Get-Location
 }
 
-$PluginFile = Join-Path $Root 'maca-backup-pro.php'
+$PluginFile = Join-Path $Root 'maca-backup.php'
 $ReadmeFile = Join-Path $Root 'readme.txt'
 if (-not (Test-Path -LiteralPath $PluginFile)) {
     throw "Hittar inte $PluginFile"
@@ -59,7 +60,7 @@ function Get-PluginVersion {
         return $Matches[1]
     }
 
-    throw 'Kunde inte läsa versionsnummer från maca-backup-pro.php'
+    throw 'Kunde inte läsa versionsnummer från maca-backup.php'
 }
 
 function Set-PluginVersion {
@@ -78,7 +79,7 @@ function Set-PluginVersion {
     $updated = $updated -replace "define\s*\(\s*'MACA_BACKUP_PRO_VERSION'\s*,\s*'[\d.]+'\s*\)", "define( 'MACA_BACKUP_PRO_VERSION', '$Version' )"
 
     if ($updated -eq $content) {
-        throw 'Kunde inte uppdatera versionsnummer i maca-backup-pro.php'
+        throw 'Kunde inte uppdatera versionsnummer i maca-backup.php'
     }
 
     [System.IO.File]::WriteAllText($Path, $updated, [System.Text.UTF8Encoding]::new($false))
@@ -333,7 +334,7 @@ try {
         throw "Zip-root ska vara $PluginSlug/ men hittade: $($wrongRoot[0].FullName)"
     }
 
-    $mainEntry = "$PluginSlug/maca-backup-pro.php"
+    $mainEntry = "$PluginSlug/maca-backup.php"
     $hasMain = @($verifyZip.Entries | Where-Object { $_.FullName -eq $mainEntry })
     if ($hasMain.Count -eq 0) {
         throw "Zip saknar $mainEntry"

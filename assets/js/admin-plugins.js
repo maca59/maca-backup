@@ -52,15 +52,15 @@
 		closeModal();
 
 		modal = document.createElement('div');
-		modal.className = 'maca-backup-pro-deactivate-modal';
+		modal.className = 'maca-backup-deactivate-modal';
 		modal.setAttribute('role', 'dialog');
 		modal.setAttribute('aria-modal', 'true');
-		modal.setAttribute('aria-labelledby', 'maca-backup-pro-deactivate-title');
+		modal.setAttribute('aria-labelledby', 'maca-backup-deactivate-title');
 
 		var reasons = macaBackupProPlugins.reasons || [];
 		var optionsHtml = reasons.map(function (reason, index) {
 			return (
-				'<label class="maca-backup-pro-deactivate-modal__option">' +
+				'<label class="maca-backup-deactivate-modal__option">' +
 				'<input type="radio" name="maca_backup_pro_deactivate_reason" value="' + reason.id + '"' +
 				(index === 0 ? ' checked' : '') + '> ' +
 				reason.label +
@@ -69,17 +69,17 @@
 		}).join('');
 
 		modal.innerHTML =
-			'<div class="maca-backup-pro-deactivate-modal__backdrop" data-action="cancel"></div>' +
-			'<div class="maca-backup-pro-deactivate-modal__dialog">' +
-			'<h2 id="maca-backup-pro-deactivate-title" class="maca-backup-pro-deactivate-modal__title">' +
+			'<div class="maca-backup-deactivate-modal__backdrop" data-action="cancel"></div>' +
+			'<div class="maca-backup-deactivate-modal__dialog">' +
+			'<h2 id="maca-backup-deactivate-title" class="maca-backup-deactivate-modal__title">' +
 			macaBackupProPlugins.modalTitle +
 			'</h2>' +
-			'<p class="maca-backup-pro-deactivate-modal__intro">' + macaBackupProPlugins.modalIntro + '</p>' +
-			'<div class="maca-backup-pro-deactivate-modal__options">' + optionsHtml + '</div>' +
-			'<textarea class="maca-backup-pro-deactivate-modal__details" rows="3" placeholder="' +
+			'<p class="maca-backup-deactivate-modal__intro">' + macaBackupProPlugins.modalIntro + '</p>' +
+			'<div class="maca-backup-deactivate-modal__options">' + optionsHtml + '</div>' +
+			'<textarea class="maca-backup-deactivate-modal__details" rows="3" placeholder="' +
 			macaBackupProPlugins.detailsPlaceholder +
 			'"></textarea>' +
-			'<div class="maca-backup-pro-deactivate-modal__actions">' +
+			'<div class="maca-backup-deactivate-modal__actions">' +
 			'<button type="button" class="button" data-action="cancel">' + macaBackupProPlugins.cancelLabel + '</button>' +
 			'<button type="button" class="button" data-action="skip">' + macaBackupProPlugins.skipLabel + '</button>' +
 			'<button type="button" class="button button-primary" data-action="submit">' +
@@ -90,7 +90,7 @@
 
 		document.body.appendChild(modal);
 
-		var detailsField = modal.querySelector('.maca-backup-pro-deactivate-modal__details');
+		var detailsField = modal.querySelector('.maca-backup-deactivate-modal__details');
 		var radios = modal.querySelectorAll('input[name="maca_backup_pro_deactivate_reason"]');
 
 		function syncDetailsVisibility() {

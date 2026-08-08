@@ -30,12 +30,14 @@ defined( 'ABSPATH' ) || exit;
 		<p class="maca-bp-muted"><?php
 		echo esc_html(
 			sprintf(
-				/* translators: %s: max upload size */
-				__( 'Max upload size: %s', 'maca-backup' ),
-				size_format( wp_max_upload_size() )
+				/* translators: 1: PHP direct upload limit, 2: max import size via chunked upload */
+				__( 'Direct upload limit: %1$s. Larger archives (up to %2$s) upload automatically in chunks.', 'maca-backup' ),
+				size_format( Maca_Backup_Pro_Importer::direct_upload_limit() ),
+				size_format( Maca_Backup_Pro_Importer::max_import_bytes() )
 			)
 		);
 		?></p>
+		<div class="maca-bp-import-progress-slot" aria-live="polite"></div>
 	</div>
 
 	<?php
@@ -140,12 +142,7 @@ defined( 'ABSPATH' ) || exit;
 						<td><span class="maca-bp-pill maca-bp-pill--<?php echo esc_attr( (string) $row->status ); ?>"><?php echo esc_html( (string) $row->status ); ?></span></td>
 						<td class="maca-bp-row-actions">
 							<?php if ( 'completed' === (string) $row->status ) : ?>
-								<form method="post" class="maca-bp-inline-form">
-									<?php wp_nonce_field( Maca_Backup_Pro_Security::NONCE_ACTION ); ?>
-									<input type="hidden" name="maca_backup_pro_action" value="download_backup" />
-									<input type="hidden" name="backup_id" value="<?php echo esc_attr( (string) $row->id ); ?>" />
-									<button type="submit" class="button button-small" title="<?php esc_attr_e( 'Download to your computer', 'maca-backup' ); ?>"><?php esc_html_e( 'Download', 'maca-backup' ); ?></button>
-								</form>
+								<a class="button button-small" href="<?php echo esc_url( Maca_Backup_Pro_Admin::download_url( (int) $row->id ) ); ?>" title="<?php esc_attr_e( 'Download to your computer', 'maca-backup' ); ?>"><?php esc_html_e( 'Download', 'maca-backup' ); ?></a>
 								<button type="button" class="button button-small maca-bp-test-restore" data-id="<?php echo esc_attr( (string) $row->id ); ?>"><?php esc_html_e( 'Test', 'maca-backup' ); ?></button>
 								<a class="button button-small" href="<?php echo esc_url( Maca_Backup_Pro_Admin::tab_url( 'restore', array( 'backup_id' => (int) $row->id ) ) ); ?>"><?php esc_html_e( 'Restore', 'maca-backup' ); ?></a>
 							<?php endif; ?>

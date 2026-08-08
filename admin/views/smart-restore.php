@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
 	<h2><?php esc_html_e( 'Smart Restore', 'maca-backup' ); ?></h2>
 	<p class="maca-bp-muted"><?php esc_html_e( 'Compare the live site with a backup. Restore only new, changed, or selected files — instead of overwriting everything. Or browse the backup and pick a single file or folder.', 'maca-backup' ); ?></p>
 
+	<div id="maca-bp-smart-progress-slot" class="maca-bp-job-progress-slot" aria-live="polite"></div>
+
 	<div class="maca-bp-form-grid">
 		<label>
 			<span><?php esc_html_e( 'Backup to compare', 'maca-backup' ); ?></span>

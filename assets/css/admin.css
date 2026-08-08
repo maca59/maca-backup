@@ -20,7 +20,7 @@
 	--mbp-shadow: 0 1px 2px rgba(11, 30, 59, 0.06), 0 8px 24px rgba(11, 30, 59, 0.04);
 }
 
-.maca-backup-pro-admin {
+.maca-backup-admin {
 	max-width: 1180px;
 	color: var(--mbp-ink);
 }
@@ -186,14 +186,14 @@
 	box-shadow: inset 0 -2px 0 var(--mbp-mint);
 }
 
-.maca-backup-pro-admin .button-primary {
+.maca-backup-admin .button-primary {
 	background: var(--mbp-accent);
 	border-color: var(--mbp-accent);
 	color: #fff;
 }
 
-.maca-backup-pro-admin .button-primary:hover,
-.maca-backup-pro-admin .button-primary:focus {
+.maca-backup-admin .button-primary:hover,
+.maca-backup-admin .button-primary:focus {
 	background: var(--mbp-accent-hover);
 	border-color: var(--mbp-accent-hover);
 	color: #fff;
@@ -328,7 +328,7 @@
 	color: var(--mbp-ink);
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__steps {
+.maca-backup-admin .maca-bp-wizard__steps {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem 1rem;
@@ -337,7 +337,7 @@
 	list-style: none;
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__steps > li {
+.maca-backup-admin .maca-bp-wizard__steps > li {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -388,21 +388,21 @@
 	color: var(--mbp-ink);
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__panel {
+.maca-backup-admin .maca-bp-wizard__panel {
 	display: none;
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__panel.is-active {
+.maca-backup-admin .maca-bp-wizard__panel.is-active {
 	display: block;
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__panel[hidden],
-.maca-backup-pro-admin .maca-bp-wizard__schedule[hidden],
-.maca-backup-pro-admin .maca-bp-wizard__storage-hint[hidden],
-.maca-backup-pro-admin .maca-bp-wizard__error[hidden],
-.maca-backup-pro-admin #maca-bp-wiz-weekday-wrap[hidden],
-.maca-backup-pro-admin .maca-bp-wizard__nav [hidden],
-.maca-backup-pro-admin .maca-bp-wizard__nav .button[hidden] {
+.maca-backup-admin .maca-bp-wizard__panel[hidden],
+.maca-backup-admin .maca-bp-wizard__schedule[hidden],
+.maca-backup-admin .maca-bp-wizard__storage-hint[hidden],
+.maca-backup-admin .maca-bp-wizard__error[hidden],
+.maca-backup-admin #maca-bp-wiz-weekday-wrap[hidden],
+.maca-backup-admin .maca-bp-wizard__nav [hidden],
+.maca-backup-admin .maca-bp-wizard__nav .button[hidden] {
 	display: none !important;
 }
 
@@ -413,7 +413,7 @@
 	line-height: 1.45;
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__choices {
+.maca-backup-admin .maca-bp-wizard__choices {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 	gap: 0.65rem;
@@ -424,7 +424,7 @@
 	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__choice {
+.maca-backup-admin .maca-bp-wizard__choice {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -453,7 +453,7 @@
 	opacity: 0.85;
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__choice input[type="radio"] {
+.maca-backup-admin .maca-bp-wizard__choice input[type="radio"] {
 	position: absolute;
 	width: 1px;
 	height: 1px;
@@ -569,7 +569,7 @@
 	font-size: 13px;
 }
 
-.maca-backup-pro-admin .maca-bp-wizard__nav {
+.maca-backup-admin .maca-bp-wizard__nav {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -611,8 +611,28 @@
 
 .maca-bp-import {
 	margin: 0 0 1.25rem;
-	padding: 1rem 0;
-	border-bottom: 1px solid var(--mbp-border, #dcdcde);
+	/* Same box model idle/active so chrome does not resize the form. */
+	padding: 1rem 1.1rem;
+	border: 1px solid transparent;
+	border-bottom-color: var(--mbp-border, #dcdcde);
+	border-radius: var(--mbp-radius);
+	background: transparent;
+	box-sizing: border-box;
+}
+
+.maca-bp-import.is-importing {
+	position: sticky;
+	top: 32px;
+	z-index: 100;
+	border-color: var(--mbp-line);
+	background: var(--mbp-surface);
+	box-shadow: var(--mbp-shadow);
+}
+
+@media screen and (max-width: 782px) {
+	.maca-bp-import.is-importing {
+		top: 46px;
+	}
 }
 
 .maca-bp-import h3 {
@@ -628,13 +648,223 @@
 	margin: 0.75rem 0 0.35rem;
 }
 
-.maca-backup-pro-admin .button-primary {
+/* Fixed-height home for import progress — label/detail updates must not reflow. */
+.maca-bp-import-progress-slot {
+	height: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+.maca-bp-import.is-importing .maca-bp-import-progress-slot {
+	height: 9rem;
+	margin-top: 0.85rem;
+	overflow: hidden;
+}
+
+.maca-bp-import .maca-bp-progress.maca-bp-progress--inline {
+	height: 100%;
+	min-height: 9rem;
+	max-height: 9rem;
+	margin: 0;
+	padding: 0.85rem 1rem;
+	box-shadow: none;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__head {
+	flex: 0 0 auto;
+	min-height: 30px;
+}
+
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__stop[hidden] {
+	visibility: hidden;
+	display: inline-block !important;
+	pointer-events: none;
+}
+
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__label,
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__elapsed,
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__detail,
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__note {
+	flex: 0 0 auto;
+	min-height: 1.35em;
+	margin: 0.3rem 0 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	word-break: normal;
+	max-height: 1.35em;
+	line-height: 1.35;
+	font-variant-numeric: tabular-nums;
+}
+
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__label {
+	margin-top: 0.45rem;
+}
+
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__elapsed:empty,
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__detail:empty {
+	visibility: hidden;
+	display: block;
+}
+
+.maca-bp-import .maca-bp-progress--inline .maca-bp-progress__note[hidden] {
+	visibility: hidden;
+	display: block !important;
+	pointer-events: none;
+}
+
+/* Floating restore/smart progress — fixed height, sticky, no layout thrash. */
+.maca-bp-job-progress-slot {
+	height: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+.maca-bp-job-progress-slot.is-active {
+	position: sticky;
+	top: 32px;
+	z-index: 90;
+	height: 9rem;
+	margin: 0 0 1.25rem;
+	overflow: hidden;
+	border-radius: var(--mbp-radius);
+	background: var(--mbp-surface);
+	box-shadow: var(--mbp-shadow);
+}
+
+@media screen and (max-width: 782px) {
+	.maca-bp-job-progress-slot.is-active {
+		top: 46px;
+	}
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress.maca-bp-progress--inline {
+	height: 100%;
+	min-height: 9rem;
+	max-height: 9rem;
+	margin: 0;
+	padding: 0.85rem 1rem;
+	border: 0;
+	box-shadow: none;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__head {
+	flex: 0 0 auto;
+	min-height: 30px;
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__stop[hidden] {
+	visibility: hidden;
+	display: inline-block !important;
+	pointer-events: none;
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__label,
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__elapsed,
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__detail,
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__note {
+	flex: 0 0 auto;
+	min-height: 1.35em;
+	margin: 0.3rem 0 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	word-break: normal;
+	max-height: 1.35em;
+	line-height: 1.35;
+	font-variant-numeric: tabular-nums;
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__label {
+	margin-top: 0.45rem;
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__elapsed:empty,
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__detail:empty {
+	visibility: hidden;
+	display: block;
+}
+
+.maca-bp-job-progress-slot .maca-bp-progress--inline .maca-bp-progress__note[hidden] {
+	visibility: hidden;
+	display: block !important;
+	pointer-events: none;
+}
+
+.maca-bp-import-next {
+	margin-top: 1rem;
+}
+
+.maca-bp-import-next__card {
+	padding: 1rem 1.1rem;
+	border: 1px solid rgba(63, 201, 166, 0.45);
+	border-radius: var(--mbp-radius);
+	background: linear-gradient(180deg, rgba(103, 234, 196, 0.12), transparent 70%), var(--mbp-surface);
+}
+
+.maca-bp-import-next__eyebrow {
+	margin: 0 0 0.35rem;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--mbp-accent, #1a7a5c);
+}
+
+.maca-bp-import-next__flash {
+	margin: 0 0 0.65rem;
+	color: var(--mbp-text, #1d2327);
+	font-weight: 600;
+}
+
+.maca-bp-import-next__meta {
+	margin: 0 0 0.25rem;
+	color: var(--mbp-muted);
+	font-size: 12px;
+}
+
+.maca-bp-import-next__card h3 {
+	margin: 0 0 0.4rem;
+	font-size: 1.05rem;
+}
+
+.maca-bp-import-next__card > p {
+	margin: 0 0 0.55rem;
+}
+
+.maca-bp-import-next__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.85rem;
+}
+
+.maca-bp-import-next__close {
+	margin-left: auto;
+}
+
+.maca-bp-import-focus {
+	outline: 2px solid rgba(63, 201, 166, 0.55);
+	outline-offset: 4px;
+	border-radius: 6px;
+}
+
+.maca-backup-admin .button-primary {
 	background: var(--mbp-accent);
 	border-color: var(--mbp-accent);
 }
 
-.maca-backup-pro-admin .button-primary:hover,
-.maca-backup-pro-admin .button-primary:focus {
+.maca-backup-admin .button-primary:hover,
+.maca-backup-admin .button-primary:focus {
 	background: var(--mbp-accent-hover);
 	border-color: var(--mbp-accent-hover);
 }

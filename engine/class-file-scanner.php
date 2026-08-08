@@ -13,29 +13,116 @@ defined( 'ABSPATH' ) || exit;
 class Maca_Backup_Pro_File_Scanner {
 
 	/**
-	 * List files relative to ABSPATH.
+	 * List files relative to the site (logical WP paths).
 	 *
 	 * @param string               $scope   full|wp-content|uploads|plugins|themes|custom.
-	 * @param array<string, mixed> $options Extra options (path, excludes).
+	 * @param array<string, mixed> $options Extra options (path, excludes, complete).
 	 * @return array<int, string> Relative paths.
 	 */
 	public static function list_files( string $scope = 'full', array $options = array() ): array {
+		$scope = sanitize_key( $scope );
+		if ( '' === $scope ) {
+			$scope = 'full';
+		}
+
+		// Full-site backups must cover every WP root (home, ABSPATH, content, uploads…),
+		// not only get_home_path() — otherwise migration/import restores are incomplete.
+		if ( in_array( $scope, array( 'full', 'files' ), true ) ) {
+			$files = array();
+			foreach ( self::full_scan_roots() as $root ) {
+				$files = array_merge( $files, self::scan_tree( $root, $options ) );
+			}
+			$files = array_values( array_unique( $files ) );
+			sort( $files );
+			return $files;
+		}
+
 		$root = self::scope_root( $scope, $options );
 		if ( ! is_dir( $root ) ) {
 			return array();
 		}
 
-		$excludes = $options['excludes'] ?? Maca_Backup_Pro_Settings::get( 'exclude_paths', array() );
-		if ( ! is_array( $excludes ) ) {
-			$excludes = array();
+		$files = self::scan_tree( $root, $options );
+		sort( $files );
+		return $files;
+	}
+
+	/**
+	 * Absolute roots that together make a complete site tree.
+	 *
+	 * @return string[]
+	 */
+	public static function full_scan_roots(): array {
+		$roots = array(
+			Maca_Backup_Pro_Paths::site_root(),
+			wp_normalize_path( untrailingslashit( (string) ABSPATH ) ),
+			wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) ),
+			wp_normalize_path( untrailingslashit( WP_PLUGIN_DIR ) ),
+			wp_normalize_path( untrailingslashit( get_theme_root() ) ),
+			Maca_Backup_Pro_Paths::scope_directory( 'mu-plugins' ),
+			Maca_Backup_Pro_Paths::uploads_basedir(),
+		);
+
+		$out = array();
+		foreach ( $roots as $root ) {
+			$root = wp_normalize_path( untrailingslashit( (string) $root ) );
+			if ( '' === $root || ! is_dir( $root ) ) {
+				continue;
+			}
+			// Skip a root that is already covered by a parent we scan.
+			$covered = false;
+			foreach ( $out as $existing ) {
+				if ( $root === $existing || str_starts_with( $root . '/', $existing . '/' ) ) {
+					$covered = true;
+					break;
+				}
+			}
+			if ( $covered ) {
+				continue;
+			}
+			// Drop existing entries that are children of this new root.
+			$out = array_values(
+				array_filter(
+					$out,
+					static function ( string $existing ) use ( $root ): bool {
+						return ! str_starts_with( $existing . '/', $root . '/' );
+					}
+				)
+			);
+			$out[] = $root;
 		}
 
+		return $out;
+	}
+
+	/**
+	 * Scan one absolute directory tree into logical backup-relative paths.
+	 *
+	 * @param string               $root    Absolute directory.
+	 * @param array<string, mixed> $options Options.
+	 * @return string[]
+	 */
+	private static function scan_tree( string $root, array $options ): array {
+		$root = wp_normalize_path( untrailingslashit( $root ) );
+		if ( '' === $root || ! is_dir( $root ) ) {
+			return array();
+		}
+
+		$complete = ! empty( $options['complete'] );
+		$excludes = array();
+		if ( ! $complete ) {
+			$excludes = $options['excludes'] ?? Maca_Backup_Pro_Settings::get( 'exclude_paths', array() );
+			if ( ! is_array( $excludes ) ) {
+				$excludes = array();
+			}
+		}
 		$excludes = array_merge( $excludes, self::always_exclude_rules( $options ) );
+		$excludes = self::sanitize_exclude_rules( $excludes );
 		$excludes = array_values( array_unique( array_filter( array_map( 'strval', $excludes ) ) ) );
 
 		$blocked_abs = self::blocked_absolute_dirs( $options );
 
-		$inner = new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS );
+		$inner  = new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS );
 		$filter = new RecursiveCallbackFilterIterator(
 			$inner,
 			static function ( $current ) use ( $excludes, $blocked_abs ) {
@@ -44,9 +131,8 @@ class Maca_Backup_Pro_File_Scanner {
 				if ( self::is_under_blocked_dir( $path, $blocked_abs ) ) {
 					return false;
 				}
-				$rel = self::relative_to_abspath( $path );
+				$rel = self::logical_relative( $path );
 				if ( null === $rel ) {
-					// Outside ABSPATH — still allow traversal for custom roots, but never backup dirs.
 					return ! self::path_has_backup_segment( wp_normalize_path( $path ) );
 				}
 				if ( $current->isDir() && self::is_excluded( $rel, $excludes ) ) {
@@ -70,7 +156,7 @@ class Maca_Backup_Pro_File_Scanner {
 				continue;
 			}
 
-			$rel = self::relative_to_abspath( $path );
+			$rel = self::logical_relative( $path );
 			if ( null === $rel ) {
 				continue;
 			}
@@ -82,8 +168,43 @@ class Maca_Backup_Pro_File_Scanner {
 			$files[] = $rel;
 		}
 
-		sort( $files );
 		return $files;
+	}
+
+	/**
+	 * Map an absolute path to the logical archive path (wp-content/… etc.).
+	 *
+	 * @param string $absolute Absolute filesystem path.
+	 * @return string|null
+	 */
+	public static function logical_relative( string $absolute ): ?string {
+		$abs = wp_normalize_path( $absolute );
+
+		$map = array(
+			array( Maca_Backup_Pro_Paths::uploads_basedir(), 'wp-content/uploads' ),
+			array( wp_normalize_path( untrailingslashit( WP_PLUGIN_DIR ) ), 'wp-content/plugins' ),
+			array( wp_normalize_path( untrailingslashit( get_theme_root() ) ), 'wp-content/themes' ),
+			array( Maca_Backup_Pro_Paths::scope_directory( 'mu-plugins' ), 'wp-content/mu-plugins' ),
+			array( wp_normalize_path( untrailingslashit( WP_CONTENT_DIR ) ), 'wp-content' ),
+		);
+
+		foreach ( $map as $pair ) {
+			$base = untrailingslashit( (string) $pair[0] );
+			$pref = (string) $pair[1];
+			if ( '' === $base ) {
+				continue;
+			}
+			if ( 0 === strcasecmp( $abs, $base ) ) {
+				return $pref;
+			}
+			$prefix = trailingslashit( $base );
+			if ( 0 === strcasecmp( substr( $abs . '/', 0, strlen( $prefix ) ), $prefix ) ) {
+				$rest = ltrim( substr( $abs, strlen( rtrim( $base, '/' ) ) ), '/' );
+				return '' === $rest ? $pref : $pref . '/' . str_replace( '\\', '/', $rest );
+			}
+		}
+
+		return self::relative_to_abspath( $abs );
 	}
 
 	/**
@@ -96,26 +217,31 @@ class Maca_Backup_Pro_File_Scanner {
 		$rules = array(
 			'wp-content/maca-backups',
 			'wp-content/uploads/maca-backups',
+			'wp-content/uploads/maca-backup-dl',
 			'wp-content/cache',
 			'wp-content/upgrade',
 		);
 
 		$upload = wp_upload_dir();
 		if ( ! empty( $upload['basedir'] ) ) {
-			$rel = self::relative_to_abspath( trailingslashit( $upload['basedir'] ) . 'maca-backups' );
+			$rel = self::logical_relative( trailingslashit( $upload['basedir'] ) . 'maca-backups' );
 			if ( $rel ) {
 				$rules[] = $rel;
+			}
+			$rel_dl = self::logical_relative( trailingslashit( $upload['basedir'] ) . 'maca-backup-dl' );
+			if ( $rel_dl ) {
+				$rules[] = $rel_dl;
 			}
 		}
 
 		$backup_dir = Maca_Backup_Pro_Settings::local_backup_dir();
-		$rel_backup = self::relative_to_abspath( $backup_dir );
+		$rel_backup = self::logical_relative( $backup_dir );
 		if ( $rel_backup ) {
 			$rules[] = $rel_backup;
 		}
 
 		if ( ! empty( $options['work_dir'] ) ) {
-			$rel_work = self::relative_to_abspath( (string) $options['work_dir'] );
+			$rel_work = self::logical_relative( (string) $options['work_dir'] );
 			if ( $rel_work ) {
 				$rules[] = $rel_work;
 			}
@@ -138,6 +264,7 @@ class Maca_Backup_Pro_File_Scanner {
 		$upload = wp_upload_dir();
 		if ( ! empty( $upload['basedir'] ) ) {
 			$dirs[] = trailingslashit( $upload['basedir'] ) . 'maca-backups';
+			$dirs[] = trailingslashit( $upload['basedir'] ) . 'maca-backup-dl';
 		}
 
 		if ( ! empty( $options['work_dir'] ) ) {
@@ -160,8 +287,8 @@ class Maca_Backup_Pro_File_Scanner {
 	/**
 	 * Whether path is inside a blocked absolute directory.
 	 *
-	 * @param string   $path         Absolute path.
-	 * @param string[] $blocked_abs  Normalized lowercase absolute dirs.
+	 * @param string   $path        Absolute path.
+	 * @param string[] $blocked_abs Normalized lowercase absolute dirs.
 	 * @return bool
 	 */
 	private static function is_under_blocked_dir( string $path, array $blocked_abs ): bool {
@@ -190,7 +317,7 @@ class Maca_Backup_Pro_File_Scanner {
 	 * @return bool
 	 */
 	private static function path_has_backup_segment( string $path ): bool {
-		return (bool) preg_match( '#/(?:maca-backups)(?:/|$)#i', '/' . ltrim( str_replace( '\\', '/', $path ), '/' ) );
+		return (bool) preg_match( '#/(?:maca-backups|maca-backup-dl)(?:/|$)#i', '/' . ltrim( str_replace( '\\', '/', $path ), '/' ) );
 	}
 
 	/**
@@ -203,7 +330,6 @@ class Maca_Backup_Pro_File_Scanner {
 	public static function scope_root( string $scope, array $options = array() ): string {
 		if ( 'custom' === $scope && ! empty( $options['path'] ) ) {
 			$custom = wp_normalize_path( (string) $options['path'] );
-			// Custom scan roots must stay under the site or uploads tree.
 			$site = trailingslashit( Maca_Backup_Pro_Paths::site_root() );
 			if ( str_starts_with( $custom, $site ) || Maca_Backup_Pro_Paths::is_under_uploads( $custom ) ) {
 				return untrailingslashit( $custom );
@@ -234,11 +360,45 @@ class Maca_Backup_Pro_File_Scanner {
 
 		// Case-insensitive compare for Windows hosts.
 		if ( 0 !== strcasecmp( substr( $abs . '/', 0, strlen( $base ) ), $base ) && 0 !== strcasecmp( $abs, rtrim( $base, '/' ) ) ) {
+			// Also accept ABSPATH when it differs from home path.
+			$absp = trailingslashit( wp_normalize_path( untrailingslashit( (string) ABSPATH ) ) );
+			if ( 0 === strcasecmp( substr( $abs . '/', 0, strlen( $absp ) ), $absp ) || 0 === strcasecmp( $abs, rtrim( $absp, '/' ) ) ) {
+				$rel = ltrim( substr( $abs, strlen( rtrim( $absp, '/' ) ) ), '/' );
+				return str_replace( '\\', '/', $rel );
+			}
 			return null;
 		}
 
 		$rel = ltrim( substr( $abs, strlen( rtrim( $base, '/' ) ) ), '/' );
 		return str_replace( '\\', '/', $rel );
+	}
+
+	/**
+	 * Drop exclude rules that would strip the Media Library (uploads) from backups.
+	 *
+	 * @param string[] $excludes Raw exclude rules.
+	 * @return string[]
+	 */
+	private static function sanitize_exclude_rules( array $excludes ): array {
+		$out = array();
+		foreach ( $excludes as $rule ) {
+			$norm = strtolower( trim( str_replace( '\\', '/', (string) $rule ), '/' ) );
+			if ( '' === $norm ) {
+				continue;
+			}
+			// Never exclude the whole uploads tree — media must travel with full/site backups.
+			if ( in_array( $norm, array( 'uploads', 'wp-content/uploads', 'media' ), true ) ) {
+				continue;
+			}
+			if ( str_starts_with( $norm, 'wp-content/uploads/' ) ) {
+				// Allow only plugin backup staging folders under uploads.
+				if ( ! preg_match( '#^wp-content/uploads/(?:maca-backups|maca-backup-dl)(?:/|$)#', $norm ) ) {
+					continue;
+				}
+			}
+			$out[] = (string) $rule;
+		}
+		return $out;
 	}
 
 	/**
@@ -250,6 +410,12 @@ class Maca_Backup_Pro_File_Scanner {
 	 */
 	private static function is_excluded( string $rel, array $excludes ): bool {
 		$rel = strtolower( str_replace( '\\', '/', $rel ) );
+
+		// Media Library files are never excluded (only maca backup staging under uploads).
+		if ( self::is_media_library_path( $rel ) ) {
+			return false;
+		}
+
 		foreach ( $excludes as $rule ) {
 			$rule = strtolower( trim( str_replace( '\\', '/', (string) $rule ), '/' ) );
 			if ( '' === $rule ) {
@@ -258,11 +424,31 @@ class Maca_Backup_Pro_File_Scanner {
 			if ( $rel === $rule || str_starts_with( $rel, $rule . '/' ) ) {
 				return true;
 			}
-			// Also match bare folder name anywhere (e.g. maca-backups).
-			if ( ! str_contains( $rule, '/' ) && ( $rel === $rule || str_contains( '/' . $rel . '/', '/' . $rule . '/' ) ) ) {
-				return true;
+			// Bare folder names only for known cache/backup dirs — not "uploads"/"themes".
+			if ( ! str_contains( $rule, '/' ) && in_array( $rule, array( 'maca-backups', 'maca-backup-dl', 'cache', 'upgrade' ), true ) ) {
+				if ( $rel === $rule || str_contains( '/' . $rel . '/', '/' . $rule . '/' ) ) {
+					return true;
+				}
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * True for Media Library paths that must always be backed up.
+	 *
+	 * @param string $rel Relative path (any case).
+	 * @return bool
+	 */
+	private static function is_media_library_path( string $rel ): bool {
+		$rel = strtolower( str_replace( '\\', '/', $rel ) );
+		if ( ! str_starts_with( $rel, 'wp-content/uploads/' ) && 'wp-content/uploads' !== $rel ) {
+			return false;
+		}
+		// Staging folders created by this plugin are not media.
+		if ( preg_match( '#^wp-content/uploads/(?:maca-backups|maca-backup-dl)(?:/|$)#', $rel ) ) {
+			return false;
+		}
+		return true;
 	}
 }

@@ -42,26 +42,37 @@ class Maca_Backup_Pro_Database_Exporter {
 
 		$handle = fopen( $sql_path, file_exists( $sql_path ) ? 'ab' : 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( ! $handle ) {
-			return array( 'bytes' => 0, 'tables' => 0 );
+			throw new RuntimeException(
+				esc_html__( 'Could not write database.sql — full site backup requires the entire database.', 'maca-backup' )
+			);
 		}
 
-		if ( 0 === filesize( $sql_path ) || false === filesize( $sql_path ) ) {
+		// Clear PHP stat cache so an empty brand-new file is detected correctly.
+		clearstatcache( true, $sql_path );
+		$size_now = file_exists( $sql_path ) ? (int) filesize( $sql_path ) : 0;
+		if ( $size_now < 1 ) {
 			$header = "-- maca BackUp SQL export\n-- Generated: " . gmdate( 'c' ) . "\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n";
 			fwrite( $handle, $header ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 		}
 
-		$bytes  = 0;
-		$count  = 0;
+		$bytes = 0;
+		$count = 0;
 
 		foreach ( $tables as $table ) {
-			$table = preg_replace( '/[^A-Za-z0-9_\-]/', '', $table );
+			$table = preg_replace( '/[^A-Za-z0-9_\-]/', '', (string) $table );
 			if ( '' === $table ) {
 				continue;
 			}
 
 			$create = $wpdb->get_row( "SHOW CREATE TABLE `{$table}`", ARRAY_N ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			if ( ! $create || empty( $create[1] ) ) {
-				continue;
+				throw new RuntimeException(
+					sprintf(
+						/* translators: %s: table name */
+						esc_html__( 'Could not export database table %s.', 'maca-backup' ),
+						esc_html( $table )
+					)
+				);
 			}
 
 			$chunk  = "\nDROP TABLE IF EXISTS `{$table}`;\n{$create[1]};\n\n";
@@ -90,7 +101,8 @@ class Maca_Backup_Pro_Database_Exporter {
 						if ( null === $value ) {
 							$vals[] = 'NULL';
 						} else {
-							$vals[] = "'" . esc_sql( (string) $value ) . "'";
+							// Prefer $wpdb escape so binary/serialized meta survives round-trip.
+							$vals[] = "'" . $wpdb->_real_escape( (string) $value ) . "'";
 						}
 					}
 					$line   = 'INSERT INTO `' . $table . '` (' . implode( ',', $cols ) . ') VALUES (' . implode( ',', $vals ) . ");\n";

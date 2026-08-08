@@ -26,6 +26,7 @@ class Maca_Backup_Pro_Autoloader {
 		'Maca_Backup_Pro_Checksum'             => 'includes/class-checksum.php',
 		'Maca_Backup_Pro_Settings'             => 'includes/class-settings.php',
 		'Maca_Backup_Pro_Paths'                => 'includes/class-paths.php',
+		'Maca_Backup_Pro_Download'             => 'includes/class-download.php',
 		'Maca_Backup_Pro_Mailer'               => 'includes/class-mailer.php',
 		'Maca_Backup_Pro_Format'               => 'includes/class-format.php',
 		'Maca_Backup_Pro_Logger'               => 'includes/class-logger.php',

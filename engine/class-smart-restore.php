@@ -243,6 +243,8 @@ class Maca_Backup_Pro_Smart_Restore {
 					'path'   => $path,
 					'size_a' => $size_a,
 					'size_b' => $size_b,
+					'crc_a'  => $crc_a,
+					'crc_b'  => $crc_b,
 				);
 			} else {
 				++$same;
@@ -345,6 +347,7 @@ class Maca_Backup_Pro_Smart_Restore {
 	 */
 	private static function backup_summary_row( object $backup, int $files, int $bytes ): array {
 		$when = ! empty( $backup->finished_at ) ? (string) $backup->finished_at : (string) ( $backup->created_at ?? '' );
+		$crc  = Maca_Backup_Pro_Format::backup_checksum_label( $backup );
 		return array(
 			'id'            => (int) $backup->id,
 			'type'          => (string) ( $backup->type ?? '' ),
@@ -353,6 +356,7 @@ class Maca_Backup_Pro_Smart_Restore {
 			'file_count'    => $files,
 			'content_bytes' => $bytes,
 			'parts'         => (int) ( $backup->parts ?? 1 ),
+			'crc32'         => ( '—' === $crc ) ? '' : $crc,
 		);
 	}
 
@@ -373,6 +377,23 @@ class Maca_Backup_Pro_Smart_Restore {
 		$skip      = array( 'manifest.json', 'database.sql', 'files.json' );
 
 		if ( ! empty( $inventory ) ) {
+			$needs_crc = false;
+			foreach ( $inventory as $meta ) {
+				if ( is_array( $meta ) && empty( $meta['crc'] ) ) {
+					$needs_crc = true;
+					break;
+				}
+			}
+			if ( $needs_crc ) {
+				$plain = array();
+				foreach ( $parts as $part ) {
+					$ready = Maca_Backup_Pro_Verifier::maybe_decrypt_archive( (string) $part );
+					if ( ! is_wp_error( $ready ) && is_string( $ready ) && '' !== $ready ) {
+						$plain[] = $ready;
+					}
+				}
+				$inventory = Maca_Backup_Pro_Checksum::enrich_inventory_crc_from_parts( $inventory, $plain );
+			}
 			foreach ( $inventory as $name => $meta ) {
 				$name = ltrim( str_replace( '\\', '/', (string) $name ), '/' );
 				if ( '' === $name || in_array( $name, $skip, true ) || str_ends_with( $name, '/' ) ) {

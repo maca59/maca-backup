@@ -34,12 +34,36 @@ class Maca_Backup_Pro_Admin {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_pages' ), 1 );
-		add_action( 'admin_init', array( $this, 'handle_posts' ) );
+		add_action( 'admin_init', array( $this, 'handle_posts' ), 1 );
 		add_action( 'admin_init', array( $this, 'handle_failed_notice_dismiss' ) );
+		add_action( 'admin_post_maca_backup_download', array( $this, 'handle_download_post' ) );
 		add_action( 'admin_notices', array( $this, 'legal_admin_notice' ) );
 		add_action( 'admin_notices', array( $this, 'failed_backup_admin_notice' ) );
 		add_filter( 'plugin_action_links_' . MACA_BACKUP_PRO_BASENAME, array( $this, 'action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
+	}
+
+	/**
+	 * Signed admin-post URL for downloading a completed backup.
+	 *
+	 * @param int $backup_id Backup row ID.
+	 * @return string
+	 */
+	public static function download_url( int $backup_id ): string {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=maca_backup_download&backup_id=' . $backup_id ),
+			Maca_Backup_Pro_Security::NONCE_ACTION
+		);
+	}
+
+	/**
+	 * admin-post.php download entry (lighter than a full admin page POST).
+	 *
+	 * @return void
+	 */
+	public function handle_download_post(): void {
+		Maca_Backup_Pro_Security::verify_admin_nonce();
+		$this->download_backup();
 	}
 
 	/**
@@ -741,15 +765,25 @@ class Maca_Backup_Pro_Admin {
 			wp_die( esc_html__( 'Permission denied.', 'maca-backup' ) );
 		}
 
-		$id     = isset( $_POST['backup_id'] ) ? absint( $_POST['backup_id'] ) : 0;
+		$id = 0;
+		if ( isset( $_REQUEST['backup_id'] ) ) {
+			$id = absint( wp_unslash( $_REQUEST['backup_id'] ) );
+		}
 		$backup = Maca_Backup_Pro_Backups_Table::get( $id );
 		if ( ! $backup || 'completed' !== (string) $backup->status ) {
 			wp_die( esc_html__( 'Backup not found.', 'maca-backup' ) );
 		}
 
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
 		$parts = Maca_Backup_Pro_Verifier::ensure_local_parts( $backup );
-		if ( is_wp_error( $parts ) ) {
-			wp_die( esc_html( $parts->get_error_message() ) );
+		if ( is_wp_error( $parts ) || empty( $parts ) ) {
+			$message = is_wp_error( $parts )
+				? $parts->get_error_message()
+				: __( 'Backup archive file was not found on disk.', 'maca-backup' );
+			wp_die( esc_html( $message ) );
 		}
 
 		$host = wp_parse_url( home_url(), PHP_URL_HOST );
@@ -757,29 +791,36 @@ class Maca_Backup_Pro_Admin {
 		$date = gmdate( 'Y-m-d' );
 		$base = 'maca-backup-' . $host . '-' . $date . '-' . (int) $backup->id;
 
-		nocache_headers();
-
 		if ( 1 === count( $parts ) ) {
 			$local = $parts[0];
-			$ext   = str_ends_with( strtolower( $local ), '.enc' ) ? '.zip.enc' : '.zip';
+			if ( ! is_readable( $local ) ) {
+				wp_die( esc_html__( 'Backup archive file was not found on disk.', 'maca-backup' ) );
+			}
+			$ext      = str_ends_with( strtolower( $local ), '.enc' ) ? '.zip.enc' : '.zip';
 			$filename = $base . $ext;
-			header( 'Content-Type: application/octet-stream' );
-			header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-			header( 'Content-Length: ' . (string) filesize( $local ) );
-			readfile( $local ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-			exit;
+			Maca_Backup_Pro_Download::deliver( $local, $filename, 'application/octet-stream' );
 		}
 
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			wp_die( esc_html__( 'ZipArchive is required to download multi-part backups.', 'maca-backup' ) );
 		}
 
-		$transfer = trailingslashit( Maca_Backup_Pro_Settings::local_backup_dir() ) . $base . '-parts.zip';
+		$base_dir = Maca_Backup_Pro_Settings::local_backup_dir();
+		if ( '' === $base_dir ) {
+			wp_die( esc_html__( 'Local backup directory is not available under uploads.', 'maca-backup' ) );
+		}
+
+		$transfer = trailingslashit( $base_dir ) . $base . '-parts.zip';
 		$zip      = new ZipArchive();
 		if ( true !== $zip->open( $transfer, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
 			wp_die( esc_html__( 'Could not build download package.', 'maca-backup' ) );
 		}
 		foreach ( $parts as $part ) {
+			if ( ! is_readable( $part ) ) {
+				$zip->close();
+				wp_delete_file( $transfer );
+				wp_die( esc_html__( 'A backup part is missing on disk.', 'maca-backup' ) );
+			}
 			$zip->addFile( $part, basename( $part ) );
 			if ( method_exists( $zip, 'setCompressionName' ) ) {
 				$zip->setCompressionName( basename( $part ), ZipArchive::CM_STORE );
@@ -787,12 +828,11 @@ class Maca_Backup_Pro_Admin {
 		}
 		$zip->close();
 
-		header( 'Content-Type: application/zip' );
-		header( 'Content-Disposition: attachment; filename="' . $base . '-parts.zip"' );
-		header( 'Content-Length: ' . (string) filesize( $transfer ) );
-		readfile( $transfer ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-		wp_delete_file( $transfer );
-		exit;
+		if ( ! is_readable( $transfer ) ) {
+			wp_die( esc_html__( 'Could not build download package.', 'maca-backup' ) );
+		}
+
+		Maca_Backup_Pro_Download::deliver( $transfer, $base . '-parts.zip', 'application/zip', true );
 	}
 
 	/**
@@ -912,7 +952,7 @@ class Maca_Backup_Pro_Admin {
 		$current_tab = self::current_tab();
 		$tabs        = self::tabs();
 
-		echo '<div class="wrap maca-backup-pro-admin">';
+		echo '<div class="wrap maca-backup-admin">';
 		include MACA_BACKUP_PRO_PATH . 'admin/partials/header.php';
 
 		$flash = get_transient( 'maca_backup_pro_flash_' . get_current_user_id() );

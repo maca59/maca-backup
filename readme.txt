@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.39
+Stable tag: 2.0.48
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,14 @@ Support requests you submit via the in-plugin Support form are sent to Maca Deve
 Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms. See **External services** above.
 
 == Changelog ==
+
+= 2.0.47 =
+* Import verifies and stores archive CRC32 so backups can be compared after migration
+* Compare UI shows archive CRC32 and per-file CRC on mismatches
+
+= 2.0.46 =
+* Import large backups (over PHP/WordPress upload limits, e.g. >1 GB) via automatic chunked upload
+* Media Library always included in full backups; exclude rules cannot strip uploads
 
 = 2.0.39 =
 * Public product/legal/support links use GitHub only (no maca.se URLs for review crawlers)

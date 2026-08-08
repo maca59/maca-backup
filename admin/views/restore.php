@@ -17,6 +17,8 @@ $selected = isset( $_GET['backup_id'] ) ? absint( $_GET['backup_id'] ) : 0; // p
 	<h2><?php esc_html_e( 'Restore', 'maca-backup' ); ?></h2>
 	<p class="maca-bp-muted"><?php esc_html_e( 'Choose a backup and scope. Use Custom path to restore a single file or folder. A preview shows exactly what will be overwritten before you confirm. Test restore verifies the archive in a temporary folder without changing the live site.', 'maca-backup' ); ?></p>
 
+	<div id="maca-bp-job-progress-slot" class="maca-bp-job-progress-slot" aria-live="polite"></div>
+
 	<div class="maca-bp-import">
 		<h3><?php esc_html_e( 'Import from computer', 'maca-backup' ); ?></h3>
 		<p class="maca-bp-muted"><?php esc_html_e( 'Moving hosts? Download a backup on the old site, then import the ZIP here and restore.', 'maca-backup' ); ?></p>
@@ -29,12 +31,14 @@ $selected = isset( $_GET['backup_id'] ) ? absint( $_GET['backup_id'] ) : 0; // p
 		<p class="maca-bp-muted"><?php
 		echo esc_html(
 			sprintf(
-				/* translators: %s: max upload size */
-				__( 'Max upload size: %s', 'maca-backup' ),
-				size_format( wp_max_upload_size() )
+				/* translators: 1: PHP direct upload limit, 2: max import size via chunked upload */
+				__( 'Direct upload limit: %1$s. Larger archives (up to %2$s) upload automatically in chunks.', 'maca-backup' ),
+				size_format( Maca_Backup_Pro_Importer::direct_upload_limit() ),
+				size_format( Maca_Backup_Pro_Importer::max_import_bytes() )
 			)
 		);
 		?></p>
+		<div class="maca-bp-import-progress-slot" aria-live="polite"></div>
 	</div>
 
 	<div class="maca-bp-form-grid">

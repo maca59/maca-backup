@@ -12,6 +12,73 @@
 	var treeSelections = { restore: {}, smart: {} };
 	var smartState = null;
 	var smartBrowseMode = false;
+	var importXhr = null;
+	var importPhase = ''; // '', 'upload', 'process'
+	var importToken = '';
+	var importAborting = false;
+	var $importBox = null;
+
+	function ensureProgressHomeMarker() {
+		var el = document.getElementById('maca-bp-progress');
+		if (!el || document.getElementById('maca-bp-progress-home')) {
+			return;
+		}
+		var marker = document.createElement('div');
+		marker.id = 'maca-bp-progress-home';
+		marker.hidden = true;
+		el.parentNode.insertBefore(marker, el);
+	}
+
+	function parkProgressIn($host) {
+		var el = document.getElementById('maca-bp-progress');
+		if (!el || !$host || !$host.length) {
+			return;
+		}
+		ensureProgressHomeMarker();
+		$(el).addClass('maca-bp-progress--inline');
+		$host.append(el);
+	}
+
+	function parkProgressInImport($box) {
+		if (!$box || !$box.length) {
+			return;
+		}
+		restoreProgressHome();
+		var $slot = $box.find('.maca-bp-import-progress-slot');
+		if (!$slot.length) {
+			$slot = $('<div class="maca-bp-import-progress-slot" />').appendTo($box);
+		}
+		$box.addClass('is-importing');
+		parkProgressIn($slot);
+	}
+
+	function parkProgressForRestore() {
+		restoreProgressHome();
+		var $slot = $('#maca-bp-job-progress-slot');
+		if (!$slot.length) {
+			$slot = $('#maca-bp-smart-progress-slot');
+		}
+		if (!$slot.length) {
+			return;
+		}
+		$slot.addClass('is-active');
+		parkProgressIn($slot);
+	}
+
+	function restoreProgressHome() {
+		var home = document.getElementById('maca-bp-progress-home');
+		var el = document.getElementById('maca-bp-progress');
+		$('.maca-bp-import').removeClass('is-importing');
+		$('.maca-bp-job-progress-slot').removeClass('is-active');
+		$('.maca-bp-panel').removeClass('is-restoring');
+		if (el) {
+			$(el).removeClass('maca-bp-progress--inline');
+		}
+		if (home && el && home.parentNode) {
+			home.parentNode.insertBefore(el, home.nextSibling);
+		}
+		$importBox = null;
+	}
 
 	function t(key, fallback) {
 		return (i18n && i18n[key]) || fallback || '';
@@ -80,7 +147,9 @@
 			lastProgressData = null;
 		} else {
 			$el.find('.maca-bp-progress__stop').prop('hidden', false);
-			$el.find('.maca-bp-progress__note').prop('hidden', false);
+			$el.find('.maca-bp-progress__note')
+				.text(t('progressNote', 'Runs in the background — you can leave this page.'))
+				.prop('hidden', false);
 		}
 	}
 
@@ -262,6 +331,11 @@
 	function statusLoop(jobId) {
 		activeJobId = jobId;
 		setStartButtonsDisabled(true);
+		// Keep the bar next to restore controls when that slot exists.
+		if ($('#maca-bp-job-progress-slot, #maca-bp-smart-progress-slot').length &&
+			!$('#maca-bp-job-progress-slot #maca-bp-progress, #maca-bp-smart-progress-slot #maca-bp-progress').length) {
+			parkProgressForRestore();
+		}
 		showProgress(true);
 		var seedPct = 0;
 		var seedLabel = cfg.i18n.running;
@@ -353,6 +427,40 @@
 	}
 
 	function cancelActiveJob() {
+		if (importXhr && (importPhase === 'upload' || importPhase === 'process')) {
+			if (!window.confirm(t('importCancel', 'Cancel the upload?'))) {
+				return;
+			}
+			importAborting = true;
+			var token = importToken;
+			try {
+				if (importXhr) {
+					importXhr.abort();
+				}
+			} catch (err) {
+				/* ignore */
+			}
+			importXhr = null;
+			importPhase = '';
+			importToken = '';
+			if (token) {
+				post('maca_backup_pro_import_chunk', { phase: 'abort', token: token });
+			}
+			importAborting = false;
+			setProgress(0, t('cancelled', 'Cancelled'), '', false);
+			$progress().find('.maca-bp-progress__note').prop('hidden', true);
+			$progress().find('.maca-bp-progress__stop').prop('hidden', true);
+			$progress().removeClass('is-active has-fill');
+			$('.maca-bp-import-form button[type="submit"]').prop('disabled', false);
+			setStartButtonsDisabled(false);
+			stopElapsedClock();
+			window.setTimeout(function () {
+				showProgress(false);
+				restoreProgressHome();
+			}, 1200);
+			return;
+		}
+
 		if (!window.confirm(cfg.i18n.confirmStop || 'Stop the running job?')) {
 			return;
 		}
@@ -369,6 +477,437 @@
 			$btn.prop('disabled', false);
 			window.alert(cfg.i18n.failed);
 		});
+	}
+
+	function finishImportUi(ok, message, backupId) {
+		importXhr = null;
+		importPhase = '';
+		importToken = '';
+		importAborting = false;
+		$('.maca-bp-import-form button[type="submit"]').prop('disabled', false);
+		setStartButtonsDisabled(false);
+		$progress().find('.maca-bp-progress__stop').prop('hidden', true);
+		$progress().find('.maca-bp-progress__note').prop('hidden', true);
+		if (ok) {
+			setProgress(100, t('done', 'Completed'), message || '', false);
+			$progress().removeClass('is-active').addClass('has-fill');
+			window.setTimeout(function () {
+				showProgress(false);
+				restoreProgressHome();
+				var id = parseInt(backupId, 10) || 0;
+				if (id > 0) {
+					beginImportNextFlow(id, message || '');
+				} else {
+					window.location.reload();
+				}
+			}, 700);
+			return;
+		}
+		setProgress(0, message || t('failed', 'Failed'), '', false);
+		$progress().removeClass('is-active has-fill');
+		stopElapsedClock();
+		window.setTimeout(function () {
+			showProgress(false);
+			restoreProgressHome();
+		}, 1600);
+	}
+
+	function parseAjaxJson(raw) {
+		try {
+			return JSON.parse(raw || '');
+		} catch (err) {
+			return null;
+		}
+	}
+
+	function xhrPostForm(fd, onProgress) {
+		return new Promise(function (resolve, reject) {
+			var xhr = new window.XMLHttpRequest();
+			importXhr = xhr;
+			xhr.open('POST', cfg.ajaxUrl, true);
+			xhr.responseType = 'text';
+			if (onProgress && xhr.upload) {
+				xhr.upload.addEventListener('progress', onProgress);
+			}
+			xhr.addEventListener('load', function () {
+				if (importAborting) {
+					reject(new Error('aborted'));
+					return;
+				}
+				var res = parseAjaxJson(xhr.responseText);
+				if (!res) {
+					reject(new Error('bad_json'));
+					return;
+				}
+				resolve(res);
+			});
+			xhr.addEventListener('error', function () {
+				reject(new Error('network'));
+			});
+			xhr.addEventListener('abort', function () {
+				reject(new Error('aborted'));
+			});
+			xhr.send(fd);
+		});
+	}
+
+	function startImportDirect(file) {
+		var fd = new FormData();
+		fd.append('action', 'maca_backup_pro_import_backup');
+		fd.append('nonce', cfg.nonce);
+		fd.append('backup_file', file, file.name);
+
+		importPhase = 'upload';
+		return xhrPostForm(fd, function (e) {
+			if (!e.lengthComputable || importPhase !== 'upload') {
+				return;
+			}
+			var pct = Math.max(1, Math.min(90, Math.round((e.loaded / e.total) * 90)));
+			lastProgressData = { progress: pct, step: 'import', status: 'running' };
+			setProgress(
+				pct,
+				t('importUploading', 'Uploading backup…') + ' — ' + pct + '%',
+				formatBytes(e.loaded) + ' / ' + formatBytes(e.total),
+				true
+			);
+		}).then(function (res) {
+			importPhase = 'process';
+			$progress().find('.maca-bp-progress__stop').prop('hidden', true);
+			lastProgressData = { progress: 92, step: 'import', status: 'running' };
+			setProgress(92, t('importProcessing', 'Processing archive…'), formatBytes(file.size), true);
+			if (res && res.success) {
+				finishImportUi(true, (res.data && res.data.message) || '', res.data && res.data.backup_id);
+				return;
+			}
+			finishImportUi(false, (res && res.data && res.data.message) || t('failed', 'Failed'));
+		}).catch(function (err) {
+			if (importAborting || (err && err.message === 'aborted')) {
+				return;
+			}
+			finishImportUi(false, t('failed', 'Failed'));
+		});
+	}
+
+	function startImportChunked(file) {
+		var chunkBytes = Math.max(256 * 1024, parseInt(cfg.importChunkBytes, 10) || (8 * 1024 * 1024));
+		var totalChunks = Math.max(1, Math.ceil(file.size / chunkBytes));
+		var uploaded = 0;
+
+		importPhase = 'upload';
+		lastProgressData = { progress: 1, step: 'import', status: 'running' };
+		setProgress(1, t('importUploading', 'Uploading backup…') + ' — 1%', formatBytes(0) + ' / ' + formatBytes(file.size), true);
+
+		var initFd = new FormData();
+		initFd.append('action', 'maca_backup_pro_import_chunk');
+		initFd.append('nonce', cfg.nonce);
+		initFd.append('phase', 'init');
+		initFd.append('filename', file.name);
+		initFd.append('size', String(file.size));
+		initFd.append('chunks', String(totalChunks));
+
+		return xhrPostForm(initFd).then(function (initRes) {
+			if (!initRes || !initRes.success || !initRes.data || !initRes.data.token) {
+				throw new Error((initRes && initRes.data && initRes.data.message) || t('importChunkFail', 'Chunked upload failed.'));
+			}
+			importToken = initRes.data.token;
+			if (initRes.data.chunk_bytes) {
+				chunkBytes = Math.max(256 * 1024, parseInt(initRes.data.chunk_bytes, 10) || chunkBytes);
+				totalChunks = Math.max(1, Math.ceil(file.size / chunkBytes));
+			}
+
+			function sendChunk(index) {
+				if (importAborting) {
+					return Promise.reject(new Error('aborted'));
+				}
+				if (index >= totalChunks) {
+					return Promise.resolve();
+				}
+				var start = index * chunkBytes;
+				var end = Math.min(file.size, start + chunkBytes);
+				var blob = file.slice(start, end);
+				var fd = new FormData();
+				fd.append('action', 'maca_backup_pro_import_chunk');
+				fd.append('nonce', cfg.nonce);
+				fd.append('phase', 'upload');
+				fd.append('token', importToken);
+				fd.append('index', String(index));
+				fd.append('chunk', blob, 'chunk-' + index + '.bin');
+
+				return xhrPostForm(fd, function (e) {
+					if (!e.lengthComputable || importPhase !== 'upload') {
+						return;
+					}
+					var loaded = uploaded + e.loaded;
+					var pct = Math.max(1, Math.min(90, Math.round((loaded / file.size) * 90)));
+					lastProgressData = { progress: pct, step: 'import', status: 'running' };
+					setProgress(
+						pct,
+						t('importUploading', 'Uploading backup…') + ' — ' + pct + '%',
+						formatBytes(Math.min(loaded, file.size)) + ' / ' + formatBytes(file.size),
+						true
+					);
+				}).then(function (res) {
+					if (!res || !res.success) {
+						throw new Error((res && res.data && res.data.message) || t('importChunkFail', 'Chunked upload failed.'));
+					}
+					uploaded = end;
+					var pct = Math.max(1, Math.min(90, Math.round((uploaded / file.size) * 90)));
+					lastProgressData = { progress: pct, step: 'import', status: 'running' };
+					setProgress(
+						pct,
+						t('importUploading', 'Uploading backup…') + ' — ' + pct + '%',
+						formatBytes(uploaded) + ' / ' + formatBytes(file.size),
+						true
+					);
+					return sendChunk(index + 1);
+				});
+			}
+
+			return sendChunk(0);
+		}).then(function () {
+			if (importAborting) {
+				return;
+			}
+			importPhase = 'process';
+			$progress().find('.maca-bp-progress__stop').prop('hidden', true);
+			lastProgressData = { progress: 92, step: 'import', status: 'running' };
+			setProgress(92, t('importProcessing', 'Processing archive…'), formatBytes(file.size), true);
+
+			var finishFd = new FormData();
+			finishFd.append('action', 'maca_backup_pro_import_chunk');
+			finishFd.append('nonce', cfg.nonce);
+			finishFd.append('phase', 'finish');
+			finishFd.append('token', importToken);
+
+			return xhrPostForm(finishFd).then(function (res) {
+				if (res && res.success) {
+					finishImportUi(true, (res.data && res.data.message) || '', res.data && res.data.backup_id);
+					return;
+				}
+				finishImportUi(false, (res && res.data && res.data.message) || t('failed', 'Failed'));
+			});
+		}).catch(function (err) {
+			if (importAborting || (err && err.message === 'aborted')) {
+				return;
+			}
+			var msg = (err && err.message) ? String(err.message) : '';
+			if (msg === 'bad_json' || msg === 'network') {
+				msg = t('failed', 'Failed');
+			}
+			finishImportUi(false, msg || t('importChunkFail', 'Chunked upload failed.'));
+		});
+	}
+
+	function onRestorePage() {
+		return $('#maca-bp-restore-backup').length > 0;
+	}
+
+	function selectImportedBackup(backupId) {
+		var $sel = $('#maca-bp-restore-backup');
+		if (!$sel.length) {
+			return;
+		}
+		var id = String(backupId);
+		if (!$sel.find('option[value="' + id + '"]').length) {
+			$sel.append($('<option/>', { value: id, text: '#' + id + ' (imported)' }));
+		}
+		$sel.val(id).trigger('change');
+	}
+
+	function importNextStepLabel(step, total) {
+		var tpl = t('importNextStep', 'Step %1$d of %2$d');
+		return tpl.replace('%1$d', String(step)).replace('%2$d', String(total));
+	}
+
+	function closeImportNextFlow() {
+		$('.maca-bp-import-next').remove();
+		$('.maca-bp-import').removeClass('is-importing is-next-flow');
+		$('.maca-bp-form-grid, #maca-bp-restore-tree-wrap, .maca-bp-actions').removeClass('maca-bp-import-focus');
+	}
+
+	function renderImportNextFlow(backupId, step) {
+		var $box = ($importBox && $importBox.length) ? $importBox : $('.maca-bp-import').first();
+		if (!$box.length) {
+			return;
+		}
+		$box.addClass('is-next-flow');
+		var $flow = $box.find('.maca-bp-import-next');
+		if (!$flow.length) {
+			$flow = $('<div class="maca-bp-import-next" role="region" />').appendTo($box);
+		}
+
+		var total = 4;
+		var title = t('importNextTitle', 'Backup imported');
+		var body = '';
+		var actions = '';
+
+		if (step === 1) {
+			body =
+				'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(1, total)) + '</p>' +
+				'<h3>' + escapeHtml(t('importStepDone', 'Import complete')) + '</h3>' +
+				'<p>' + escapeHtml(t('importNextIntro', 'The archive is registered on this site. Next, restore it onto the live files/database.')) + '</p>' +
+				'<p class="maca-bp-muted">#' + escapeHtml(String(backupId)) + '</p>';
+			actions =
+				'<button type="button" class="button" data-import-next="later">' + escapeHtml(t('importBtnLater', 'Later')) + '</button>' +
+				'<button type="button" class="button button-primary" data-import-next="continue">' +
+				escapeHtml(onRestorePage() ? t('importBtnNext', 'Next') : t('importBtnContinue', 'Continue to restore')) +
+				'</button>';
+		} else if (step === 2) {
+			selectImportedBackup(backupId);
+			$('.maca-bp-form-grid').addClass('maca-bp-import-focus');
+			body =
+				'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(2, total)) + '</p>' +
+				'<h3>' + escapeHtml(t('importStepScope', 'Choose what to restore')) + '</h3>' +
+				'<p>' + escapeHtml(t('importStepScopeHelp', 'Pick a scope below (entire site, database only, uploads, …). Use Custom path to restore selected files.')) + '</p>';
+			actions =
+				'<button type="button" class="button button-primary" data-import-next="to-test">' +
+				escapeHtml(t('importBtnNext', 'Next')) +
+				'</button>';
+		} else if (step === 3) {
+			$('.maca-bp-form-grid').removeClass('maca-bp-import-focus');
+			$('.maca-bp-actions').addClass('maca-bp-import-focus');
+			body =
+				'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(3, total)) + '</p>' +
+				'<h3>' + escapeHtml(t('importStepTest', 'Test the archive (recommended)')) + '</h3>' +
+				'<p>' + escapeHtml(t('importStepTestHelp', 'Test restore extracts the archive in a temporary folder without changing the live site.')) + '</p>';
+			actions =
+				'<button type="button" class="button" data-import-next="skip-test">' + escapeHtml(t('importBtnSkipTest', 'Skip test')) + '</button>' +
+				'<button type="button" class="button button-primary" data-import-next="run-test">' +
+				escapeHtml(t('importBtnTest', 'Run test')) +
+				'</button>';
+		} else {
+			$('.maca-bp-actions').addClass('maca-bp-import-focus');
+			body =
+				'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(4, total)) + '</p>' +
+				'<h3>' + escapeHtml(t('importStepRun', 'Restore to the live site')) + '</h3>' +
+				'<p>' + escapeHtml(t('importStepRunHelp', 'This overwrites the selected files/database on this site. Preview first if you want a dry run of paths.')) + '</p>';
+			actions =
+				'<button type="button" class="button" data-import-next="preview">' + escapeHtml(t('importBtnPreview', 'Preview changes')) + '</button>' +
+				'<button type="button" class="button button-primary" data-import-next="restore">' +
+				escapeHtml(t('importBtnRestore', 'Restore now')) +
+				'</button>' +
+				'<button type="button" class="button-link maca-bp-import-next__close" data-import-next="close">' +
+				escapeHtml(t('importBtnClose', 'Done')) +
+				'</button>';
+		}
+
+		$flow.html(
+			'<div class="maca-bp-import-next__card">' +
+			'<p class="maca-bp-import-next__eyebrow">' + escapeHtml(title) + '</p>' +
+			body +
+			'<div class="maca-bp-import-next__actions">' + actions + '</div>' +
+			'</div>'
+		);
+
+		$flow.off('click.importNext').on('click.importNext', '[data-import-next]', function (e) {
+			e.preventDefault();
+			var action = $(this).attr('data-import-next');
+			if (action === 'later' || action === 'close') {
+				closeImportNextFlow();
+				if (!onRestorePage()) {
+					window.location.reload();
+				}
+				return;
+			}
+			if (action === 'continue') {
+				if (onRestorePage()) {
+					renderImportNextFlow(backupId, 2);
+					$('html, body').animate({ scrollTop: $('.maca-bp-form-grid').offset().top - 80 }, 280);
+					return;
+				}
+				var url = cfg.restoreUrl || '';
+				if (!url) {
+					window.location.reload();
+					return;
+				}
+				url += (url.indexOf('?') >= 0 ? '&' : '?') + 'backup_id=' + encodeURIComponent(String(backupId)) + '&maca_import=1';
+				window.location.href = url;
+				return;
+			}
+			if (action === 'to-test') {
+				renderImportNextFlow(backupId, 3);
+				return;
+			}
+			if (action === 'skip-test') {
+				renderImportNextFlow(backupId, 4);
+				return;
+			}
+			if (action === 'run-test') {
+				selectImportedBackup(backupId);
+				$('#maca-bp-test-restore').trigger('click');
+				renderImportNextFlow(backupId, 4);
+				return;
+			}
+			if (action === 'preview') {
+				selectImportedBackup(backupId);
+				$('#maca-bp-preview-restore').trigger('click');
+				return;
+			}
+			if (action === 'restore') {
+				selectImportedBackup(backupId);
+				closeImportNextFlow();
+				$('#maca-bp-run-restore').trigger('click');
+			}
+		});
+
+		try {
+			$flow.get(0).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		} catch (err) {
+			/* ignore */
+		}
+	}
+
+	function beginImportNextFlow(backupId, message) {
+		$importBox = ($importBox && $importBox.length) ? $importBox : $('.maca-bp-import').first();
+		renderImportNextFlow(backupId, 1);
+		if (message) {
+			var $card = $('.maca-bp-import-next__card');
+			if ($card.length && !$card.find('.maca-bp-import-next__flash').length) {
+				$card.prepend('<p class="maca-bp-import-next__flash">' + escapeHtml(message) + '</p>');
+			}
+		}
+	}
+
+	function startImport(form) {
+		if (!requireLegal()) {
+			return;
+		}
+		if (importXhr || activeJobId) {
+			return;
+		}
+
+		var fileInput = form.querySelector('input[name="backup_file"]');
+		if (!fileInput || !fileInput.files || !fileInput.files.length) {
+			return;
+		}
+
+		var file = fileInput.files[0];
+		var maxBytes = parseInt(cfg.importMaxBytes, 10) || (50 * 1024 * 1024 * 1024);
+		var directMax = parseInt(cfg.importDirectMax, 10) || (parseInt(cfg.importChunkBytes, 10) || (8 * 1024 * 1024));
+
+		if (file.size > maxBytes) {
+			window.alert(t('importTooLarge', 'This file exceeds the maximum import size.') + ' (' + formatBytes(maxBytes) + ')');
+			return;
+		}
+
+		$importBox = $(form).closest('.maca-bp-import');
+		parkProgressInImport($importBox);
+		importToken = '';
+		importAborting = false;
+		showProgress(true);
+		startElapsedClock(Math.floor(Date.now() / 1000));
+		$progress().find('.maca-bp-progress__note')
+			.text(t('importStay', 'Keep this page open until the import finishes.'))
+			.prop('hidden', false);
+		$progress().find('.maca-bp-progress__stop').prop('hidden', false);
+		$('.maca-bp-import-form button[type="submit"]').prop('disabled', true);
+		setStartButtonsDisabled(true);
+
+		if (file.size > directMax) {
+			startImportChunked(file);
+		} else {
+			startImportDirect(file);
+		}
 	}
 
 	function escapeHtml(str) {
@@ -517,6 +1056,11 @@
 		cancelActiveJob();
 	});
 
+	$(document).on('submit', '.maca-bp-import-form', function (e) {
+		e.preventDefault();
+		startImport(this);
+	});
+
 	$(document).on('click', '.maca-bp-delete', function (e) {
 		e.preventDefault();
 		if (!window.confirm(cfg.i18n.confirmDel)) {
@@ -532,6 +1076,18 @@
 			}
 		});
 	});
+
+	function formatCrc(n) {
+		n = parseInt(n, 10) || 0;
+		if (n <= 0) {
+			return '—';
+		}
+		var hex = (n >>> 0).toString(16).toUpperCase();
+		while (hex.length < 8) {
+			hex = '0' + hex;
+		}
+		return hex;
+	}
 
 	function formatBytes(n) {
 		n = parseInt(n, 10) || 0;
@@ -560,6 +1116,9 @@
 			var meta = '';
 			if (typeof row.size_a !== 'undefined') {
 				meta = formatBytes(row.size_a) + ' → ' + formatBytes(row.size_b);
+				if ((row.crc_a || row.crc_b) && (row.crc_a !== row.crc_b)) {
+					meta += ' · CRC ' + formatCrc(row.crc_a) + ' → ' + formatCrc(row.crc_b);
+				}
 			} else {
 				meta = formatBytes(row[sizeKey]);
 			}
@@ -581,11 +1140,17 @@
 		html += '<div class="maca-bp-compare__card"><strong>A #' + escapeHtml(String(a.id)) + '</strong>';
 		html += '<span>' + escapeHtml(a.date || '') + ' · ' + escapeHtml(a.type || '') + '</span>';
 		html += '<span>' + t('compareArchive', 'Archive size') + ': <b>' + formatBytes(a.archive_size) + '</b></span>';
+		if (a.crc32) {
+			html += '<span>CRC32: <b><code>' + escapeHtml(String(a.crc32)) + '</code></b></span>';
+		}
 		html += '<span>' + t('compareFiles', 'Files') + ': <b>' + escapeHtml(String(a.file_count || 0)) + '</b></span>';
 		html += '<span>' + t('compareContent', 'Content') + ': <b>' + formatBytes(a.content_bytes) + '</b></span></div>';
 		html += '<div class="maca-bp-compare__card"><strong>B #' + escapeHtml(String(b.id)) + '</strong>';
 		html += '<span>' + escapeHtml(b.date || '') + ' · ' + escapeHtml(b.type || '') + '</span>';
 		html += '<span>' + t('compareArchive', 'Archive size') + ': <b>' + formatBytes(b.archive_size) + '</b></span>';
+		if (b.crc32) {
+			html += '<span>CRC32: <b><code>' + escapeHtml(String(b.crc32)) + '</code></b></span>';
+		}
 		html += '<span>' + t('compareFiles', 'Files') + ': <b>' + escapeHtml(String(b.file_count || 0)) + '</b></span>';
 		html += '<span>' + t('compareContent', 'Content') + ': <b>' + formatBytes(b.content_bytes) + '</b></span></div>';
 		html += '</div>';
@@ -756,7 +1321,9 @@
 				return;
 			}
 		}
+		parkProgressForRestore();
 		showProgress(true);
+		startElapsedClock(Math.floor(Date.now() / 1000));
 		setProgress(1, cfg.i18n.starting, '', true);
 		post('maca_backup_pro_start_restore', data).done(function (res) {
 			if (!res || !res.success) {
@@ -841,7 +1408,9 @@
 				files.push($(this).val());
 			});
 		}
+		parkProgressForRestore();
 		showProgress(true);
+		startElapsedClock(Math.floor(Date.now() / 1000));
 		setProgress(1, cfg.i18n.starting, '', true);
 		post('maca_backup_pro_smart_restore', {
 			backup_id: smartState.backup_id,
@@ -868,6 +1437,26 @@
 		if ($progress().length) {
 			showProgress(false);
 		}
+	}
+
+	// Resume post-import guided flow on the Restore tab.
+	try {
+		var importParams = new URLSearchParams(window.location.search);
+		if (importParams.get('maca_import') === '1') {
+			var importedId = parseInt(importParams.get('backup_id'), 10) || 0;
+			if (importedId > 0 && onRestorePage()) {
+				$importBox = $('.maca-bp-import').first();
+				selectImportedBackup(importedId);
+				renderImportNextFlow(importedId, 2);
+				if (window.history && window.history.replaceState) {
+					importParams.delete('maca_import');
+					var clean = window.location.pathname + '?' + importParams.toString() + window.location.hash;
+					window.history.replaceState({}, '', clean);
+				}
+			}
+		}
+	} catch (importBootErr) {
+		/* ignore */
 	}
 
 	if ($('#maca-bp-restore-scope').val() === 'path') {

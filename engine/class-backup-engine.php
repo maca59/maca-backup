@@ -387,14 +387,24 @@ class Maca_Backup_Pro_Backup_Engine {
 	 * @return array<string, mixed>
 	 */
 	private static function step_scan( array $state ): array {
-		$type = (string) $state['type'];
+		$type        = (string) $state['type'];
+		$needs_files = 'database' !== $type;
+		$needs_db    = 'files' !== $type;
+		// Full / incremental / differential must be migration-complete (all files + whole DB).
+		$complete = in_array( $type, array( 'full', 'incremental', 'differential' ), true );
 
-		if ( 'database' !== $type ) {
+		if ( $needs_files ) {
 			$scope = (string) ( $state['scope'] ?? 'full' );
+			// Pre-update scoped backups keep their scope; complete site backups force full tree.
+			if ( $complete && empty( $state['pre_update'] ) ) {
+				$scope          = 'full';
+				$state['scope'] = 'full';
+			}
 			$files = Maca_Backup_Pro_File_Scanner::list_files(
 				$scope,
 				array(
 					'work_dir' => (string) ( $state['work_dir'] ?? '' ),
+					'complete' => $complete && empty( $state['pre_update'] ),
 				)
 			);
 
@@ -411,25 +421,32 @@ class Maca_Backup_Pro_Backup_Engine {
 				$files = self::filter_changed_files( $files, $base_inv );
 			}
 
+			if ( $complete && empty( $state['pre_update'] ) && 'full' === $type ) {
+				self::assert_full_file_set( $files );
+			}
+
 			$state                = self::persist_files_list( $state, $files );
 			$state['file_offset'] = 0;
 		} else {
-			$state = self::persist_files_list( $state, array() );
+			$state                = self::persist_files_list( $state, array() );
 			$state['file_offset'] = 0;
 		}
 
-		if ( 'files' !== $type ) {
+		if ( $needs_db ) {
 			$state['tables']       = Maca_Backup_Pro_Database_Exporter::tables();
 			$state['table_offset'] = 0;
+			if ( empty( $state['tables'] ) ) {
+				throw new RuntimeException(
+					esc_html__( 'Could not list database tables. A full site backup requires the entire database.', 'maca-backup' )
+				);
+			}
+			if ( $complete || 'database' === $type ) {
+				self::assert_core_tables( $state['tables'] );
+			}
+			$state['step'] = 'database';
 		} else {
 			$state['tables'] = array();
-		}
-
-		$state['step'] = ( 'files' === $type ) ? 'files' : 'database';
-		if ( 'files' === $type ) {
-			$state['step'] = 'files';
-		} elseif ( empty( $state['tables'] ) && 'database' !== $type ) {
-			$state['step'] = 'files';
+			$state['step']   = 'files';
 		}
 
 		$state['current_item']  = __( 'Scan complete', 'maca-backup' );
@@ -438,6 +455,140 @@ class Maca_Backup_Pro_Backup_Engine {
 		$state['total']         = (int) ( $state['file_count'] ?? 0 );
 
 		return $state;
+	}
+
+	/**
+	 * Ensure a full backup scanned the WordPress core + content tree.
+	 *
+	 * @param string[] $files Relative paths.
+	 * @return void
+	 */
+	private static function assert_full_file_set( array $files ): void {
+		if ( count( $files ) < 50 ) {
+			throw new RuntimeException(
+				esc_html__( 'Full backup file scan returned too few files. The site tree could not be read completely.', 'maca-backup' )
+			);
+		}
+
+		$lower = array_map( 'strtolower', $files );
+		$has_settings = false;
+		$has_includes = false;
+		$has_admin    = false;
+		$has_content  = false;
+		$has_uploads  = false;
+		foreach ( $lower as $rel ) {
+			if ( 'wp-settings.php' === $rel || str_ends_with( $rel, '/wp-settings.php' ) ) {
+				$has_settings = true;
+			}
+			if ( str_contains( $rel, 'wp-includes/' ) ) {
+				$has_includes = true;
+			}
+			if ( str_contains( $rel, 'wp-admin/' ) ) {
+				$has_admin = true;
+			}
+			if ( str_contains( $rel, 'wp-content/' ) ) {
+				$has_content = true;
+			}
+			if ( self::path_is_media_upload( $rel ) ) {
+				$has_uploads = true;
+			}
+		}
+		if ( ! $has_settings ) {
+			throw new RuntimeException(
+				esc_html__( 'Full backup is incomplete — missing WordPress core (wp-settings.php). All site files must be included for restore/migration.', 'maca-backup' )
+			);
+		}
+		if ( ! $has_includes || ! $has_admin || ! $has_content ) {
+			throw new RuntimeException(
+				esc_html__( 'Full backup is incomplete — wp-admin, wp-includes, and wp-content must all be included.', 'maca-backup' )
+			);
+		}
+
+		$uploads_dir = Maca_Backup_Pro_Paths::uploads_basedir();
+		if ( '' !== $uploads_dir && is_dir( $uploads_dir ) ) {
+			$media_on_disk = self::uploads_has_media_files( $uploads_dir );
+			if ( $media_on_disk && ! $has_uploads ) {
+				throw new RuntimeException(
+					esc_html__( 'Full backup is incomplete — Media Library files (wp-content/uploads) were not included.', 'maca-backup' )
+				);
+			}
+		}
+	}
+
+	/**
+	 * Whether a relative path is a Media Library upload (not plugin staging).
+	 *
+	 * @param string $rel Relative path.
+	 * @return bool
+	 */
+	private static function path_is_media_upload( string $rel ): bool {
+		$rel = strtolower( str_replace( '\\', '/', $rel ) );
+		if ( ! str_starts_with( $rel, 'wp-content/uploads/' ) ) {
+			return false;
+		}
+		return ! (bool) preg_match( '#^wp-content/uploads/(?:maca-backups|maca-backup-dl)(?:/|$)#', $rel );
+	}
+
+	/**
+	 * True when the uploads directory contains at least one non-staging media file.
+	 *
+	 * @param string $uploads_dir Absolute uploads basedir.
+	 * @return bool
+	 */
+	private static function uploads_has_media_files( string $uploads_dir ): bool {
+		$uploads_dir = wp_normalize_path( untrailingslashit( $uploads_dir ) );
+		if ( '' === $uploads_dir || ! is_dir( $uploads_dir ) ) {
+			return false;
+		}
+
+		try {
+			$inner = new RecursiveDirectoryIterator( $uploads_dir, FilesystemIterator::SKIP_DOTS );
+			$iter  = new RecursiveIteratorIterator( $inner, RecursiveIteratorIterator::LEAVES_ONLY );
+			foreach ( $iter as $fileinfo ) {
+				/** @var SplFileInfo $fileinfo */
+				if ( ! $fileinfo->isFile() ) {
+					continue;
+				}
+				$path = wp_normalize_path( $fileinfo->getPathname() );
+				if ( preg_match( '#/(?:maca-backups|maca-backup-dl)(?:/|$)#i', $path ) ) {
+					continue;
+				}
+				return true;
+			}
+		} catch ( Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			return true; // If we cannot probe, still require uploads in the scan set below.
+		}
+
+		return false;
+	}
+
+	/**
+	 * Ensure essential WordPress tables will be exported.
+	 *
+	 * @param string[] $tables Table names.
+	 * @return void
+	 */
+	private static function assert_core_tables( array $tables ): void {
+		global $wpdb;
+		$tables_l = array_map( 'strtolower', $tables );
+		$set      = array_fill_keys( $tables_l, true );
+		$required = array(
+			$wpdb->posts,
+			$wpdb->postmeta,
+			$wpdb->options,
+			$wpdb->users,
+		);
+		foreach ( $required as $table ) {
+			if ( empty( $set[ strtolower( (string) $table ) ] ) ) {
+				throw new RuntimeException(
+					sprintf(
+						/* translators: %s: table name */
+						esc_html__( 'Full database backup is incomplete — required table %s was not found.', 'maca-backup' ),
+						esc_html( (string) $table )
+					)
+				);
+			}
+		}
 	}
 
 	/**
@@ -569,6 +720,12 @@ class Maca_Backup_Pro_Backup_Engine {
 		$state['current_item'] = (string) end( $slice );
 
 		if ( $state['table_offset'] >= count( $tables ) ) {
+			$sql = (string) ( $state['sql_path'] ?? '' );
+			if ( '' === $sql || ! is_readable( $sql ) || (int) filesize( $sql ) < 64 ) {
+				throw new RuntimeException(
+					esc_html__( 'Database export produced an empty file. Pages and other content were not saved.', 'maca-backup' )
+				);
+			}
 			$state['step']          = ( 'database' === $state['type'] ) ? 'manifest' : 'files';
 			$state['current_item']  = '';
 			$state['current_batch'] = array();
@@ -630,7 +787,7 @@ class Maca_Backup_Pro_Backup_Engine {
 			}
 			$last                  = (string) $rel;
 			$state['current_item'] = $last;
-			$abs                   = Maca_Backup_Pro_Paths::absolute( (string) $rel );
+			$abs = Maca_Backup_Pro_Paths::absolute( (string) $rel );
 			if ( is_readable( $abs ) ) {
 				$size = (int) filesize( $abs );
 				if ( ! $zip->add_file( $abs, $rel ) ) {
@@ -647,6 +804,14 @@ class Maca_Backup_Pro_Backup_Engine {
 					'size'  => $size,
 					'mtime' => (int) filemtime( $abs ),
 					'crc'   => 0,
+				);
+			} elseif ( in_array( (string) ( $state['type'] ?? '' ), array( 'full', 'incremental', 'differential' ), true ) && empty( $state['pre_update'] ) ) {
+				throw new RuntimeException(
+					sprintf(
+						/* translators: %s: relative file path */
+						esc_html__( 'Full backup cannot read required file: %s', 'maca-backup' ),
+						esc_html( (string) $rel )
+					)
 				);
 			}
 			++$offset;
@@ -726,9 +891,19 @@ class Maca_Backup_Pro_Backup_Engine {
 		$zip    = new Maca_Backup_Pro_Zip_Builder( $work, $max_mb );
 		$zip->open();
 
-		$sql = (string) ( $state['sql_path'] ?? '' );
-		if ( $sql && is_readable( $sql ) ) {
-			$zip->add_file( $sql, 'database.sql' );
+		$sql      = (string) ( $state['sql_path'] ?? '' );
+		$needs_db = 'files' !== (string) ( $state['type'] ?? 'full' );
+		if ( $needs_db ) {
+			if ( '' === $sql || ! is_readable( $sql ) || (int) filesize( $sql ) < 64 ) {
+				throw new RuntimeException(
+					esc_html__( 'Database dump is missing from this backup. WordPress pages/posts would not be restorable.', 'maca-backup' )
+				);
+			}
+			if ( ! $zip->add_file( $sql, 'database.sql' ) ) {
+				throw new RuntimeException(
+					esc_html__( 'Could not pack database.sql into the backup archive.', 'maca-backup' )
+				);
+			}
 		}
 
 		$files     = self::load_files_list( $state );
@@ -738,21 +913,28 @@ class Maca_Backup_Pro_Backup_Engine {
 			$inventory = self::build_inventory( $files );
 		}
 		// Fill CRC from ZIP central directory (cheap) when missing — helps smart restore.
-		$inventory = self::enrich_inventory_crc_from_parts( $inventory, self::discover_parts( $work ) );
+		$inventory = Maca_Backup_Pro_Checksum::enrich_inventory_crc_from_parts( $inventory, self::discover_parts( $work ) );
 		$zip->add_from_string( 'files.json', (string) wp_json_encode( $inventory ) );
 
 		$manifest = array(
 			'version'           => MACA_BACKUP_PRO_VERSION,
 			'created_at'        => gmdate( 'c' ),
 			'site_url'          => home_url(),
+			'home_url'          => home_url(),
+			'siteurl'           => site_url(),
 			'type'              => $state['type'],
+			'scope'             => (string) ( $state['scope'] ?? 'full' ),
 			'file_count'        => count( $files ),
 			'tables'            => $state['tables'] ?? array(),
+			'table_count'       => count( $state['tables'] ?? array() ),
+			'has_database'      => $needs_db,
+			'db_bytes'          => (int) ( $state['db_bytes'] ?? 0 ),
 			'wp_version'        => get_bloginfo( 'version' ),
 			'php'               => PHP_VERSION,
 			'parent_backup_id'  => (int) ( $state['parent_backup_id'] ?? 0 ),
 			'has_inventory'     => true,
 			'pre_update'        => ! empty( $state['pre_update'] ),
+			'complete'          => $needs_db && count( $files ) > 0,
 		);
 
 		$zip->add_from_string( 'manifest.json', (string) wp_json_encode( $manifest, JSON_PRETTY_PRINT ) );
@@ -883,47 +1065,7 @@ class Maca_Backup_Pro_Backup_Engine {
 	 * @return array<string, array{size:int,mtime:int,crc:int}>
 	 */
 	private static function enrich_inventory_crc_from_parts( array $inventory, array $parts ): array {
-		if ( empty( $inventory ) || empty( $parts ) || ! class_exists( 'ZipArchive' ) ) {
-			return $inventory;
-		}
-
-		foreach ( $parts as $part ) {
-			if ( ! is_readable( (string) $part ) ) {
-				continue;
-			}
-			$zip = new ZipArchive();
-			if ( true !== $zip->open( (string) $part ) ) {
-				continue;
-			}
-			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-				$name = $zip->getNameIndex( $i );
-				if ( false === $name || str_ends_with( $name, '/' ) ) {
-					continue;
-				}
-				if ( in_array( $name, array( 'manifest.json', 'database.sql', 'files.json' ), true ) ) {
-					continue;
-				}
-				$stat = $zip->statIndex( $i );
-				if ( ! is_array( $stat ) ) {
-					continue;
-				}
-				if ( ! isset( $inventory[ $name ] ) ) {
-					$inventory[ $name ] = array(
-						'size'  => (int) ( $stat['size'] ?? 0 ),
-						'mtime' => (int) ( $stat['mtime'] ?? 0 ),
-						'crc'   => (int) ( $stat['crc'] ?? 0 ),
-					);
-					continue;
-				}
-				$inventory[ $name ]['crc'] = (int) ( $stat['crc'] ?? 0 );
-				if ( empty( $inventory[ $name ]['size'] ) ) {
-					$inventory[ $name ]['size'] = (int) ( $stat['size'] ?? 0 );
-				}
-			}
-			$zip->close();
-		}
-
-		return $inventory;
+		return Maca_Backup_Pro_Checksum::enrich_inventory_crc_from_parts( $inventory, $parts );
 	}
 
 	/**

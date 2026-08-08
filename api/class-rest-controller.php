@@ -8,11 +8,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST routes under maca-backup-pro/v1.
+ * REST routes under maca-backup/v1.
  */
 class Maca_Backup_Pro_REST_Controller {
 
-	public const NAMESPACE = 'maca-backup-pro/v1';
+	public const NAMESPACE = 'maca-backup/v1';
+
+	/** Previous namespace kept as an alias for existing clients. */
+	public const LEGACY_NAMESPACE = 'maca-backup-pro/v1';
 
 	/**
 	 * Register routes.
@@ -20,8 +23,20 @@ class Maca_Backup_Pro_REST_Controller {
 	 * @return void
 	 */
 	public function register_routes(): void {
+		foreach ( array( self::NAMESPACE, self::LEGACY_NAMESPACE ) as $ns ) {
+			$this->register_routes_for_namespace( $ns );
+		}
+	}
+
+	/**
+	 * Register all routes on one namespace.
+	 *
+	 * @param string $ns REST namespace.
+	 * @return void
+	 */
+	private function register_routes_for_namespace( string $ns ): void {
 		register_rest_route(
-			self::NAMESPACE,
+			$ns,
 			'/backups',
 			array(
 				'methods'             => 'GET',
@@ -31,7 +46,7 @@ class Maca_Backup_Pro_REST_Controller {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			$ns,
 			'/backups',
 			array(
 				'methods'             => 'POST',
@@ -41,7 +56,7 @@ class Maca_Backup_Pro_REST_Controller {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			$ns,
 			'/status',
 			array(
 				'methods'             => 'GET',
@@ -51,7 +66,7 @@ class Maca_Backup_Pro_REST_Controller {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			$ns,
 			'/hub',
 			array(
 				'methods'             => 'GET',
@@ -61,7 +76,7 @@ class Maca_Backup_Pro_REST_Controller {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			$ns,
 			'/verify/(?P<id>\d+)',
 			array(
 				'methods'             => 'POST',

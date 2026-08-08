@@ -59,7 +59,7 @@ function maca_backup_pro_api_plugin_version() {
 
 	$plugin_file = defined( 'MACA_BACKUP_PRO_FILE' )
 		? MACA_BACKUP_PRO_FILE
-		: ( defined( 'MACA_BACKUP_PRO_PATH' ) ? MACA_BACKUP_PRO_PATH . 'maca-backup-pro.php' : '' );
+		: ( defined( 'MACA_BACKUP_PRO_PATH' ) ? MACA_BACKUP_PRO_PATH . 'maca-backup.php' : '' );
 
 	if ( '' === $plugin_file || ! is_readable( $plugin_file ) ) {
 		return '';
