@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.50
+Stable tag: 2.0.51
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -121,6 +121,14 @@ Support requests you submit via the in-plugin Support form are sent to Maca Deve
 Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms. See **External services** above.
 
 == Changelog ==
+
+= 2.0.51 =
+* Remap dump table prefix to the live site prefix during SQL restore (fixes empty pages after migration)
+* Do not mark database restore done when database.sql cannot be read
+* Log dump size / post-row inserts / page counts; fail clearly if pages never land in live tables
+* Store table_prefix in backup manifest; broaden URL rewrite (http/https, www)
+* Schedule catch-up: daily/weekly/monthly still run later the same day if WP-Cron misses the exact minute
+* Clarify schedule times use the WordPress site timezone (Settings → General)
 
 = 2.0.50 =
 * Migration restore: rewrite source URLs to the destination site (serialized-aware) after database restore

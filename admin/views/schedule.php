@@ -78,7 +78,7 @@ $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 		echo esc_html(
 			sprintf(
 				/* translators: %s: WordPress site timezone name or UTC offset */
-				__( 'Times below are local wall-clock time (%s). You can create several schedules and edit them anytime.', 'maca-backup' ),
+				__( 'Times below use this site’s timezone (%s) from Settings → General — not the server clock. A missed minute still runs later the same day when WP-Cron next fires (needs site traffic, or a real cron hitting wp-cron.php).', 'maca-backup' ),
 				$tz_label
 			)
 		);

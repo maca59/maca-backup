@@ -40,6 +40,23 @@ class Maca_Backup_Pro_Migrator {
 		$add( $source_home, $dest_home );
 		$add( $source_siteurl, $dest_siteurl );
 
+		// Also cover http↔https and www↔apex so content URLs still match.
+		foreach ( array( $source_home, $source_siteurl ) as $src ) {
+			$src = untrailingslashit( trim( (string) $src ) );
+			if ( '' === $src ) {
+				continue;
+			}
+			$https = (string) preg_replace( '#^http://#i', 'https://', $src );
+			$http  = (string) preg_replace( '#^https://#i', 'http://', $src );
+			$add( $https, $dest_home );
+			$add( $http, $dest_home );
+			if ( preg_match( '#^(https?://)www\.(.+)$#i', $src, $m ) ) {
+				$add( $m[1] . $m[2], $dest_home );
+			} elseif ( preg_match( '#^(https?://)(.+)$#i', $src, $m ) ) {
+				$add( $m[1] . 'www.' . $m[2], $dest_home );
+			}
+		}
+
 		// Prefer longer keys first so https://a.example/path beats https://a.example.
 		uksort(
 			$pairs,

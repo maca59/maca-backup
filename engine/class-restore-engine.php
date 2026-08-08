@@ -400,6 +400,9 @@ class Maca_Backup_Pro_Restore_Engine {
 					if ( is_array( $manifest ) ) {
 						$state['source_home']    = untrailingslashit( (string) ( $manifest['home_url'] ?? $manifest['site_url'] ?? '' ) );
 						$state['source_siteurl'] = untrailingslashit( (string) ( $manifest['siteurl'] ?? $manifest['site_url'] ?? $state['source_home'] ) );
+						if ( ! empty( $manifest['table_prefix'] ) ) {
+							$state['manifest_table_prefix'] = (string) $manifest['table_prefix'];
+						}
 					}
 				}
 			}
@@ -422,6 +425,36 @@ class Maca_Backup_Pro_Restore_Engine {
 			);
 		}
 
+		if ( $want_db && ! empty( $state['sql_path'] ) ) {
+			$sql_path = (string) $state['sql_path'];
+			if ( empty( $state['sql_prefix'] ) ) {
+				$from_manifest = '';
+				// Prefer prefix stored in manifest when available (set during prepare loop below via state).
+				$from_manifest = (string) ( $state['manifest_table_prefix'] ?? '' );
+				$state['sql_prefix'] = '' !== $from_manifest
+					? $from_manifest
+					: Maca_Backup_Pro_Database_Exporter::detect_table_prefix( $sql_path );
+			}
+			$state['sql_bytes']          = (int) filesize( $sql_path );
+			$state['sql_posts_inserts']  = Maca_Backup_Pro_Database_Exporter::count_posts_inserts( $sql_path );
+			Maca_Backup_Pro_Logger::info(
+				sprintf(
+					/* translators: 1: bytes, 2: posts INSERT count, 3: dump prefix, 4: live prefix */
+					__( 'Database dump ready: %1$s, %2$d post-row inserts, dump prefix “%3$s” → live “%4$s”.', 'maca-backup' ),
+					size_format( (int) $state['sql_bytes'] ),
+					(int) $state['sql_posts_inserts'],
+					(string) ( $state['sql_prefix'] !== '' ? $state['sql_prefix'] : '?' ),
+					$GLOBALS['wpdb']->prefix
+				),
+				array(
+					'sql_bytes' => (int) $state['sql_bytes'],
+					'posts_inserts' => (int) $state['sql_posts_inserts'],
+					'dump_prefix' => (string) $state['sql_prefix'],
+					'live_prefix' => $GLOBALS['wpdb']->prefix,
+				)
+			);
+		}
+
 		return $state;
 	}
 
@@ -432,6 +465,8 @@ class Maca_Backup_Pro_Restore_Engine {
 	 * @return array<string, mixed>
 	 */
 	private static function step_database( array $state ): array {
+		global $wpdb;
+
 		$sql = (string) ( $state['sql_path'] ?? '' );
 		if ( ! $sql || ! is_readable( $sql ) ) {
 			if ( ! empty( $state['restore_database'] ) ) {
@@ -443,11 +478,17 @@ class Maca_Backup_Pro_Restore_Engine {
 			return $state;
 		}
 
-		$result = Maca_Backup_Pro_Database_Exporter::restore_batch(
+		$source_prefix = (string) ( $state['sql_prefix'] ?? '' );
+		$result        = Maca_Backup_Pro_Database_Exporter::restore_batch(
 			$sql,
 			(int) ( $state['sql_offset'] ?? 0 ),
-			40
+			40,
+			'' !== $source_prefix ? $source_prefix : null
 		);
+
+		if ( ! empty( $result['source_prefix'] ) ) {
+			$state['sql_prefix'] = (string) $result['source_prefix'];
+		}
 
 		if ( ! empty( $result['error'] ) ) {
 			throw new RuntimeException( esc_html( (string) $result['error'] ) );
@@ -455,6 +496,55 @@ class Maca_Backup_Pro_Restore_Engine {
 
 		$state['sql_offset'] = (int) $result['offset'];
 		if ( ! empty( $result['done'] ) ) {
+			$pages = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status NOT IN ('auto-draft','trash')"
+			);
+			$posts = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status NOT IN ('auto-draft','trash')"
+			);
+			$state['restored_pages'] = $pages;
+			$state['restored_posts'] = $posts;
+
+			Maca_Backup_Pro_Logger::info(
+				sprintf(
+					/* translators: 1: pages, 2: posts, 3: table name */
+					__( 'Database restore finished: %1$d pages, %2$d posts in %3$s.', 'maca-backup' ),
+					$pages,
+					$posts,
+					$wpdb->posts
+				),
+				array(
+					'pages'       => $pages,
+					'posts'       => $posts,
+					'table'       => $wpdb->posts,
+					'dump_prefix' => (string) ( $state['sql_prefix'] ?? '' ),
+					'live_prefix' => $wpdb->prefix,
+					'sql_posts_inserts' => (int) ( $state['sql_posts_inserts'] ?? 0 ),
+				)
+			);
+
+			$expected = (int) ( $state['sql_posts_inserts'] ?? 0 );
+			if ( $expected >= 50 && $pages < 20 ) {
+				throw new RuntimeException(
+					sprintf(
+						/* translators: 1: INSERT count in dump, 2: pages found after restore, 3: dump prefix, 4: live prefix */
+						esc_html__( 'Database dump has %1$d post-row inserts but only %2$d pages are in the live table (dump prefix “%3$s”, live “%4$s”). Pages were not loaded into this site’s tables — retry after updating maca BackUp, or restore with matching table prefixes.', 'maca-backup' ),
+						$expected,
+						$pages,
+						(string) ( $state['sql_prefix'] !== '' ? $state['sql_prefix'] : '?' ),
+						$wpdb->prefix
+					)
+				);
+			}
+
+			// Capture source URLs from the freshly restored options before we rewrite them.
+			if ( '' === (string) ( $state['source_home'] ?? '' ) ) {
+				$state['source_home'] = untrailingslashit( (string) get_option( 'home', '' ) );
+			}
+			if ( '' === (string) ( $state['source_siteurl'] ?? '' ) ) {
+				$state['source_siteurl'] = untrailingslashit( (string) get_option( 'siteurl', $state['source_home'] ?? '' ) );
+			}
+
 			// Always rewrite URLs after a DB restore when migrating hosts.
 			$state['step'] = 'migrate_urls';
 		}

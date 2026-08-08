@@ -739,7 +739,11 @@ class Maca_Backup_Pro_Scheduler {
 	}
 
 	/**
-	 * Whether an entry matches the current UTC window.
+	 * Whether an entry is due now (UTC).
+	 *
+	 * Daily/weekly/monthly: due any time after the scheduled clock on the matching
+	 * day — WP-Cron is traffic-driven and often fires later than the exact minute.
+	 * Slot keys still prevent double-runs. Hourly windows stay within the hour.
 	 *
 	 * @param array<string, mixed> $entry Schedule entry.
 	 * @return bool
@@ -754,12 +758,12 @@ class Maca_Backup_Pro_Scheduler {
 		$now_h = (int) gmdate( 'G' );
 		$now_m = (int) gmdate( 'i' );
 
-		$target    = ( $hour * 60 ) + $minute;
-		$current   = ( $now_h * 60 ) + $now_m;
-		$in_window = ( $current >= $target && $current < $target + 15 );
+		$target  = ( $hour * 60 ) + $minute;
+		$current = ( $now_h * 60 ) + $now_m;
 
 		if ( 'hourly' === $freq ) {
-			return $now_m >= $minute && $now_m < $minute + 15;
+			// Due from :MM until the end of this hour (slot is per hour).
+			return $now_m >= $minute;
 		}
 		if ( 'every_hours' === $freq ) {
 			$interval = self::entry_interval_hours( $entry );
@@ -767,11 +771,14 @@ class Maca_Backup_Pro_Scheduler {
 			if ( 0 !== ( $phase % $interval ) ) {
 				return false;
 			}
-			return $now_m >= $minute && $now_m < $minute + 15;
+			return $now_m >= $minute;
 		}
-		if ( ! $in_window ) {
+
+		// Past the scheduled UTC clock today?
+		if ( $current < $target ) {
 			return false;
 		}
+
 		if ( 'daily' === $freq ) {
 			return true;
 		}
@@ -989,6 +996,7 @@ class Maca_Backup_Pro_Scheduler {
 		$weekday = (int) ( $entry['weekday'] ?? 1 );
 		$dom     = max( 1, min( 28, (int) ( $entry['dom'] ?? 1 ) ) );
 		$now     = time();
+		$id      = (string) ( $entry['id'] ?? '' );
 
 		for ( $i = 0; $i < 370; $i++ ) {
 			$ts = $now + ( $i * 15 * MINUTE_IN_SECONDS );
@@ -998,7 +1006,7 @@ class Maca_Backup_Pro_Scheduler {
 			$d  = (int) gmdate( 'j', $ts );
 
 			if ( 'hourly' === $freq ) {
-				if ( $m >= $minute && $m < $minute + 15 ) {
+				if ( $m >= $minute ) {
 					return gmmktime( $h, $minute, 0, (int) gmdate( 'n', $ts ), (int) gmdate( 'j', $ts ), (int) gmdate( 'Y', $ts ) );
 				}
 				continue;
@@ -1007,24 +1015,37 @@ class Maca_Backup_Pro_Scheduler {
 			if ( 'every_hours' === $freq ) {
 				$interval = self::entry_interval_hours( $entry );
 				$phase    = ( $h - $hour + 24 ) % 24;
-				if ( 0 === ( $phase % $interval ) && $m >= $minute && $m < $minute + 15 ) {
+				if ( 0 === ( $phase % $interval ) && $m >= $minute ) {
 					return gmmktime( $h, $minute, 0, (int) gmdate( 'n', $ts ), (int) gmdate( 'j', $ts ), (int) gmdate( 'Y', $ts ) );
 				}
 				continue;
 			}
 
-			if ( $h !== $hour || $m < $minute || $m >= $minute + 15 ) {
+			$mins_now = ( $h * 60 ) + $m;
+			$mins_tgt = ( $hour * 60 ) + $minute;
+			if ( $mins_now < $mins_tgt ) {
 				continue;
 			}
 
+			$cand = gmmktime( $hour, $minute, 0, (int) gmdate( 'n', $ts ), (int) gmdate( 'j', $ts ), (int) gmdate( 'Y', $ts ) );
+
 			if ( 'daily' === $freq ) {
-				return gmmktime( $hour, $minute, 0, (int) gmdate( 'n', $ts ), (int) gmdate( 'j', $ts ), (int) gmdate( 'Y', $ts ) );
+				if ( gmdate( 'Y-m-d', $cand ) === gmdate( 'Y-m-d', $now ) && '' !== $id && self::has_run_slot( $id, self::entry_slot_key( $entry ) ) ) {
+					continue;
+				}
+				return max( $cand, $now );
 			}
 			if ( 'weekly' === $freq && $w === $weekday ) {
-				return gmmktime( $hour, $minute, 0, (int) gmdate( 'n', $ts ), (int) gmdate( 'j', $ts ), (int) gmdate( 'Y', $ts ) );
+				if ( gmdate( 'o-W', $cand ) === gmdate( 'o-W', $now ) && '' !== $id && self::has_run_slot( $id, self::entry_slot_key( $entry ) ) ) {
+					continue;
+				}
+				return max( $cand, $now );
 			}
 			if ( 'monthly' === $freq && $d === $dom ) {
-				return gmmktime( $hour, $minute, 0, (int) gmdate( 'n', $ts ), $dom, (int) gmdate( 'Y', $ts ) );
+				if ( gmdate( 'Y-m', $cand ) === gmdate( 'Y-m', $now ) && '' !== $id && self::has_run_slot( $id, self::entry_slot_key( $entry ) ) ) {
+					continue;
+				}
+				return max( $cand, $now );
 			}
 		}
 

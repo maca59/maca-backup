@@ -922,6 +922,7 @@ class Maca_Backup_Pro_Backup_Engine {
 			'site_url'          => home_url(),
 			'home_url'          => home_url(),
 			'siteurl'           => site_url(),
+			'table_prefix'      => $GLOBALS['wpdb']->prefix,
 			'type'              => $state['type'],
 			'scope'             => (string) ( $state['scope'] ?? 'full' ),
 			'file_count'        => count( $files ),

@@ -125,20 +125,21 @@ class Maca_Backup_Pro_Database_Exporter {
 	/**
 	 * Restore SQL file table-by-table (or statement batches).
 	 *
-	 * @param string $sql_path SQL file.
-	 * @param int    $offset   Byte offset to resume from.
-	 * @param int    $max_statements Max statements this tick.
-	 * @return array{offset:int, done:bool, statements:int, error?:string}
+	 * @param string      $sql_path        SQL file.
+	 * @param int         $offset          Byte offset to resume from.
+	 * @param int         $max_statements  Max statements this tick.
+	 * @param string|null $source_prefix   Table prefix inside the dump (e.g. wp_). Null = auto-detect.
+	 * @return array{offset:int, done:bool, statements:int, error?:string, source_prefix?:string}
 	 */
-	public static function restore_batch( string $sql_path, int $offset = 0, int $max_statements = 50 ): array {
+	public static function restore_batch( string $sql_path, int $offset = 0, int $max_statements = 50, ?string $source_prefix = null ): array {
 		global $wpdb;
 
 		if ( ! is_readable( $sql_path ) ) {
 			return array(
-				'offset'      => $offset,
-				'done'        => true,
-				'statements'  => 0,
-				'error'       => __( 'SQL file not readable.', 'maca-backup' ),
+				'offset'     => $offset,
+				'done'       => false,
+				'statements' => 0,
+				'error'      => __( 'SQL file not readable.', 'maca-backup' ),
 			);
 		}
 
@@ -146,6 +147,11 @@ class Maca_Backup_Pro_Database_Exporter {
 		if ( $offset >= $filesize ) {
 			return array( 'offset' => $offset, 'done' => true, 'statements' => 0 );
 		}
+
+		if ( null === $source_prefix || '' === $source_prefix ) {
+			$source_prefix = self::detect_table_prefix( $sql_path );
+		}
+		$dest_prefix = (string) $wpdb->prefix;
 
 		// Read a growing window so huge single INSERTs still parse without loading the whole dump.
 		$window     = 2 * 1024 * 1024;
@@ -156,8 +162,22 @@ class Maca_Backup_Pro_Database_Exporter {
 		while ( $window <= $max_window ) {
 			$read_len = min( $window, $filesize - $offset );
 			$chunk    = file_get_contents( $sql_path, false, null, $offset, $read_len ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			if ( false === $chunk || '' === $chunk ) {
-				return array( 'offset' => $offset, 'done' => true, 'statements' => 0 );
+			if ( false === $chunk ) {
+				return array(
+					'offset'     => $offset,
+					'done'       => false,
+					'statements' => 0,
+					'error'      => __( 'Could not read database.sql (I/O error). Retry the restore.', 'maca-backup' ),
+					'source_prefix' => $source_prefix,
+				);
+			}
+			if ( '' === $chunk ) {
+				return array(
+					'offset'        => $offset,
+					'done'          => true,
+					'statements'    => 0,
+					'source_prefix' => $source_prefix,
+				);
 			}
 			$content    = $chunk;
 			$statements = self::split_sql( $content );
@@ -189,14 +209,23 @@ class Maca_Backup_Pro_Database_Exporter {
 				continue;
 			}
 
+			$sql = self::remap_table_prefix( $sql, $source_prefix, $dest_prefix );
+
+			// After remap, skip live control tables again (dump may use a different prefix).
+			if ( self::is_plugin_control_sql( $sql ) ) {
+				++$executed;
+				continue;
+			}
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
 			$result = $wpdb->query( $sql );
 			if ( false === $result && ! empty( $wpdb->last_error ) ) {
 				return array(
-					'offset'     => $offset + $consumed,
-					'done'       => false,
-					'statements' => $executed,
-					'error'      => $wpdb->last_error,
+					'offset'        => $offset + $consumed,
+					'done'          => false,
+					'statements'    => $executed,
+					'error'         => $wpdb->last_error,
+					'source_prefix' => $source_prefix,
 				);
 			}
 			++$executed;
@@ -213,26 +242,102 @@ class Maca_Backup_Pro_Database_Exporter {
 			// Trailing comments / whitespace are fine.
 			if ( '' === $remain || (bool) preg_match( '/^(?:--[^\n]*\s*)+$/', $remain ) ) {
 				return array(
-					'offset'     => $filesize,
-					'done'       => true,
-					'statements' => 0,
+					'offset'        => $filesize,
+					'done'          => true,
+					'statements'    => 0,
+					'source_prefix' => $source_prefix,
 				);
 			}
 			return array(
-				'offset'     => $offset,
-				'done'       => false,
-				'statements' => 0,
-				'error'      => __( 'Could not parse the next SQL statement in database.sql (possible quote/escape issue or oversized row).', 'maca-backup' ),
+				'offset'        => $offset,
+				'done'          => false,
+				'statements'    => 0,
+				'error'         => __( 'Could not parse the next SQL statement in database.sql (possible quote/escape issue or oversized row).', 'maca-backup' ),
+				'source_prefix' => $source_prefix,
 			);
 		} else {
 			$done = false;
 		}
 
 		return array(
-			'offset'     => $new_offset,
-			'done'       => $done,
-			'statements' => $executed,
+			'offset'        => $new_offset,
+			'done'          => $done,
+			'statements'    => $executed,
+			'source_prefix' => $source_prefix,
 		);
+	}
+
+	/**
+	 * Detect the table prefix used inside a SQL dump (from *_options table name).
+	 *
+	 * @param string $sql_path Path to database.sql.
+	 * @return string Prefix including trailing underscore (e.g. wp_), or empty if unknown.
+	 */
+	public static function detect_table_prefix( string $sql_path ): string {
+		if ( ! is_readable( $sql_path ) ) {
+			return '';
+		}
+		$sample = file_get_contents( $sql_path, false, null, 0, 256 * 1024 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( ! is_string( $sample ) || '' === $sample ) {
+			return '';
+		}
+		if ( preg_match( '/(?:DROP\s+TABLE\s+IF\s+EXISTS|CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|INSERT\s+INTO)\s+`([A-Za-z0-9_]+_)options`/i', $sample, $m ) ) {
+			return (string) $m[1];
+		}
+		if ( preg_match( '/(?:DROP\s+TABLE\s+IF\s+EXISTS|CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|INSERT\s+INTO)\s+`([A-Za-z0-9_]+_)posts`/i', $sample, $m ) ) {
+			return (string) $m[1];
+		}
+		return '';
+	}
+
+	/**
+	 * Count INSERT statements targeting a *posts table (streamed, for diagnostics).
+	 *
+	 * @param string $sql_path SQL dump.
+	 * @return int
+	 */
+	public static function count_posts_inserts( string $sql_path ): int {
+		if ( ! is_readable( $sql_path ) ) {
+			return 0;
+		}
+		$handle = fopen( $sql_path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $handle ) {
+			return 0;
+		}
+		$count  = 0;
+		$buffer = '';
+		while ( ! feof( $handle ) ) {
+			$chunk = fread( $handle, 1024 * 1024 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
+			if ( ! is_string( $chunk ) || '' === $chunk ) {
+				break;
+			}
+			$buffer .= $chunk;
+			if ( preg_match_all( '/INSERT\s+INTO\s+`[^`]*posts`/i', $buffer, $m ) ) {
+				$count += count( $m[0] );
+			}
+			// Keep a small tail so matches spanning the chunk boundary are not lost.
+			$buffer = substr( $buffer, -64 );
+		}
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		return $count;
+	}
+
+	/**
+	 * Rewrite backtick-quoted table names from dump prefix to live prefix.
+	 *
+	 * @param string $sql    One SQL statement.
+	 * @param string $from   Source prefix (e.g. wp_).
+	 * @param string $to     Destination prefix (e.g. xyz_).
+	 * @return string
+	 */
+	public static function remap_table_prefix( string $sql, string $from, string $to ): string {
+		$from = (string) $from;
+		$to   = (string) $to;
+		if ( '' === $from || '' === $to || $from === $to ) {
+			return $sql;
+		}
+		// Only touch identifiers: `prefix...`
+		return str_replace( '`' . $from, '`' . $to, $sql );
 	}
 
 	/**
