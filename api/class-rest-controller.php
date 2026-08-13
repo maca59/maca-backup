@@ -169,7 +169,7 @@ class Maca_Backup_Pro_REST_Controller {
 				'total_size'   => Maca_Backup_Pro_Backups_Table::total_size(),
 				'storage'      => (string) Maca_Backup_Pro_Settings::get( 'storage_provider', 'local' ),
 				'active_job'   => $job,
-				'hub_enabled'  => (bool) Maca_Backup_Pro_Settings::get( 'hub_enabled', false ),
+				'hub_enabled'  => true,
 				'last_heartbeat' => (int) get_option( 'maca_backup_pro_hub_last_heartbeat', 0 ),
 			),
 			200

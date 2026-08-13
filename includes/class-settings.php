@@ -35,7 +35,7 @@ class Maca_Backup_Pro_Settings {
 			'backup_passphrase'   => '',
 			'pre_update_backup'   => false,
 			'pre_update_retention'=> 5,
-			'hub_enabled'         => false,
+			'hub_enabled'         => true,
 			'exclude_paths'       => array(
 				'wp-content/cache',
 				'wp-content/upgrade',

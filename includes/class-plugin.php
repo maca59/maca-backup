@@ -100,10 +100,6 @@ class Maca_Backup_Pro_Plugin {
 		}
 
 		require_once MACA_BACKUP_PRO_PATH . 'includes/maca-api.php';
-		if ( ! maca_backup_pro_api_is_enabled() ) {
-			return;
-		}
-
 		update_option( MACA_BACKUP_PRO_API_PENDING_OPTION, 'activated', false );
 		maca_backup_pro_api_schedule_flush();
 	}

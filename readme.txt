@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.57
+Stable tag: 2.0.58
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,9 +24,10 @@ maca BackUp protects your WordPress site with full, database-only, and files-onl
 * Pre-update backups before WordPress, plugin, or theme updates
 * Smart Restore â€” compare and restore only changed files
 * Import/export backup archives
-* Optional maca Hub heartbeat for multi-site monitoring
+* maca Hub heartbeat for multi-site monitoring (always connected)
 * Live maca Hub status (latest backup, active job, schedules) via Hub Connector
 * In-plugin Help and Support
+* Deactivation feedback on the Plugins screen
 
 Backups stay on your server or in cloud accounts you configure. Maca Development does not host your backup archives.
 
@@ -96,9 +97,9 @@ For Amazon Web Services: [AWS Service Terms](https://aws.amazon.com/service-term
 
 = maca Hub / telemetry =
 
-Optional and **off by default**. When you enable maca Hub under Settings, the plugin may send limited operational metadata to the Maca Hub API (operated by Maca Development) for multi-site monitoring (heartbeat / lifecycle events).
+Always connected. The plugin sends limited operational metadata to the Maca Hub API (operated by Maca Development) for multi-site monitoring, product statistics, and install lifecycle events (activate / deactivate / uninstall). On the Plugins screen you may optionally share a deactivation reason.
 
-Data sent (when enabled): site URL, plugin version, WordPress/PHP versions, locale, and backup status metadata (for example type, date, size, status). Backup archive contents and database dumps are never uploaded.
+Data sent: site URL, plugin version, WordPress/PHP versions, locale, and backup status metadata (for example type, date, size, status). Optional deactivation feedback includes reason and comment when submitted. Backup archive contents and database dumps are never uploaded.
 
 Service provided by Maca Development. [Terms](https://github.com/maca59/maca-backup/blob/master/TERMS.md) · [Privacy](https://github.com/maca59/maca-backup/blob/master/PRIVACY.md)
 
@@ -112,9 +113,7 @@ Service provided by Maca Development. [Terms](https://github.com/maca59/maca-bac
 
 == Privacy ==
 
-By default the plugin does **not** send data to Maca Development.
-
-If you enable **maca Hub / telemetry** under Settings, the plugin may send limited operational metadata (for example site URL, plugin version, backup status, and a list of backup history entries such as type, date, size, and status) for multi-site monitoring. Backup archives and database contents are never uploaded. You can turn this off at any time.
+On activation, deactivation, and uninstall the plugin sends limited install metadata to Maca Development (site URL, plugin/WordPress/PHP versions, locale). maca Hub is always connected and may also send backup status metadata for multi-site monitoring. Optional deactivation feedback (reason and comment) is sent only if you submit it on the Plugins screen. Backup archives and database contents are never uploaded.
 
 Support requests you submit via the in-plugin Support form are sent to Maca Development so we can reply.
 
@@ -129,6 +128,12 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 5. Storage — local, FTP/SFTP, Google Drive, Dropbox, OneDrive, S3
 
 == Changelog ==
+
+= 2.0.58 =
+* maca Hub always connected (heartbeat / backup status telemetry)
+* Always report activate / deactivate / uninstall lifecycle events to api.maca.se
+* Keep Plugins-screen deactivation feedback modal and AJAX reporting
+* Update Terms/Privacy disclosures for Hub and lifecycle telemetry
 
 = 2.0.56 =
 * Hide the Migrate tab until cross-site restore is verified

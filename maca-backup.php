@@ -3,7 +3,7 @@
  * Plugin Name:       maca BackUp
  * Plugin URI:        https://maca.se/maca-backup/
  * Description:       Backup and restore for WordPress â€” full site, database, files, Smart Restore, and modular cloud storage.
- * Version:           2.0.57
+ * Version:           2.0.58
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Maca Development
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MACA_BACKUP_PRO_VERSION', '2.0.57' );
+define( 'MACA_BACKUP_PRO_VERSION', '2.0.58' );
 define( 'MACA_BACKUP_PRO_DB_VERSION', '2.0.0' );
 /** Cross-site Migrate tab — off until SQL restore no longer aborts on duplicate option_name. */
 define( 'MACA_BACKUP_PRO_MIGRATE_UI', false );

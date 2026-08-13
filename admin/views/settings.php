@@ -58,8 +58,7 @@ $excludes = is_array( $settings['exclude_paths'] ?? null ) ? implode( "\n", $set
 		</label>
 
 		<h3><?php esc_html_e( 'maca Hub', 'maca-backup' ); ?></h3>
-		<label class="maca-bp-check"><input type="checkbox" name="hub_enabled" value="1" <?php checked( ! empty( $settings['hub_enabled'] ) ); ?> /> <?php esc_html_e( 'Enable maca Hub / telemetry (optional)', 'maca-backup' ); ?></label>
-		<p class="maca-bp-muted"><?php esc_html_e( 'Off by default. When enabled, the plugin may send site URL, plugin version, and backup history metadata (type, date/time, size, status, and related fields) to the Maca Hub API for multi-site monitoring. Backup file contents are never sent.', 'maca-backup' ); ?></p>
+		<p class="maca-bp-muted"><?php esc_html_e( 'maca Hub is always connected. The plugin sends site URL, plugin version, WordPress/PHP versions, locale, and backup history metadata (type, date/time, size, status, and related fields) to the Maca Hub API for multi-site monitoring and product statistics. Backup file contents are never sent. On the Plugins screen you can also share an optional reason when deactivating.', 'maca-backup' ); ?></p>
 
 		<h3><?php esc_html_e( 'Email notifications', 'maca-backup' ); ?></h3>
 		<label class="maca-bp-check"><input type="checkbox" name="email_enabled" value="1" <?php checked( ! empty( $settings['email_enabled'] ) ); ?> /> <?php esc_html_e( 'Enable email notifications', 'maca-backup' ); ?></label>

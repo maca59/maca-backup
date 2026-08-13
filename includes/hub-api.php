@@ -215,7 +215,7 @@ function maca_backup_pro_hub_get_status( int $backups_limit = 100 ): array {
 	return array(
 		'installed'          => true,
 		'version'            => defined( 'MACA_BACKUP_PRO_VERSION' ) ? MACA_BACKUP_PRO_VERSION : '',
-		'hub_enabled'        => (bool) Maca_Backup_Pro_Settings::get( 'hub_enabled', false ),
+		'hub_enabled'        => true,
 		'timezone'           => function_exists( 'wp_timezone_string' ) ? (string) wp_timezone_string() : '',
 		'storage'            => array(
 			'id'    => $storage_id,

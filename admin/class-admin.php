@@ -579,7 +579,7 @@ class Maca_Backup_Pro_Admin {
 			'encrypt_backups'       => ! empty( $_POST['encrypt_backups'] ),
 			'pre_update_backup'     => ! empty( $_POST['pre_update_backup'] ),
 			'pre_update_retention'  => isset( $_POST['pre_update_retention'] ) ? absint( $_POST['pre_update_retention'] ) : 5,
-			'hub_enabled'           => ! empty( $_POST['hub_enabled'] ),
+			'hub_enabled'           => true,
 			'email_enabled'         => ! empty( $_POST['email_enabled'] ),
 			'email_recipients'      => isset( $_POST['email_recipients'] ) ? sanitize_text_field( wp_unslash( $_POST['email_recipients'] ) ) : '',
 			'email_on_success'      => ! empty( $_POST['email_on_success'] ),

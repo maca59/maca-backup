@@ -26,21 +26,32 @@ define( 'MACA_BACKUP_PRO_API_PENDING_OPTION', 'maca_backup_pro_pending_telemetry
 define( 'MACA_BACKUP_PRO_API_FLUSH_CRON_HOOK', 'maca_backup_pro_flush_telemetry' );
 
 /**
- * Whether outbound hub/telemetry to api.maca.se is allowed (opt-in).
+ * Whether Hub / telemetry outbound calls are allowed.
  *
- * Default off for wordpress.org compliance. Enable under Settings → maca Hub.
+ * Always on (same always-connected model as install lifecycle events).
  *
  * @return bool
  */
 function maca_backup_pro_api_is_enabled() {
-	if ( class_exists( 'Maca_Backup_Pro_Settings', false ) ) {
-		return (bool) Maca_Backup_Pro_Settings::get( 'hub_enabled', false );
-	}
+	return (bool) apply_filters( 'maca_backup_pro_api_is_enabled', true );
+}
 
-	$option_key = defined( 'MACA_BACKUP_PRO_OPTION_KEY' ) ? MACA_BACKUP_PRO_OPTION_KEY : 'maca_backup_pro_settings';
-	$settings   = get_option( $option_key, array() );
+/**
+ * Hub heartbeat / backup-status event names.
+ *
+ * @return array<int, string>
+ */
+function maca_backup_pro_api_hub_only_events() {
+	return array( 'heartbeat', 'backup_status' );
+}
 
-	return is_array( $settings ) && ! empty( $settings['hub_enabled'] );
+/**
+ * Install lifecycle event names (activation / deactivation / uninstall).
+ *
+ * @return array<int, string>
+ */
+function maca_backup_pro_api_lifecycle_events() {
+	return array( 'activated', 'deactivated', 'uninstalled' );
 }
 
 /**
@@ -391,12 +402,16 @@ function maca_backup_pro_api_base_payload() {
  * @return bool True when the API accepted the request (2xx).
  */
 function maca_backup_pro_api_send_event( $event, array $extra = array(), $blocking = true ) {
-	if ( ! maca_backup_pro_api_is_enabled() ) {
+	$allowed = array_merge(
+		maca_backup_pro_api_lifecycle_events(),
+		maca_backup_pro_api_hub_only_events()
+	);
+
+	if ( ! in_array( $event, $allowed, true ) ) {
 		return false;
 	}
 
-	$allowed = array( 'activated', 'deactivated', 'uninstalled', 'heartbeat', 'backup_status' );
-	if ( ! in_array( $event, $allowed, true ) ) {
+	if ( ! maca_backup_pro_api_is_enabled() ) {
 		return false;
 	}
 
@@ -468,11 +483,6 @@ function maca_backup_pro_api_was_deactivated_reported() {
  * @return void
  */
 function maca_backup_pro_api_on_activate() {
-	if ( ! maca_backup_pro_api_is_enabled() ) {
-		delete_option( MACA_BACKUP_PRO_API_PENDING_OPTION );
-		return;
-	}
-
 	update_option( MACA_BACKUP_PRO_API_PENDING_OPTION, 'activated', false );
 	maca_backup_pro_api_schedule_flush();
 }
@@ -507,13 +517,7 @@ function maca_backup_pro_api_flush_pending_telemetry() {
 		return;
 	}
 
-	if ( ! maca_backup_pro_api_is_enabled() ) {
-		delete_option( MACA_BACKUP_PRO_API_PENDING_OPTION );
-		return;
-	}
-
-	$allowed = array( 'activated', 'deactivated', 'uninstalled' );
-	if ( ! in_array( $pending, $allowed, true ) ) {
+	if ( ! in_array( $pending, maca_backup_pro_api_lifecycle_events(), true ) ) {
 		delete_option( MACA_BACKUP_PRO_API_PENDING_OPTION );
 		return;
 	}
@@ -533,10 +537,6 @@ function maca_backup_pro_api_on_deactivate() {
 
 	delete_option( MACA_BACKUP_PRO_API_PENDING_OPTION );
 	wp_clear_scheduled_hook( MACA_BACKUP_PRO_API_FLUSH_CRON_HOOK );
-
-	if ( ! maca_backup_pro_api_is_enabled() ) {
-		return;
-	}
 
 	if ( $scheduled ) {
 		return;

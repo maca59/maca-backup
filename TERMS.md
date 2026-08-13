@@ -1,6 +1,6 @@
 # Terms of Use — maca BackUp
 
-**Document version 1.1**
+**Document version 1.2**
 
 These Terms of Use govern your use of the WordPress plugin **maca BackUp**, provided by Maca Development. By accepting these terms in wp-admin, you agree to them on behalf of the site where the plugin is installed.
 
@@ -19,9 +19,9 @@ Backup archives remain on **your** WordPress server and/or in **your own** remot
 - You remain responsible for compliance with applicable law regarding data you back up, including personal data of your site visitors and users.
 - You are responsible for safeguarding WordPress admin access, hosting, and any API keys or passwords you enter for remote storage.
 
-## 4. Optional telemetry and hub
+## 4. Install lifecycle and maca Hub
 
-Hub/telemetry is **off by default**. If you enable it under Settings → maca Hub, the plugin may send limited operational information—such as the site URL, plugin version, and backup history metadata (type, date/time, size, status)—to the Maca Hub API endpoint for product improvement and hub heartbeat status. Backup file contents are not included. You may turn this off again at any time.
+On activation, deactivation, and uninstall the plugin sends limited install metadata (site URL, plugin/WordPress/PHP versions, locale) to api.maca.se so we can improve the product and count active installations. If you submit deactivation feedback, your selected reason and optional comment are included. maca Hub is always connected and may also send backup history metadata (type, date/time, size, status) for multi-site monitoring. Backup file contents are not included.
 
 ## 5. Support requests
 
