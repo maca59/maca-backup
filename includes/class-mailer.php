@@ -425,7 +425,7 @@ class Maca_Backup_Pro_Mailer {
 				. '</a>';
 		}
 
-		$home = esc_url( 'https://github.com/maca59/maca-backup' );
+		$home = esc_url( 'https://maca.se/maca-backup/' );
 
 		return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:' . $bg . ';font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:' . $bg . ';padding:24px 12px;">'
@@ -487,7 +487,7 @@ class Maca_Backup_Pro_Mailer {
 		foreach ( self::cross_sell_links() as $link ) {
 			$lines[] = '- ' . $link['label'] . ': ' . $link['url'];
 		}
-		$lines[] = 'GitHub: https://github.com/maca59/maca-backup';
+		$lines[] = 'Plugin: https://maca.se/maca-backup/';
 
 		return implode( "\n", $lines );
 	}

@@ -20,7 +20,7 @@ class Maca_Backup_Pro_Legal {
 	/** @var string Bump when privacy policy changes materially — users must re-accept. */
 	public const PRIVACY_VERSION = '1.1';
 
-	public const PRODUCT_URL = 'https://github.com/maca59/maca-backup';
+	public const PRODUCT_URL = 'https://maca.se/maca-backup/';
 
 	/**
 	 * Public support / issues page (GitHub — reachable for wordpress.org link checks).
@@ -213,7 +213,7 @@ class Maca_Backup_Pro_Legal {
 		$html .= '<h4>7. Changes</h4>';
 		$html .= '<p>We may update these terms from time to time. Material changes are reflected in a new document version and require re-acceptance in wp-admin before backup or restore features continue.</p>';
 		$html .= '<h4>8. Contact</h4>';
-		$html .= '<p>Source: <a href="' . esc_url( self::PRODUCT_URL ) . '">GitHub</a>. Support: the form on this Support tab, or <a href="mailto:support@maca.se">support@maca.se</a>.</p>';
+		$html .= '<p>Product: <a href="' . esc_url( self::PRODUCT_URL ) . '">maca.se/maca-backup</a>. Support: the form on this Support tab, or <a href="mailto:support@maca.se">support@maca.se</a>.</p>';
 
 		return $html;
 	}
@@ -242,7 +242,7 @@ class Maca_Backup_Pro_Legal {
 		$html .= '<h4>6. Third parties</h4>';
 		$html .= '<p>Remote storage providers you connect (for example Google, Dropbox, Microsoft, FTP hosts, or S3-compatible services) process data under their own terms. Maca Development is not responsible for those services.</p>';
 		$html .= '<h4>7. Contact</h4>';
-		$html .= '<p>Source: <a href="' . esc_url( self::PRODUCT_URL ) . '">GitHub</a>. Support: the form on this Support tab, or <a href="mailto:support@maca.se">support@maca.se</a>.</p>';
+		$html .= '<p>Product: <a href="' . esc_url( self::PRODUCT_URL ) . '">maca.se/maca-backup</a>. Support: the form on this Support tab, or <a href="mailto:support@maca.se">support@maca.se</a>.</p>';
 
 		return $html;
 	}

@@ -9,7 +9,16 @@ Place these files in the plugin's SVN `assets/` directory when submitting to wor
 | `icon-256x256.png` | Plugin directory icon (retina) |
 | `banner-772x250.png` | Plugin directory header banner |
 | `banner-1544x500.png` | Plugin directory header banner (retina) |
+| `screenshot-1.png` | Dashboard |
+| `screenshot-2.png` | Restore |
+| `screenshot-3.png` | Smart Restore |
+| `screenshot-4.png` | Schedule |
+| `screenshot-5.png` | Storage |
 
-Optional later: screenshots (`screenshot-1.png`, …).
+Captions live in `readme.txt` under `== Screenshots ==` and must match the numbering.
 
-`banner-source-1024x341.png` is the design source only — do not upload it to SVN.
+Do **not** upload to SVN:
+
+- `banner-source-1024x341.png` — design source
+- `screenshot-src.html` — HTML mockup used to generate screenshots
+- `README.md` — this file

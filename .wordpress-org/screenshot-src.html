@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>maca BackUp screenshots</title>
+<link rel="stylesheet" href="../assets/css/admin.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f0f0f1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; font-size: 13px; color: #1d2327; }
+  .wp-wrap { display: flex; min-height: 800px; width: 1280px; }
+  .wp-side { width: 160px; flex-shrink: 0; background: #1d2327; color: #fff; padding: 12px 0; }
+  .wp-side .brand { padding: 8px 16px 18px; font-weight: 600; font-size: 14px; color: #72aee6; }
+  .wp-side a { display: block; padding: 8px 16px; color: #c3c4c7; text-decoration: none; }
+  .wp-side a.is-on { background: #2271b1; color: #fff; }
+  .wp-main { flex: 1; background: #f0f0f1; }
+  .wp-bar { height: 32px; background: #1d2327; color: #fff; display: flex; align-items: center; padding: 0 16px; font-size: 12px; }
+  .wp-content { padding: 8px 20px 24px; }
+  .button { display: inline-block; padding: 4px 10px; border: 1px solid #8c8f94; border-radius: 3px; background: #f6f7f7; color: #2c3338; font-size: 13px; line-height: 2; cursor: default; text-decoration: none; }
+  .button-primary { background: #2271b1; border-color: #2271b1; color: #fff; }
+  .button-small { font-size: 12px; line-height: 1.8; padding: 0 8px; }
+  .widefat { width: 100%; border-collapse: collapse; background: #fff; }
+  .widefat th, .widefat td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #dcdcde; }
+  .widefat thead th { font-size: 12px; color: #50575e; }
+  .screen { display: none; }
+  .screen.is-on { display: block; }
+  code.maca-bp-crc { font-size: 12px; background: #f0f0f1; padding: 2px 6px; border-radius: 4px; }
+  .maca-bp-row-actions { white-space: nowrap; }
+  .maca-bp-row-actions .button { margin-right: 4px; }
+  .storage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dest { border: 1px solid #d7dee5; border-radius: 10px; padding: 12px 14px; background: #fff; }
+  .dest strong { display: block; margin-bottom: 4px; }
+  .dest span { color: #5b6b78; font-size: 12px; }
+  .dest.is-active { border-color: #3fc9a6; box-shadow: inset 0 0 0 1px #3fc9a6; }
+  .smart-list { margin: 1rem 0 0; padding: 0; list-style: none; }
+  .smart-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 8px 0; border-bottom: 1px solid #eef2f5; }
+  .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #0b1e3b; background: #e8f7f3; padding: 2px 8px; border-radius: 999px; }
+</style>
+</head>
+<body>
+<div class="wp-wrap">
+  <aside class="wp-side">
+    <div class="brand">WordPress</div>
+    <a>Dashboard</a>
+    <a>Posts</a>
+    <a>Pages</a>
+    <a class="is-on">maca BackUp</a>
+    <a>Plugins</a>
+    <a>Settings</a>
+  </aside>
+  <div class="wp-main">
+    <div class="wp-bar">maca BackUp — wp-admin</div>
+    <div class="wp-content maca-backup-admin">
+
+      <header class="maca-bp-header">
+        <div class="maca-bp-header__brand">
+          <img class="maca-bp-header__logo" src="../assets/img/icon-256x256.png" width="76" height="76" alt="" />
+          <div>
+            <h1 class="maca-bp-header__title">maca BackUp</h1>
+            <p class="maca-bp-header__tagline">Backup, restore &amp; Smart Restore for WordPress.</p>
+          </div>
+        </div>
+        <div class="maca-bp-header__meta">
+          <span class="maca-bp-badge">v2.0.56</span>
+        </div>
+      </header>
+      <nav class="maca-bp-tabs" id="tabs">
+        <ul class="maca-bp-tabs__list">
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" data-tab="1" href="#1">Dashboard</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" data-tab="2" href="#2">Backups</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" data-tab="3" href="#3">Restore</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" data-tab="4" href="#4">Smart Restore</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" data-tab="5" href="#5">Schedule</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" data-tab="6" href="#6">Storage</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" href="#0">Logs</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" href="#0">Settings</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" href="#0">Help</a></li>
+          <li class="maca-bp-tabs__item"><a class="maca-bp-tabs__link" href="#0">Support</a></li>
+        </ul>
+      </nav>
+
+      <div id="s1" class="screen">
+        <div class="maca-bp-actions">
+          <button type="button" class="button button-primary">Create full backup</button>
+          <button type="button" class="button">Incremental</button>
+          <button type="button" class="button">Differential</button>
+          <button type="button" class="button">Database only</button>
+          <button type="button" class="button">Files only</button>
+        </div>
+        <div class="maca-bp-grid maca-bp-grid--stats">
+          <div class="maca-bp-card"><span class="maca-bp-card__label">Last backup</span><strong class="maca-bp-card__value">12 Aug 2026 03:00</strong><span class="maca-bp-card__hint">full · 1.8 GB</span></div>
+          <div class="maca-bp-card"><span class="maca-bp-card__label">Status</span><strong class="maca-bp-card__value">OK</strong></div>
+          <div class="maca-bp-card"><span class="maca-bp-card__label">Next backup</span><strong class="maca-bp-card__value">13 Aug 2026 03:00</strong><span class="maca-bp-card__hint">Europe/Stockholm</span></div>
+          <div class="maca-bp-card"><span class="maca-bp-card__label">Saved backups</span><strong class="maca-bp-card__value">12</strong><span class="maca-bp-card__hint">8.4 GB</span></div>
+          <div class="maca-bp-card"><span class="maca-bp-card__label">Storage</span><strong class="maca-bp-card__value">Local</strong><span class="maca-bp-card__hint">42 GB free</span></div>
+        </div>
+        <section class="maca-bp-panel">
+          <h2>History</h2>
+          <table class="widefat striped maca-bp-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Size</th><th>CRC32</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>12 Aug 2026 03:00</td><td>full</td><td>1.8 GB</td><td><code class="maca-bp-crc">A1B2C3D4</code></td><td>4m 12s</td>
+                <td><span class="maca-bp-pill maca-bp-pill--completed">completed</span></td>
+                <td class="maca-bp-row-actions"><a class="button button-small">Download</a><a class="button button-small">Restore</a></td>
+              </tr>
+              <tr>
+                <td>11 Aug 2026 03:00</td><td>incremental</td><td>86 MB</td><td><code class="maca-bp-crc">9F80E21A</code></td><td>48s</td>
+                <td><span class="maca-bp-pill maca-bp-pill--completed">completed</span></td>
+                <td class="maca-bp-row-actions"><a class="button button-small">Download</a><a class="button button-small">Restore</a></td>
+              </tr>
+              <tr>
+                <td>10 Aug 2026 03:00</td><td>full</td><td>1.7 GB</td><td><code class="maca-bp-crc">C0FFEE11</code></td><td>3m 58s</td>
+                <td><span class="maca-bp-pill maca-bp-pill--completed">completed</span></td>
+                <td class="maca-bp-row-actions"><a class="button button-small">Download</a><a class="button button-small">Restore</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div id="s2" class="screen">
+        <section class="maca-bp-panel">
+          <h2>Restore</h2>
+          <p class="maca-bp-muted">Restore a backup of this site (disaster recovery). Choose a scope, preview what will be overwritten, or run a test restore first.</p>
+          <div class="maca-bp-form-grid">
+            <label><span>Backup</span>
+              <select><option>12 Aug 2026 03:00 — full (1.8 GB)</option></select>
+            </label>
+            <label><span>Scope</span>
+              <select><option>Entire site</option><option>Database only</option><option>wp-content</option><option>Uploads</option></select>
+            </label>
+          </div>
+          <div class="maca-bp-actions" style="margin-top:1rem;">
+            <button type="button" class="button">Test restore</button>
+            <button type="button" class="button">Preview changes</button>
+            <button type="button" class="button button-primary">Restore now</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="s3" class="screen">
+        <section class="maca-bp-panel">
+          <h2>Smart Restore</h2>
+          <p class="maca-bp-muted">Compare the live site with a backup. Restore only new, changed, or selected files — instead of overwriting everything.</p>
+          <div class="maca-bp-form-grid">
+            <label><span>Backup to compare</span>
+              <select><option>12 Aug 2026 03:00 — full (1.8 GB)</option></select>
+            </label>
+          </div>
+          <div class="maca-bp-actions" style="margin-top:1rem;">
+            <button type="button" class="button button-primary">Compare</button>
+            <button type="button" class="button">Browse backup</button>
+            <button type="button" class="button">Restore selected</button>
+          </div>
+          <ul class="smart-list">
+            <li><span>wp-content/themes/mytheme/style.css</span><span class="tag">changed</span></li>
+            <li><span>wp-content/uploads/2026/08/hero.jpg</span><span class="tag">new</span></li>
+            <li><span>wp-content/plugins/maca-backup/maca-backup.php</span><span class="tag">changed</span></li>
+            <li><span>wp-content/uploads/2026/07/menu.pdf</span><span class="tag">unchanged</span></li>
+          </ul>
+        </section>
+      </div>
+
+      <div id="s4" class="screen">
+        <section class="maca-bp-panel">
+          <div class="maca-bp-panel__head">
+            <h2>Scheduled backups</h2>
+          </div>
+          <p class="maca-bp-muted">Times use your WordPress site timezone (Europe/Stockholm).</p>
+          <table class="widefat striped maca-bp-table">
+            <thead><tr><th>Label</th><th>When</th><th>Type</th><th>Email</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Nightly full</td><td>Daily at 03:00</td><td>full</td><td>Failures only</td><td><span class="maca-bp-pill maca-bp-pill--ok">enabled</span></td></tr>
+              <tr><td>Midday incremental</td><td>Every 6 hours</td><td>incremental</td><td>Site default</td><td><span class="maca-bp-pill maca-bp-pill--ok">enabled</span></td></tr>
+              <tr><td>Weekly archive</td><td>Sunday at 01:00</td><td>full</td><td>Success + failures</td><td><span class="maca-bp-pill maca-bp-pill--ok">enabled</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div id="s5" class="screen">
+        <section class="maca-bp-panel">
+          <h2>Storage destinations</h2>
+          <p class="maca-bp-muted">Local storage plus FTP, SFTP, Google Drive, Dropbox, OneDrive, and S3-compatible destinations.</p>
+          <div class="storage-grid">
+            <div class="dest is-active"><strong>Local</strong><span>uploads/maca-backups — active</span></div>
+            <div class="dest"><strong>Google Drive</strong><span>Optional remote storage</span></div>
+            <div class="dest"><strong>Dropbox</strong><span>Optional remote storage</span></div>
+            <div class="dest"><strong>OneDrive</strong><span>Optional remote storage</span></div>
+            <div class="dest"><strong>Amazon S3 / compatible</strong><span>Bucket you configure</span></div>
+            <div class="dest"><strong>FTP / SFTP</strong><span>Your own server</span></div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+  const map = { 1: ['s1','1'], 2: ['s2','3'], 3: ['s3','4'], 4: ['s4','5'], 5: ['s5','6'] };
+  function show(n) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('is-on'));
+    document.querySelectorAll('.maca-bp-tabs__link').forEach(el => el.classList.remove('is-active'));
+    const pair = map[n] || map[1];
+    document.getElementById(pair[0]).classList.add('is-on');
+    const tab = document.querySelector('.maca-bp-tabs__link[data-tab="'+pair[1]+'"]');
+    if (tab) tab.classList.add('is-active');
+  }
+  const q = new URLSearchParams(location.search).get('s') || '1';
+  show(parseInt(q, 10) || 1);
+</script>
+</body>
+</html>

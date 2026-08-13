@@ -54,7 +54,10 @@
 
 	function parkProgressForRestore() {
 		restoreProgressHome();
-		var $slot = $('#maca-bp-job-progress-slot');
+		var $slot = $('#maca-bp-migrate-progress-slot');
+		if (!$slot.length) {
+			$slot = $('#maca-bp-job-progress-slot');
+		}
 		if (!$slot.length) {
 			$slot = $('#maca-bp-smart-progress-slot');
 		}
@@ -103,7 +106,7 @@
 		if (legalOk()) {
 			return;
 		}
-		$('.maca-bp-btn, #maca-bp-run-restore, #maca-bp-smart-restore')
+		$('.maca-bp-btn, #maca-bp-run-restore, #maca-bp-run-migrate, #maca-bp-smart-restore')
 			.prop('disabled', true)
 			.attr('title', t('legalRequired', ''));
 	}
@@ -332,8 +335,8 @@
 		activeJobId = jobId;
 		setStartButtonsDisabled(true);
 		// Keep the bar next to restore controls when that slot exists.
-		if ($('#maca-bp-job-progress-slot, #maca-bp-smart-progress-slot').length &&
-			!$('#maca-bp-job-progress-slot #maca-bp-progress, #maca-bp-smart-progress-slot #maca-bp-progress').length) {
+		if ($('#maca-bp-migrate-progress-slot, #maca-bp-job-progress-slot, #maca-bp-smart-progress-slot').length &&
+			!$('#maca-bp-migrate-progress-slot #maca-bp-progress, #maca-bp-job-progress-slot #maca-bp-progress, #maca-bp-smart-progress-slot #maca-bp-progress').length) {
 			parkProgressForRestore();
 		}
 		showProgress(true);
@@ -702,16 +705,32 @@
 		return $('#maca-bp-restore-backup').length > 0;
 	}
 
+	function onMigratePage() {
+		return $('#maca-bp-migrate-backup').length > 0;
+	}
+
+	function importIsMigrate() {
+		if ($importBox && $importBox.length) {
+			var ctx = $importBox.find('.maca-bp-import-form').attr('data-import-context');
+			if (ctx === 'migrate') {
+				return true;
+			}
+		}
+		return onMigratePage();
+	}
+
 	function selectImportedBackup(backupId) {
-		var $sel = $('#maca-bp-restore-backup');
-		if (!$sel.length) {
-			return;
-		}
 		var id = String(backupId);
-		if (!$sel.find('option[value="' + id + '"]').length) {
-			$sel.append($('<option/>', { value: id, text: '#' + id + ' (imported)' }));
-		}
-		$sel.val(id).trigger('change');
+		['#maca-bp-restore-backup', '#maca-bp-migrate-backup'].forEach(function (sel) {
+			var $sel = $(sel);
+			if (!$sel.length) {
+				return;
+			}
+			if (!$sel.find('option[value="' + id + '"]').length) {
+				$sel.append($('<option/>', { value: id, text: '#' + id + ' (imported)' }));
+			}
+			$sel.val(id).trigger('change');
+		});
 	}
 
 	function importNextStepLabel(step, total) {
@@ -722,7 +741,7 @@
 	function closeImportNextFlow() {
 		$('.maca-bp-import-next').remove();
 		$('.maca-bp-import').removeClass('is-importing is-next-flow');
-		$('.maca-bp-form-grid, #maca-bp-restore-tree-wrap, .maca-bp-actions').removeClass('maca-bp-import-focus');
+		$('.maca-bp-form-grid, #maca-bp-restore-tree-wrap, .maca-bp-actions, .maca-bp-migrate-summary').removeClass('maca-bp-import-focus');
 	}
 
 	function renderImportNextFlow(backupId, step) {
@@ -736,12 +755,40 @@
 			$flow = $('<div class="maca-bp-import-next" role="region" />').appendTo($box);
 		}
 
-		var total = 4;
+		var migrateFlow = importIsMigrate();
+		var total = migrateFlow ? 2 : 4;
 		var title = t('importNextTitle', 'Backup imported');
 		var body = '';
 		var actions = '';
 
-		if (step === 1) {
+		if (migrateFlow) {
+			if (step === 1) {
+				body =
+					'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(1, total)) + '</p>' +
+					'<h3>' + escapeHtml(t('importStepDone', 'Import complete')) + '</h3>' +
+					'<p>' + escapeHtml(t('importNextIntroMigrate', 'The archive is registered on this site. Next, migrate it onto this host (full database + files, URL rewrite).')) + '</p>' +
+					'<p class="maca-bp-muted">#' + escapeHtml(String(backupId)) + '</p>';
+				actions =
+					'<button type="button" class="button" data-import-next="later">' + escapeHtml(t('importBtnLater', 'Later')) + '</button>' +
+					'<button type="button" class="button button-primary" data-import-next="continue">' +
+					escapeHtml(onMigratePage() ? t('importBtnNext', 'Next') : t('importBtnContinueMigrate', 'Continue to migrate')) +
+					'</button>';
+			} else {
+				selectImportedBackup(backupId);
+				$('.maca-bp-form-grid, .maca-bp-actions').addClass('maca-bp-import-focus');
+				body =
+					'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(2, total)) + '</p>' +
+					'<h3>' + escapeHtml(t('importStepMigrate', 'Migrate to this host')) + '</h3>' +
+					'<p>' + escapeHtml(t('importStepMigrateHelp', 'This replaces this site with the imported archive, rewrites URLs here, and keeps your current admin login.')) + '</p>';
+				actions =
+					'<button type="button" class="button button-primary" data-import-next="migrate">' +
+					escapeHtml(t('importBtnMigrate', 'Migrate now')) +
+					'</button>' +
+					'<button type="button" class="button-link maca-bp-import-next__close" data-import-next="close">' +
+					escapeHtml(t('importBtnClose', 'Done')) +
+					'</button>';
+			}
+		} else if (step === 1) {
 			body =
 				'<p class="maca-bp-import-next__meta">' + escapeHtml(importNextStepLabel(1, total)) + '</p>' +
 				'<h3>' + escapeHtml(t('importStepDone', 'Import complete')) + '</h3>' +
@@ -804,12 +851,30 @@
 			var action = $(this).attr('data-import-next');
 			if (action === 'later' || action === 'close') {
 				closeImportNextFlow();
-				if (!onRestorePage()) {
+				if (!onRestorePage() && !onMigratePage()) {
 					window.location.reload();
 				}
 				return;
 			}
 			if (action === 'continue') {
+				if (migrateFlow) {
+					if (onMigratePage()) {
+						renderImportNextFlow(backupId, 2);
+						var $migGrid = $('#maca-bp-migrate-backup').closest('.maca-bp-form-grid');
+						if ($migGrid.length) {
+							$('html, body').animate({ scrollTop: $migGrid.offset().top - 80 }, 280);
+						}
+						return;
+					}
+					var murl = cfg.migrateUrl || '';
+					if (!murl) {
+						window.location.reload();
+						return;
+					}
+					murl += (murl.indexOf('?') >= 0 ? '&' : '?') + 'backup_id=' + encodeURIComponent(String(backupId)) + '&maca_import=1';
+					window.location.href = murl;
+					return;
+				}
 				if (onRestorePage()) {
 					renderImportNextFlow(backupId, 2);
 					$('html, body').animate({ scrollTop: $('.maca-bp-form-grid').offset().top - 80 }, 280);
@@ -822,6 +887,12 @@
 				}
 				url += (url.indexOf('?') >= 0 ? '&' : '?') + 'backup_id=' + encodeURIComponent(String(backupId)) + '&maca_import=1';
 				window.location.href = url;
+				return;
+			}
+			if (action === 'migrate') {
+				selectImportedBackup(backupId);
+				closeImportNextFlow();
+				$('#maca-bp-run-migrate').trigger('click');
 				return;
 			}
 			if (action === 'to-test') {
@@ -1334,6 +1405,31 @@
 		});
 	});
 
+	$('#maca-bp-run-migrate').on('click', function () {
+		if (!requireLegal()) {
+			return;
+		}
+		var backupId = $('#maca-bp-migrate-backup').val();
+		if (!backupId) {
+			window.alert(cfg.i18n.selectBackup || 'Select a backup first.');
+			return;
+		}
+		if (!window.confirm(cfg.i18n.confirmMigrate || cfg.i18n.confirmRes)) {
+			return;
+		}
+		parkProgressForRestore();
+		showProgress(true);
+		startElapsedClock(Math.floor(Date.now() / 1000));
+		setProgress(1, cfg.i18n.starting, '', true);
+		post('maca_backup_pro_start_migrate', { backup_id: backupId }).done(function (res) {
+			if (!res || !res.success) {
+				setProgress(0, (res && res.data && res.data.message) || cfg.i18n.failed, '', false);
+				return;
+			}
+			statusLoop(res.data.job_id);
+		});
+	});
+
 	$('#maca-bp-smart-compare').on('click', function () {
 		var backupId = $('#maca-bp-smart-backup').val();
 		if (!backupId) {
@@ -1439,12 +1535,12 @@
 		}
 	}
 
-	// Resume post-import guided flow on the Restore tab.
+	// Resume post-import guided flow on the Restore or Migrate tab.
 	try {
 		var importParams = new URLSearchParams(window.location.search);
 		if (importParams.get('maca_import') === '1') {
 			var importedId = parseInt(importParams.get('backup_id'), 10) || 0;
-			if (importedId > 0 && onRestorePage()) {
+			if (importedId > 0 && (onRestorePage() || onMigratePage())) {
 				$importBox = $('.maca-bp-import').first();
 				selectImportedBackup(importedId);
 				renderImportNextFlow(importedId, 2);

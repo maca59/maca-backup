@@ -43,6 +43,7 @@ class Maca_Backup_Pro_Autoloader {
 		'Maca_Backup_Pro_Database_Exporter'    => 'engine/class-database-exporter.php',
 		'Maca_Backup_Pro_Chunk_Processor'      => 'engine/class-chunk-processor.php',
 		'Maca_Backup_Pro_Restore_Engine'       => 'engine/class-restore-engine.php',
+		'Maca_Backup_Pro_Migrate_Engine'       => 'engine/class-migrate-engine.php',
 		'Maca_Backup_Pro_Smart_Restore'        => 'engine/class-smart-restore.php',
 		'Maca_Backup_Pro_Verifier'             => 'engine/class-verifier.php',
 		'Maca_Backup_Pro_Importer'             => 'engine/class-importer.php',

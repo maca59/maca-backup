@@ -433,7 +433,9 @@ class Maca_Backup_Pro_Backup_Engine {
 		}
 
 		if ( $needs_db ) {
-			$state['tables']       = Maca_Backup_Pro_Database_Exporter::tables();
+			$state['tables']       = Maca_Backup_Pro_Database_Exporter::prioritize_tables(
+				Maca_Backup_Pro_Database_Exporter::tables()
+			);
 			$state['table_offset'] = 0;
 			if ( empty( $state['tables'] ) ) {
 				throw new RuntimeException(

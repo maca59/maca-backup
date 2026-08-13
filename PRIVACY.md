@@ -30,6 +30,7 @@ Remote storage providers you connect (for example Google, Dropbox, Microsoft, FT
 
 ## 7. Contact
 
-- Source / product: [github.com/maca59/maca-backup](https://github.com/maca59/maca-backup)
+- Product: [maca.se/maca-backup](https://maca.se/maca-backup/)
+- Source: [github.com/maca59/maca-backup](https://github.com/maca59/maca-backup)
 - Issues: [github.com/maca59/maca-backup/issues](https://github.com/maca59/maca-backup/issues)
 - Support: the form on the plugin Support tab, or [support@maca.se](mailto:support@maca.se)

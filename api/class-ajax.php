@@ -41,6 +41,7 @@ class Maca_Backup_Pro_Ajax {
 			'maca_backup_pro_job_status'        => 'job_status',
 			'maca_backup_pro_cancel_job'        => 'cancel_job',
 			'maca_backup_pro_start_restore'     => 'start_restore',
+			'maca_backup_pro_start_migrate'     => 'start_migrate',
 			'maca_backup_pro_preview'           => 'preview',
 			'maca_backup_pro_browse_backup'     => 'browse_backup',
 			'maca_backup_pro_smart_compare'     => 'smart_compare',
@@ -202,7 +203,9 @@ class Maca_Backup_Pro_Ajax {
 		$paths     = array_map( 'sanitize_text_field', $paths );
 		$database  = ! empty( $_POST['database'] );
 
-		$options = array();
+		$options = array(
+			'mode' => 'restore',
+		);
 		if ( 'path' === $scope || ! empty( $paths ) ) {
 			$scope                     = 'path';
 			$options['selected_files'] = $paths;
@@ -210,6 +213,31 @@ class Maca_Backup_Pro_Ajax {
 		}
 
 		$result = Maca_Backup_Pro_Restore_Engine::start( $backup_id, $scope, $options );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Start cross-site migrate (full site + URL rewrite + preserve admin).
+	 *
+	 * @return void
+	 */
+	public function start_migrate(): void {
+		Maca_Backup_Pro_Security::verify_ajax();
+		if ( ! Maca_Backup_Pro_Admin::migrate_ui_enabled() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Cross-site migrate is temporarily unavailable.', 'maca-backup' ),
+				)
+			);
+		}
+		if ( ! Maca_Backup_Pro_Legal::is_accepted() ) {
+			wp_send_json_error( array( 'message' => Maca_Backup_Pro_Legal::blocked_message() ) );
+		}
+		$backup_id = isset( $_POST['backup_id'] ) ? (int) $_POST['backup_id'] : 0;
+		$result    = Maca_Backup_Pro_Migrate_Engine::start( $backup_id );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}

@@ -14,6 +14,8 @@ $settings_url = Maca_Backup_Pro_Admin::tab_url( 'settings' );
 $storage_url  = Maca_Backup_Pro_Admin::tab_url( 'storage' );
 $schedule_url = Maca_Backup_Pro_Admin::tab_url( 'schedule' );
 $restore_url  = Maca_Backup_Pro_Admin::tab_url( 'restore' );
+$migrate_ui   = Maca_Backup_Pro_Admin::migrate_ui_enabled();
+$migrate_url  = $migrate_ui ? Maca_Backup_Pro_Admin::tab_url( 'migrate' ) : '';
 $smart_url    = Maca_Backup_Pro_Admin::tab_url( 'smart' );
 $backups_url  = Maca_Backup_Pro_Admin::tab_url( 'backups' );
 $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
@@ -21,7 +23,7 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 <section class="maca-bp-panel maca-bp-help">
 	<h2><?php esc_html_e( 'Help', 'maca-backup' ); ?></h2>
 	<p class="maca-bp-muted">
-		<?php esc_html_e( 'A short guide to maca BackUp — how to back up, schedule, store, restore, and migrate your WordPress site.', 'maca-backup' ); ?>
+		<?php esc_html_e( 'A short guide to maca BackUp — how to back up, schedule, store, and restore your WordPress site.', 'maca-backup' ); ?>
 	</p>
 
 	<nav class="maca-bp-help__toc" aria-label="<?php esc_attr_e( 'Help topics', 'maca-backup' ); ?>">
@@ -30,7 +32,9 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 		<a href="#maca-bp-help-schedules"><?php esc_html_e( 'Schedules', 'maca-backup' ); ?></a>
 		<a href="#maca-bp-help-storage"><?php esc_html_e( 'Storage', 'maca-backup' ); ?></a>
 		<a href="#maca-bp-help-restore"><?php esc_html_e( 'Restore', 'maca-backup' ); ?></a>
-		<a href="#maca-bp-help-migrate"><?php esc_html_e( 'Download & import', 'maca-backup' ); ?></a>
+		<?php if ( $migrate_ui ) : ?>
+		<a href="#maca-bp-help-migrate"><?php esc_html_e( 'Migrate', 'maca-backup' ); ?></a>
+		<?php endif; ?>
 		<a href="#maca-bp-help-preupdate"><?php esc_html_e( 'Pre-update', 'maca-backup' ); ?></a>
 		<a href="#maca-bp-help-email"><?php esc_html_e( 'Notifications', 'maca-backup' ); ?></a>
 		<a href="#maca-bp-help-support"><?php esc_html_e( 'Support', 'maca-backup' ); ?></a>
@@ -130,7 +134,7 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 				echo wp_kses(
 					sprintf(
 						/* translators: %s: Restore tab URL */
-						__( '<a href="%s">Restore</a> — pick a backup and scope (entire site, database, wp-content, uploads, plugins, themes, or a custom path).', 'maca-backup' ),
+						__( '<a href="%s">Restore</a> is for the same site — pick a backup of this host and a scope (entire site, database, wp-content, uploads, plugins, themes, or a custom path). It does not rewrite URLs for a different domain.', 'maca-backup' ),
 						esc_url( $restore_url )
 					),
 					array( 'a' => array( 'href' => true ) )
@@ -154,15 +158,30 @@ $logs_url     = Maca_Backup_Pro_Admin::tab_url( 'logs' );
 		</ul>
 	</article>
 
+	<?php if ( $migrate_ui ) : ?>
 	<article class="maca-bp-help__section" id="maca-bp-help-migrate">
-		<h3><?php esc_html_e( '6. Download & import', 'maca-backup' ); ?></h3>
+		<h3><?php esc_html_e( '6. Migrate (move another site here)', 'maca-backup' ); ?></h3>
 		<ul>
+			<li>
+				<?php
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: Migrate tab URL */
+						__( 'Use the <a href="%s">Migrate</a> tab to bring another WordPress site onto this host (new domain or new install).', 'maca-backup' ),
+						esc_url( $migrate_url )
+					),
+					array( 'a' => array( 'href' => true ) )
+				);
+				?>
+			</li>
 			<li><?php esc_html_e( 'On the old site, download a completed full backup from the Dashboard or Backups tab.', 'maca-backup' ); ?></li>
-			<li><?php esc_html_e( 'On the new site, import the ZIP under Backups or Restore, then run Restore with scope “Entire site” (or Database only). Import alone does not apply content.', 'maca-backup' ); ?></li>
-			<li><?php esc_html_e( 'After the database is restored, maca BackUp rewrites the old site URL to this site’s URL (including serialized options) and keeps wp-config.php unchanged.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'On this site, import the ZIP under Migrate (or Backups), then click Migrate now. Import alone only registers the archive — content appears after migration finishes.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'Migration always restores the full database and files, rewrites the old site URL to this site (including serialized options), remaps table-prefix keys, and keeps your current admin login. wp-config.php is not overwritten.', 'maca-backup' ); ?></li>
+			<li><?php esc_html_e( 'After migrate, sign in with the same admin user/password you used on this site before the job (maca BackUp preserves that account).', 'maca-backup' ); ?></li>
 			<li><?php esc_html_e( 'Large archives upload automatically in chunks (bypassing the PHP single-request limit). Keep the page open until import finishes.', 'maca-backup' ); ?></li>
 		</ul>
 	</article>
+	<?php endif; ?>
 
 	<article class="maca-bp-help__section" id="maca-bp-help-preupdate">
 		<h3><?php esc_html_e( '7. Pre-update backups', 'maca-backup' ); ?></h3>

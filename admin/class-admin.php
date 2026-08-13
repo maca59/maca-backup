@@ -81,18 +81,33 @@ class Maca_Backup_Pro_Admin {
 	 * @return array<string, string>
 	 */
 	public static function tabs(): array {
-		return array(
+		$tabs = array(
 			'dashboard' => __( 'Dashboard', 'maca-backup' ),
 			'backups'   => __( 'Backups', 'maca-backup' ),
 			'restore'   => __( 'Restore', 'maca-backup' ),
-			'smart'     => __( 'Smart Restore', 'maca-backup' ),
-			'schedule'  => __( 'Schedule', 'maca-backup' ),
-			'storage'   => __( 'Storage', 'maca-backup' ),
-			'logs'      => __( 'Logs', 'maca-backup' ),
-			'settings'  => __( 'Settings', 'maca-backup' ),
-			'help'      => __( 'Help', 'maca-backup' ),
-			'support'   => __( 'Support', 'maca-backup' ),
 		);
+		if ( self::migrate_ui_enabled() ) {
+			$tabs['migrate'] = __( 'Migrate', 'maca-backup' );
+		}
+		$tabs += array(
+			'smart'    => __( 'Smart Restore', 'maca-backup' ),
+			'schedule' => __( 'Schedule', 'maca-backup' ),
+			'storage'  => __( 'Storage', 'maca-backup' ),
+			'logs'     => __( 'Logs', 'maca-backup' ),
+			'settings' => __( 'Settings', 'maca-backup' ),
+			'help'     => __( 'Help', 'maca-backup' ),
+			'support'  => __( 'Support', 'maca-backup' ),
+		);
+		return $tabs;
+	}
+
+	/**
+	 * Whether the cross-site Migrate tab is shown.
+	 *
+	 * @return bool
+	 */
+	public static function migrate_ui_enabled(): bool {
+		return defined( 'MACA_BACKUP_PRO_MIGRATE_UI' ) && MACA_BACKUP_PRO_MIGRATE_UI;
 	}
 
 	/**
@@ -923,6 +938,7 @@ class Maca_Backup_Pro_Admin {
 		match ( $tab ) {
 			'backups'  => $this->render_backups(),
 			'restore'  => $this->render_restore(),
+			'migrate'  => self::migrate_ui_enabled() ? $this->render_migrate() : $this->render_restore(),
 			'smart'    => $this->render_smart(),
 			'schedule' => $this->render_schedule(),
 			'storage'  => $this->render_storage(),
@@ -1043,6 +1059,16 @@ class Maca_Backup_Pro_Admin {
 	public function render_restore(): void {
 		$this->render(
 			'restore',
+			array(
+				'history' => Maca_Backup_Pro_Backups_Table::recent_completed( 100 ),
+			)
+		);
+	}
+
+	/** @return void */
+	public function render_migrate(): void {
+		$this->render(
+			'migrate',
 			array(
 				'history' => Maca_Backup_Pro_Backups_Table::recent_completed( 100 ),
 			)

@@ -17,7 +17,7 @@ class Maca_Backup_Pro_Restore_Engine {
 	 *
 	 * @param int                  $backup_id Backup ID.
 	 * @param string               $scope     full|database|wp-content|uploads|plugins|themes|files|path.
-	 * @param array<string, mixed> $options   Extra (selected_files, restore_database, extract_root, etc.).
+	 * @param array<string, mixed> $options   Extra (mode, selected_files, restore_database, extract_root, etc.).
 	 * @return array{job_id:int}|\WP_Error
 	 */
 	public static function start( int $backup_id, string $scope = 'full', array $options = array() ) {
@@ -68,6 +68,17 @@ class Maca_Backup_Pro_Restore_Engine {
 			return new WP_Error( 'paths', __( 'Select at least one file or folder to restore.', 'maca-backup' ) );
 		}
 
+		$mode = sanitize_key( (string) ( $options['mode'] ?? 'restore' ) );
+		if ( ! in_array( $mode, array( 'restore', 'migrate' ), true ) ) {
+			$mode = 'restore';
+		}
+		$is_migrate = ( 'migrate' === $mode );
+
+		if ( $is_migrate ) {
+			$scope    = 'full';
+			$selected = array();
+		}
+
 		$extract_root = isset( $options['extract_root'] ) ? (string) $options['extract_root'] : '';
 		if ( '' === $extract_root ) {
 			$extract_root = self::default_site_root();
@@ -78,12 +89,34 @@ class Maca_Backup_Pro_Restore_Engine {
 			? (bool) $options['restore_database']
 			: in_array( sanitize_key( $scope ), array( 'full', 'database' ), true );
 
+		if ( $is_migrate ) {
+			$restore_database = true;
+		}
+
 		// Capture destination URLs BEFORE the dump overwrites home/siteurl.
 		$dest_home    = untrailingslashit( home_url() );
 		$dest_siteurl = untrailingslashit( site_url() );
 
+		// Keep the operator who started the restore able to log in afterwards
+		// (cross-site dumps replace users/options).
+		$preserve_admin = array();
+		if ( $restore_database && function_exists( 'wp_get_current_user' ) ) {
+			$actor = wp_get_current_user();
+			if ( $actor instanceof WP_User && $actor->exists() && ! empty( $actor->user_login ) ) {
+				$preserve_admin = array(
+					'user_login'    => (string) $actor->user_login,
+					'user_pass'     => (string) $actor->user_pass,
+					'user_email'    => (string) $actor->user_email,
+					'user_nicename' => (string) $actor->user_nicename,
+					'display_name'  => (string) $actor->display_name,
+					'user_url'      => (string) $actor->user_url,
+				);
+			}
+		}
+
 		$state = array(
 			'backup_id'        => $backup_id,
+			'mode'             => $mode,
 			'scope'            => sanitize_key( $scope ),
 			'archives'         => $archives,
 			'archive'          => $archives[0],
@@ -97,11 +130,12 @@ class Maca_Backup_Pro_Restore_Engine {
 			'started'          => time(),
 			'preview'          => $options['preview'] ?? null,
 			'chain'            => $options['chain'] ?? array(),
-			'dest_home'        => $dest_home,
-			'dest_siteurl'     => $dest_siteurl,
+			'dest_home'        => $restore_database ? $dest_home : '',
+			'dest_siteurl'     => $restore_database ? $dest_siteurl : '',
 			'source_home'      => '',
 			'source_siteurl'   => '',
 			'urls_rewritten'   => false,
+			'preserve_admin'   => $preserve_admin,
 		);
 
 		$job_id = Maca_Backup_Pro_Jobs_Table::insert(
@@ -116,11 +150,12 @@ class Maca_Backup_Pro_Restore_Engine {
 		);
 
 		Maca_Backup_Pro_Logger::info(
-			__( 'Restore started.', 'maca-backup' ),
+			$is_migrate ? __( 'Migrate started.', 'maca-backup' ) : __( 'Restore started.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'job_id'    => $job_id,
 				'scope'     => $scope,
+				'mode'      => $mode,
 			)
 		);
 
@@ -428,12 +463,10 @@ class Maca_Backup_Pro_Restore_Engine {
 		if ( $want_db && ! empty( $state['sql_path'] ) ) {
 			$sql_path = (string) $state['sql_path'];
 			if ( empty( $state['sql_prefix'] ) ) {
-				$from_manifest = '';
-				// Prefer prefix stored in manifest when available (set during prepare loop below via state).
+				$detected      = Maca_Backup_Pro_Database_Exporter::detect_table_prefix( $sql_path );
 				$from_manifest = (string) ( $state['manifest_table_prefix'] ?? '' );
-				$state['sql_prefix'] = '' !== $from_manifest
-					? $from_manifest
-					: Maca_Backup_Pro_Database_Exporter::detect_table_prefix( $sql_path );
+				// Dump contents win over a stale manifest prefix.
+				$state['sql_prefix'] = '' !== $detected ? $detected : $from_manifest;
 			}
 			$state['sql_bytes']          = (int) filesize( $sql_path );
 			$state['sql_posts_inserts']  = Maca_Backup_Pro_Database_Exporter::count_posts_inserts( $sql_path );
@@ -496,11 +529,42 @@ class Maca_Backup_Pro_Restore_Engine {
 
 		$state['sql_offset'] = (int) $result['offset'];
 		if ( ! empty( $result['done'] ) ) {
+			$dump_prefix = (string) ( $state['sql_prefix'] ?? '' );
+			$live_prefix = (string) $wpdb->prefix;
+
+			// If remap missed, dump tables sit under the dump prefix while WP reads live prefix.
+			$adopt = Maca_Backup_Pro_Database_Exporter::adopt_orphan_prefixed_tables( $dump_prefix, $live_prefix );
+			if ( empty( $adopt['adopted'] ) ) {
+				// Last resort: find any *posts table richer in pages than the live one.
+				$adopt = Maca_Backup_Pro_Database_Exporter::adopt_richest_posts_prefix( $live_prefix );
+			}
+			if ( ! empty( $adopt['adopted'] ) ) {
+				$state['adopted_tables'] = $adopt;
+				Maca_Backup_Pro_Logger::warning(
+					sprintf(
+						/* translators: 1: number of tables, 2: comma-separated table names */
+						__( 'Migration adopted %1$d tables from dump prefix onto the live prefix: %2$s', 'maca-backup' ),
+						(int) $adopt['adopted'],
+						implode( ', ', $adopt['tables'] )
+					),
+					$adopt
+				);
+				if ( ! empty( $adopt['from_prefix'] ) ) {
+					$state['sql_prefix'] = (string) $adopt['from_prefix'];
+					$dump_prefix        = (string) $adopt['from_prefix'];
+				}
+			}
+
+			Maca_Backup_Pro_Migrator::bust_options_cache();
+
 			$pages = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status NOT IN ('auto-draft','trash')"
 			);
 			$posts = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status NOT IN ('auto-draft','trash')"
+			);
+			$rows = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				"SELECT COUNT(*) FROM {$wpdb->posts}"
 			);
 			$state['restored_pages'] = $pages;
 			$state['restored_posts'] = $posts;
@@ -514,30 +578,37 @@ class Maca_Backup_Pro_Restore_Engine {
 					$wpdb->posts
 				),
 				array(
-					'pages'       => $pages,
-					'posts'       => $posts,
-					'table'       => $wpdb->posts,
-					'dump_prefix' => (string) ( $state['sql_prefix'] ?? '' ),
-					'live_prefix' => $wpdb->prefix,
+					'pages'             => $pages,
+					'posts'             => $posts,
+					'rows'              => $rows,
+					'table'             => $wpdb->posts,
+					'dump_prefix'       => $dump_prefix,
+					'live_prefix'       => $live_prefix,
 					'sql_posts_inserts' => (int) ( $state['sql_posts_inserts'] ?? 0 ),
+					'adopted'           => (int) ( $adopt['adopted'] ?? 0 ),
 				)
 			);
 
 			$expected = (int) ( $state['sql_posts_inserts'] ?? 0 );
-			if ( $expected >= 50 && $pages < 20 ) {
+			// Fail when the dump clearly had content but live pages look like an empty/test site.
+			if ( ( $expected >= 20 && $pages < 20 ) || ( $expected >= 50 && $rows < (int) max( 20, $expected * 0.25 ) ) ) {
 				throw new RuntimeException(
 					sprintf(
 						/* translators: 1: INSERT count in dump, 2: pages found after restore, 3: dump prefix, 4: live prefix */
 						esc_html__( 'Database dump has %1$d post-row inserts but only %2$d pages are in the live table (dump prefix “%3$s”, live “%4$s”). Pages were not loaded into this site’s tables — retry after updating maca BackUp, or restore with matching table prefixes.', 'maca-backup' ),
 						$expected,
 						$pages,
-						(string) ( $state['sql_prefix'] !== '' ? $state['sql_prefix'] : '?' ),
-						$wpdb->prefix
+						'' !== $dump_prefix ? $dump_prefix : '?',
+						$live_prefix
 					)
 				);
 			}
 
-			// Capture source URLs from the freshly restored options before we rewrite them.
+			// Bust option cache: raw SQL restore leaves alloptions holding the
+			// pre-restore (destination) URLs, so get_option() would lie.
+			Maca_Backup_Pro_Migrator::bust_options_cache();
+
+			// Capture source URLs from the freshly restored options (migrate needs them for rewrite).
 			if ( '' === (string) ( $state['source_home'] ?? '' ) ) {
 				$state['source_home'] = untrailingslashit( (string) get_option( 'home', '' ) );
 			}
@@ -545,36 +616,85 @@ class Maca_Backup_Pro_Restore_Engine {
 				$state['source_siteurl'] = untrailingslashit( (string) get_option( 'siteurl', $state['source_home'] ?? '' ) );
 			}
 
-			// Always rewrite URLs after a DB restore when migrating hosts.
-			$state['step'] = 'migrate_urls';
+			if ( self::is_migration( $state ) || self::hosts_differ( $state ) ) {
+				$state['step'] = 'migrate_urls';
+			} else {
+				// Same-site restore: remap prefix-scoped keys if dump prefix differs; no URL rewrite.
+				$src_prefix = (string) ( $state['sql_prefix'] ?? '' );
+				$dst_prefix = (string) $GLOBALS['wpdb']->prefix;
+				if ( '' !== $src_prefix && $src_prefix !== $dst_prefix ) {
+					$key_stats = Maca_Backup_Pro_Migrator::remap_prefixed_keys( $src_prefix, $dst_prefix );
+					$state['prefix_key_remap'] = $key_stats;
+					if ( (int) ( $key_stats['usermeta'] ?? 0 ) > 0 || (int) ( $key_stats['options'] ?? 0 ) > 0 ) {
+						Maca_Backup_Pro_Logger::info(
+							sprintf(
+								/* translators: 1: usermeta rows, 2: options rows, 3: source prefix, 4: dest prefix */
+								__( 'Restore prefix key remap: %1$d usermeta, %2$d options (%3$s → %4$s).', 'maca-backup' ),
+								(int) ( $key_stats['usermeta'] ?? 0 ),
+								(int) ( $key_stats['options'] ?? 0 ),
+								$src_prefix,
+								$dst_prefix
+							),
+							array(
+								'from' => $src_prefix,
+								'to'   => $dst_prefix,
+							)
+						);
+					}
+				}
+				$state['step'] = ( 'database' === $state['scope'] || empty( $state['files'] ) ) ? 'done' : 'files';
+			}
 		}
 
 		return $state;
 	}
 
 	/**
-	 * Rewrite source URLs to the destination site after database restore.
+	 * Rewrite source URLs to the destination site after database restore (migrate mode only).
 	 *
 	 * @param array<string, mixed> $state State.
 	 * @return array<string, mixed>
 	 */
 	private static function step_migrate_urls( array $state ): array {
+		if ( ! self::is_migration( $state ) && ! self::hosts_differ( $state ) ) {
+			$state['step'] = ( 'database' === $state['scope'] || empty( $state['files'] ) ) ? 'done' : 'files';
+			return $state;
+		}
+
 		if ( empty( $state['urls_rewritten'] ) ) {
 			$dest_home    = untrailingslashit( (string) ( $state['dest_home'] ?? '' ) );
 			$dest_siteurl = untrailingslashit( (string) ( $state['dest_siteurl'] ?? '' ) );
 			$src_home     = untrailingslashit( (string) ( $state['source_home'] ?? '' ) );
 			$src_siteurl  = untrailingslashit( (string) ( $state['source_siteurl'] ?? '' ) );
 
-			if ( '' === $dest_home ) {
-				$dest_home = untrailingslashit( home_url() );
-			}
-			if ( '' === $dest_siteurl ) {
-				$dest_siteurl = untrailingslashit( site_url() );
+			// Never fall back to home_url()/site_url() here — after a DB restore those
+			// return the *source* URLs from the dump and would lock the site to the old host.
+			if ( '' === $dest_home || '' === $dest_siteurl ) {
+				$from_request = self::request_destination_urls();
+				if ( '' === $dest_home ) {
+					$dest_home = $from_request['home'];
+				}
+				if ( '' === $dest_siteurl ) {
+					$dest_siteurl = $from_request['siteurl'];
+				}
 			}
 
 			// If manifest lacked URLs, still force destination home/siteurl.
 			$pairs = Maca_Backup_Pro_Migrator::url_pairs( $src_home, $src_siteurl, $dest_home, $dest_siteurl );
 			$stats = Maca_Backup_Pro_Migrator::rewrite_site_urls( $pairs, $dest_home, $dest_siteurl );
+
+			$src_prefix = (string) ( $state['sql_prefix'] ?? '' );
+			$dst_prefix = (string) $GLOBALS['wpdb']->prefix;
+			$key_stats  = Maca_Backup_Pro_Migrator::remap_prefixed_keys( $src_prefix, $dst_prefix );
+			$state['prefix_key_remap'] = $key_stats;
+
+			$admin_stats = Maca_Backup_Pro_Migrator::ensure_login_access(
+				is_array( $state['preserve_admin'] ?? null ) ? $state['preserve_admin'] : array(),
+				$dst_prefix,
+				$dest_home,
+				$dest_siteurl
+			);
+			$state['login_access'] = $admin_stats;
 
 			$state['urls_rewritten'] = true;
 			$state['url_replace']    = $stats;
@@ -591,10 +711,96 @@ class Maca_Backup_Pro_Restore_Engine {
 					'dest_home'   => $dest_home,
 				)
 			);
+
+			if ( (int) ( $key_stats['usermeta'] ?? 0 ) > 0 || (int) ( $key_stats['options'] ?? 0 ) > 0 ) {
+				Maca_Backup_Pro_Logger::info(
+					sprintf(
+						/* translators: 1: usermeta rows, 2: options rows, 3: source prefix, 4: dest prefix */
+						__( 'Migration prefix key remap: %1$d usermeta, %2$d options (%3$s → %4$s).', 'maca-backup' ),
+						(int) ( $key_stats['usermeta'] ?? 0 ),
+						(int) ( $key_stats['options'] ?? 0 ),
+						$src_prefix !== '' ? $src_prefix : '?',
+						$dst_prefix
+					),
+					array(
+						'from' => $src_prefix,
+						'to'   => $dst_prefix,
+					)
+				);
+			}
+
+			if ( ! empty( $admin_stats['login'] ) ) {
+				Maca_Backup_Pro_Logger::info(
+					sprintf(
+						/* translators: %s: admin username preserved for login */
+						__( 'Migration kept admin login “%s” so you can sign in on this site after restore.', 'maca-backup' ),
+						(string) $admin_stats['login']
+					),
+					$admin_stats
+				);
+			}
 		}
 
 		$state['step'] = ( 'database' === $state['scope'] || empty( $state['files'] ) ) ? 'done' : 'files';
 		return $state;
+	}
+
+	/**
+	 * Whether this job is a cross-site migrate (URL rewrite + preserve admin).
+	 *
+	 * @param array<string, mixed> $state Job state.
+	 * @return bool
+	 */
+	private static function is_migration( array $state ): bool {
+		return 'migrate' === sanitize_key( (string) ( $state['mode'] ?? 'restore' ) );
+	}
+
+	/**
+	 * Whether dump home/siteurl host differs from the destination (imported archive).
+	 *
+	 * @param array<string, mixed> $state Job state.
+	 * @return bool
+	 */
+	private static function hosts_differ( array $state ): bool {
+		$src = (string) ( wp_parse_url( (string) ( $state['source_home'] ?? '' ), PHP_URL_HOST ) ?: '' );
+		$dst = (string) ( wp_parse_url( (string) ( $state['dest_home'] ?? '' ), PHP_URL_HOST ) ?: '' );
+		if ( '' === $src || '' === $dst ) {
+			$src = (string) ( wp_parse_url( (string) ( $state['source_siteurl'] ?? '' ), PHP_URL_HOST ) ?: $src );
+			$dst = (string) ( wp_parse_url( (string) ( $state['dest_siteurl'] ?? '' ), PHP_URL_HOST ) ?: $dst );
+		}
+		return '' !== $src && '' !== $dst && 0 !== strcasecmp( $src, $dst );
+	}
+
+	/**
+	 * Best-effort destination URLs from the current HTTP request (migration fallback).
+	 *
+	 * @return array{home:string,siteurl:string}
+	 */
+	private static function request_destination_urls(): array {
+		$host = '';
+		if ( isset( $_SERVER['HTTP_HOST'] ) ) {
+			$host = strtolower( sanitize_text_field( wp_unslash( (string) $_SERVER['HTTP_HOST'] ) ) );
+		}
+		$host = preg_replace( '/:\d+$/', '', $host ) ?? '';
+		$host = preg_replace( '/[^a-z0-9.\-:]/', '', $host ) ?? '';
+
+		if ( '' === $host ) {
+			return array(
+				'home'    => '',
+				'siteurl' => '',
+			);
+		}
+
+		$https = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== strtolower( (string) $_SERVER['HTTPS'] ) )
+			|| ( isset( $_SERVER['SERVER_PORT'] ) && '443' === (string) $_SERVER['SERVER_PORT'] )
+			|| ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' === strtolower( (string) $_SERVER['HTTP_X_FORWARDED_PROTO'] ) );
+
+		$base = ( $https ? 'https://' : 'http://' ) . $host;
+
+		return array(
+			'home'    => untrailingslashit( $base ),
+			'siteurl' => untrailingslashit( $base ),
+		);
 	}
 
 	/**
@@ -725,7 +931,7 @@ class Maca_Backup_Pro_Restore_Engine {
 
 		// Never overwrite local credentials / prefix during a migration restore.
 		$base = basename( $name );
-		if ( 'wp-config.php' === $base || 'wp-config-sample.php' === $base ) {
+		if ( in_array( $base, array( 'wp-config.php', 'wp-config-sample.php', 'object-cache.php', 'advanced-cache.php', 'db.php' ), true ) ) {
 			return false;
 		}
 
@@ -890,12 +1096,34 @@ class Maca_Backup_Pro_Restore_Engine {
 		}
 
 		Maca_Backup_Pro_Logger::success(
-			__( 'Restore completed.', 'maca-backup' ),
+			self::is_migration( $state ) ? __( 'Migrate completed.', 'maca-backup' ) : __( 'Restore completed.', 'maca-backup' ),
 			array(
 				'backup_id' => $backup_id,
 				'job_id'    => $job_id,
+				'mode'      => sanitize_key( (string) ( $state['mode'] ?? 'restore' ) ),
 			)
 		);
+
+		// Final login safety pass (URLs + preserved admin) after files may have overwritten options.
+		if ( ! empty( $state['restore_database'] ) && ( self::is_migration( $state ) || self::hosts_differ( $state ) ) ) {
+			$dest_home    = untrailingslashit( (string) ( $state['dest_home'] ?? '' ) );
+			$dest_siteurl = untrailingslashit( (string) ( $state['dest_siteurl'] ?? '' ) );
+			if ( '' === $dest_home || '' === $dest_siteurl ) {
+				$from_request = self::request_destination_urls();
+				if ( '' === $dest_home ) {
+					$dest_home = $from_request['home'];
+				}
+				if ( '' === $dest_siteurl ) {
+					$dest_siteurl = $from_request['siteurl'];
+				}
+			}
+			Maca_Backup_Pro_Migrator::ensure_login_access(
+				is_array( $state['preserve_admin'] ?? null ) ? $state['preserve_admin'] : array(),
+				(string) $GLOBALS['wpdb']->prefix,
+				$dest_home,
+				$dest_siteurl
+			);
+		}
 
 		if ( function_exists( 'wp_cache_flush' ) ) {
 			wp_cache_flush();

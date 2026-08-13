@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.51
+Stable tag: 2.0.57
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,14 +23,14 @@ maca BackUp protects your WordPress site with full, database-only, and files-onl
 * AES-256-GCM backup encryption (optional)
 * Pre-update backups before WordPress, plugin, or theme updates
 * Smart Restore â€” compare and restore only changed files
-* Import/export archives for migration between hosts
+* Import/export backup archives
 * Optional maca Hub heartbeat for multi-site monitoring
 * Live maca Hub status (latest backup, active job, schedules) via Hub Connector
 * In-plugin Help and Support
 
 Backups stay on your server or in cloud accounts you configure. Maca Development does not host your backup archives.
 
-Developed by **Maca Development**. Source and issue tracker: https://github.com/maca59/maca-backup
+Developed by **Maca Development** (https://maca.se). Plugin page: https://maca.se/maca-backup/. Source and issue tracker: https://github.com/maca59/maca-backup
 
 == Installation ==
 
@@ -120,7 +120,41 @@ Support requests you submit via the in-plugin Support form are sent to Maca Deve
 
 Remote storage providers you configure (FTP, cloud drives, S3, etc.) process data under their own terms. See **External services** above.
 
+== Screenshots ==
+
+1. Dashboard — run full, incremental, and other backups and see history
+2. Restore — entire site, database, or selected paths
+3. Smart Restore — compare and restore only changed files
+4. Schedule — automatic backups in the site timezone
+5. Storage — local, FTP/SFTP, Google Drive, Dropbox, OneDrive, S3
+
 == Changelog ==
+
+= 2.0.56 =
+* Hide the Migrate tab until cross-site restore is verified
+* Replay database dumps into their original table prefix, then rename onto this site — avoids dropping live options mid-restore (duplicate MPSUM / missing pages)
+* Do not abort SQL restore on duplicate option_name
+* Export table rows in primary-key order so LIMIT/OFFSET cannot duplicate unique keys
+
+= 2.0.55 =
+* Separate Migrate tab for cross-site moves (full DB + files, URL rewrite, preserve admin login)
+* Restore is same-site only — no URL rewrite or destination-admin preservation
+* Import on Migrate continues into the migrate flow; Help documents Restore vs Migrate
+
+= 2.0.54 =
+* Keep the destination admin login/password after DB restore so wp-admin stays reachable
+* Force destination home/siteurl again at restore completion; ensure administrator role + capabilities on the live prefix
+* Do not overwrite object-cache.php / advanced-cache.php / db.php on restore (avoids stale cache breaking login)
+
+= 2.0.53 =
+* After DB restore, adopt dump-prefixed core tables (e.g. wp_posts) onto the live table prefix when remap missed — fixes migrations that left the destination’s old Pages list
+* Scan database.sql in chunks to detect table prefix reliably; export WordPress core tables first
+* Stricter post-restore verification when dump INSERT count and live page count diverge
+
+= 2.0.52 =
+* Fix post-migration login redirect: force home/siteurl via direct DB write when option cache is stale
+* After database restore, flush options cache before reading source URLs; never fall back to home_url() (old host)
+* Remap wp_capabilities / wp_user_roles (and other prefix-scoped keys) when table prefix changes so admins keep wp-admin access
 
 = 2.0.51 =
 * Remap dump table prefix to the live site prefix during SQL restore (fixes empty pages after migration)

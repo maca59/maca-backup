@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 	</div>
 	<div class="maca-bp-import">
 		<h3><?php esc_html_e( 'Import backup', 'maca-backup' ); ?></h3>
-		<p class="maca-bp-muted"><?php esc_html_e( 'Upload a downloaded maca backup to this site (e.g. after changing host). Then restore it from the Restore tab.', 'maca-backup' ); ?></p>
+		<p class="maca-bp-muted"><?php esc_html_e( 'Upload a downloaded maca backup to this site, then restore it from the Restore tab.', 'maca-backup' ); ?></p>
 		<form method="post" enctype="multipart/form-data" class="maca-bp-import-form">
 			<?php wp_nonce_field( Maca_Backup_Pro_Security::NONCE_ACTION ); ?>
 			<input type="hidden" name="maca_backup_pro_action" value="import_backup" />

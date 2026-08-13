@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name:       maca BackUp
- * Plugin URI:        https://github.com/maca59/maca-backup
+ * Plugin URI:        https://maca.se/maca-backup/
  * Description:       Backup and restore for WordPress â€” full site, database, files, Smart Restore, and modular cloud storage.
- * Version:           2.0.51
+ * Version:           2.0.57
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Maca Development
- * Author URI:        https://github.com/maca59
+ * Author URI:        https://maca.se
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       maca-backup
@@ -18,8 +18,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MACA_BACKUP_PRO_VERSION', '2.0.51' );
+define( 'MACA_BACKUP_PRO_VERSION', '2.0.57' );
 define( 'MACA_BACKUP_PRO_DB_VERSION', '2.0.0' );
+/** Cross-site Migrate tab — off until SQL restore no longer aborts on duplicate option_name. */
+define( 'MACA_BACKUP_PRO_MIGRATE_UI', false );
 define( 'MACA_BACKUP_PRO_FILE', __FILE__ );
 define( 'MACA_BACKUP_PRO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'MACA_BACKUP_PRO_URL', plugin_dir_url( __FILE__ ) );

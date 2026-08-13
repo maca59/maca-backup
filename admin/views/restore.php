@@ -1,6 +1,6 @@
 <?php
 /**
- * Restore view.
+ * Restore view — same-site disaster recovery.
  *
  * @package Maca_Backup_Pro
  *
@@ -11,35 +11,24 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals -- View/partial vars provided by the admin renderer.
 
-$selected = isset( $_GET['backup_id'] ) ? absint( $_GET['backup_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$selected    = isset( $_GET['backup_id'] ) ? absint( $_GET['backup_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$backups_url = Maca_Backup_Pro_Admin::tab_url( 'backups' );
 ?>
 <section class="maca-bp-panel">
 	<h2><?php esc_html_e( 'Restore', 'maca-backup' ); ?></h2>
-	<p class="maca-bp-muted"><?php esc_html_e( 'Choose a backup and scope. Use Custom path to restore a single file or folder. A preview shows exactly what will be overwritten before you confirm. Test restore verifies the archive in a temporary folder without changing the live site.', 'maca-backup' ); ?></p>
+	<p class="maca-bp-muted"><?php esc_html_e( 'Restore a backup of this site (disaster recovery). Choose a scope, preview what will be overwritten, or run a test restore first.', 'maca-backup' ); ?></p>
+	<p class="maca-bp-muted"><?php
+	echo wp_kses(
+		sprintf(
+			/* translators: %s: Backups tab URL */
+			__( 'Import a downloaded archive from the <a href="%s">Backups</a> tab, then restore it here.', 'maca-backup' ),
+			esc_url( $backups_url )
+		),
+		array( 'a' => array( 'href' => true ) )
+	);
+	?></p>
 
 	<div id="maca-bp-job-progress-slot" class="maca-bp-job-progress-slot" aria-live="polite"></div>
-
-	<div class="maca-bp-import">
-		<h3><?php esc_html_e( 'Import from computer', 'maca-backup' ); ?></h3>
-		<p class="maca-bp-muted"><?php esc_html_e( 'Moving hosts? Download a backup on the old site, then import the ZIP here and restore.', 'maca-backup' ); ?></p>
-		<form method="post" enctype="multipart/form-data" class="maca-bp-import-form">
-			<?php wp_nonce_field( Maca_Backup_Pro_Security::NONCE_ACTION ); ?>
-			<input type="hidden" name="maca_backup_pro_action" value="import_backup" />
-			<input type="file" name="backup_file" accept=".zip,.enc,application/zip" required />
-			<button type="submit" class="button"><?php esc_html_e( 'Import backup', 'maca-backup' ); ?></button>
-		</form>
-		<p class="maca-bp-muted"><?php
-		echo esc_html(
-			sprintf(
-				/* translators: 1: PHP direct upload limit, 2: max import size via chunked upload */
-				__( 'Direct upload limit: %1$s. Larger archives (up to %2$s) upload automatically in chunks.', 'maca-backup' ),
-				size_format( Maca_Backup_Pro_Importer::direct_upload_limit() ),
-				size_format( Maca_Backup_Pro_Importer::max_import_bytes() )
-			)
-		);
-		?></p>
-		<div class="maca-bp-import-progress-slot" aria-live="polite"></div>
-	</div>
 
 	<div class="maca-bp-form-grid">
 		<label>
