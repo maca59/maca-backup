@@ -781,8 +781,8 @@ class Maca_Backup_Pro_Admin {
 		}
 
 		$id = 0;
-		if ( isset( $_REQUEST['backup_id'] ) ) {
-			$id = absint( wp_unslash( $_REQUEST['backup_id'] ) );
+		if ( isset( $_REQUEST['backup_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Callers verify nonce before download_backup().
+			$id = absint( wp_unslash( $_REQUEST['backup_id'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Callers verify nonce before download_backup().
 		}
 		$backup = Maca_Backup_Pro_Backups_Table::get( $id );
 		if ( ! $backup || 'completed' !== (string) $backup->status ) {

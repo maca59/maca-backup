@@ -64,6 +64,7 @@ class Maca_Backup_Pro_Download {
 			ignore_user_abort( true );
 		}
 		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Large backup downloads can exceed default max_execution_time.
 			set_time_limit( 0 );
 		}
 		if ( function_exists( 'session_write_close' ) ) {
@@ -76,7 +77,7 @@ class Maca_Backup_Pro_Download {
 			// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- Best-effort hosting hint.
 			@apache_setenv( 'no-gzip', '1' );
 		}
-		// phpcs:ignore WordPress.PHP.IniSet.Risky -- Disable compression so Content-Length stays valid.
+		// phpcs:ignore WordPress.PHP.IniSet.Risky,Squiz.PHP.DiscouragedFunctions.Discouraged -- Disable compression so Content-Length stays valid.
 		@ini_set( 'zlib.output_compression', 'Off' );
 
 		nocache_headers();

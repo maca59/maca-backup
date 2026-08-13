@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.58
+Stable tag: 2.0.59
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -128,6 +128,11 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 5. Storage — local, FTP/SFTP, Google Drive, Dropbox, OneDrive, S3
 
 == Changelog ==
+
+= 2.0.59 =
+* Plugin Check cleanups (i18n translators comments, escaping, input sanitization)
+* Migrate tab remains hidden until cross-site restore is verified
+* maca Hub always on / lifecycle telemetry and deactivation feedback (from 2.0.58)
 
 = 2.0.58 =
 * maca Hub always connected (heartbeat / backup status telemetry)

@@ -593,13 +593,15 @@ class Maca_Backup_Pro_Restore_Engine {
 			// Fail when the dump clearly had content but live pages look like an empty/test site.
 			if ( ( $expected >= 20 && $pages < 20 ) || ( $expected >= 50 && $rows < (int) max( 20, $expected * 0.25 ) ) ) {
 				throw new RuntimeException(
-					sprintf(
-						/* translators: 1: INSERT count in dump, 2: pages found after restore, 3: dump prefix, 4: live prefix */
-						esc_html__( 'Database dump has %1$d post-row inserts but only %2$d pages are in the live table (dump prefix “%3$s”, live “%4$s”). Pages were not loaded into this site’s tables — retry after updating maca BackUp, or restore with matching table prefixes.', 'maca-backup' ),
-						$expected,
-						$pages,
-						'' !== $dump_prefix ? $dump_prefix : '?',
-						$live_prefix
+					esc_html(
+						sprintf(
+							/* translators: 1: INSERT count in dump, 2: pages found after restore, 3: dump prefix, 4: live prefix */
+							__( 'Database dump has %1$s post-row inserts but only %2$s pages are in the live table (dump prefix “%3$s”, live “%4$s”). Pages were not loaded into this site’s tables — retry after updating maca BackUp, or restore with matching table prefixes.', 'maca-backup' ),
+							(string) $expected,
+							(string) $pages,
+							'' !== $dump_prefix ? $dump_prefix : '?',
+							$live_prefix
+						)
 					)
 				);
 			}
@@ -791,9 +793,12 @@ class Maca_Backup_Pro_Restore_Engine {
 			);
 		}
 
-		$https = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== strtolower( (string) $_SERVER['HTTPS'] ) )
-			|| ( isset( $_SERVER['SERVER_PORT'] ) && '443' === (string) $_SERVER['SERVER_PORT'] )
-			|| ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' === strtolower( (string) $_SERVER['HTTP_X_FORWARDED_PROTO'] ) );
+		$https_flag = isset( $_SERVER['HTTPS'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTPS'] ) ) ) : '';
+		$server_port = isset( $_SERVER['SERVER_PORT'] ) ? absint( wp_unslash( $_SERVER['SERVER_PORT'] ) ) : 0;
+		$fwd_proto  = isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ) ) : '';
+		$https      = ( '' !== $https_flag && 'off' !== $https_flag )
+			|| 443 === $server_port
+			|| 'https' === $fwd_proto;
 
 		$base = ( $https ? 'https://' : 'http://' ) . $host;
 

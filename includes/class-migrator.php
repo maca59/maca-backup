@@ -567,6 +567,7 @@ class Maca_Backup_Pro_Migrator {
 				)
 			);
 			if ( $exists ) {
+				// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Intentional capability usermeta write during migrate.
 				$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 					$wpdb->usermeta,
 					array( 'meta_value' => $meta_value ),
@@ -577,7 +578,9 @@ class Maca_Backup_Pro_Migrator {
 					array( '%s' ),
 					array( '%d', '%s' )
 				);
+				// phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			} else {
+				// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Intentional capability usermeta write during migrate.
 				$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 					$wpdb->usermeta,
 					array(
@@ -587,6 +590,7 @@ class Maca_Backup_Pro_Migrator {
 					),
 					array( '%d', '%s', '%s' )
 				);
+				// phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			}
 		}
 	}
@@ -647,7 +651,11 @@ class Maca_Backup_Pro_Migrator {
 	private static function primary_key( string $table ): string {
 		global $wpdb;
 		$table = preg_replace( '/[^A-Za-z0-9_\-]/', '', $table );
-		$row   = $wpdb->get_row( "SHOW KEYS FROM `{$table}` WHERE Key_name = 'PRIMARY'", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( '' === $table ) {
+			return '';
+		}
+		$table = esc_sql( $table );
+		$row   = $wpdb->get_row( "SHOW KEYS FROM `{$table}` WHERE Key_name = 'PRIMARY'", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is preg_replace-whitelisted then esc_sql'd.
 		return is_array( $row ) && ! empty( $row['Column_name'] ) ? (string) $row['Column_name'] : '';
 	}
 
@@ -674,16 +682,26 @@ class Maca_Backup_Pro_Migrator {
 			return 0;
 		}
 
-		$select = '`' . $primary . '`, `' . implode( '`, `', $cols ) . '`';
-		$offset = 0;
-		$limit  = 200;
+		$table   = esc_sql( $table );
+		$primary = esc_sql( $primary );
+		$cols    = array_map( 'esc_sql', $cols );
+		$select  = '`' . $primary . '`, `' . implode( '`, `', $cols ) . '`';
+		$offset  = 0;
+		$limit   = 200;
 		$updated = 0;
 
 		while ( true ) {
-			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"SELECT {$select} FROM `{$table}` LIMIT {$limit} OFFSET {$offset}",
+			// Identifiers cannot use prepare placeholders; values for LIMIT/OFFSET are prepared.
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table/columns are preg_replace-whitelisted then esc_sql'd.
+			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare(
+					"SELECT {$select} FROM `{$table}` LIMIT %d OFFSET %d",
+					$limit,
+					$offset
+				),
 				ARRAY_A
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			if ( empty( $rows ) ) {
 				break;
 			}

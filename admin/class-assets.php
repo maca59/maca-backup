@@ -158,6 +158,7 @@ class Maca_Backup_Pro_Assets {
 					'importNextTitle'  => __( 'Backup imported', 'maca-backup' ),
 					'importNextIntro'  => __( 'The archive is registered on this site. Next, restore it onto the live files/database.', 'maca-backup' ),
 					'importNextIntroMigrate' => __( 'The archive is registered on this site. Next, migrate it onto this host (full database + files, URL rewrite).', 'maca-backup' ),
+					/* translators: 1: current step number, 2: total steps */
 					'importNextStep'   => __( 'Step %1$d of %2$d', 'maca-backup' ),
 					'importStepDone'   => __( 'Import complete', 'maca-backup' ),
 					'importStepScope'  => __( 'Choose what to restore', 'maca-backup' ),

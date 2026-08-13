@@ -396,6 +396,7 @@ class Maca_Backup_Pro_Ajax {
 			ignore_user_abort( true );
 		}
 		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Import uploads can exceed default max_execution_time.
 			set_time_limit( 0 );
 		}
 		if ( function_exists( 'wp_raise_memory_limit' ) ) {
@@ -437,6 +438,7 @@ class Maca_Backup_Pro_Ajax {
 			ignore_user_abort( true );
 		}
 		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Chunked import can exceed default max_execution_time.
 			set_time_limit( 0 );
 		}
 		if ( function_exists( 'wp_raise_memory_limit' ) ) {
