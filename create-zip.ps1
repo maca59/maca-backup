@@ -9,6 +9,8 @@
   - Höjer patch-version (x.y.z -> x.y.(z+1)) vid varje körning (om inte -SkipVersionBump)
   - Plugin-mapp i zip är alltid maca-backup (wp.org-slug), om inte -PluginSlug anges
   - Uppdaterar Version i maca-backup.php före paketering
+  - wordpress.org-zip (default / -SkipVersionBump): tvingar MACA_BACKUP_PRO_MIGRATE_UI till false
+    i zip-innehållet utan att ändra working tree (lokalt kan vara true för test)
 
 .EXAMPLE
   .\create-zip.ps1 -SkipVersionBump
@@ -223,11 +225,28 @@ function Get-ZipEntryName {
     return "$PluginSlug/$relative"
 }
 
+function Set-MigrateUiInPluginSource {
+    param(
+        [string] $PhpSource,
+        [bool] $Enabled
+    )
+
+    $literal = if ($Enabled) { 'true' } else { 'false' }
+    $pattern = "define\s*\(\s*'MACA_BACKUP_PRO_MIGRATE_UI'\s*,\s*(?:true|false)\s*\)"
+    $replacement = "define( 'MACA_BACKUP_PRO_MIGRATE_UI', $literal )"
+    $updated = [regex]::Replace($PhpSource, $pattern, $replacement, 1)
+    if ($updated -eq $PhpSource -and $PhpSource -notmatch $pattern) {
+        throw 'Kunde inte sätta MACA_BACKUP_PRO_MIGRATE_UI i maca-backup.php för zip'
+    }
+    return $updated
+}
+
 function Add-FolderToZip {
     param(
         [System.IO.Compression.ZipArchive] $Archive,
         [string] $SourceFolder,
-        [string] $PluginSlug
+        [string] $PluginSlug,
+        [bool] $ForceMigrateUiOff = $false
     )
 
     $files = Get-ChildItem -Path $SourceFolder -Recurse -File -Force
@@ -244,12 +263,21 @@ function Add-FolderToZip {
 
         $entryStream = $entry.Open()
         try {
-            $fileStream = [System.IO.File]::OpenRead($file.FullName)
-            try {
-                $fileStream.CopyTo($entryStream)
+            # wp.org packages: hide Migrate even if the working tree has it enabled for local testing.
+            if ($ForceMigrateUiOff -and ($relative -replace '\\', '/') -eq 'maca-backup.php') {
+                $php = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
+                $php = Set-MigrateUiInPluginSource -PhpSource $php -Enabled $false
+                $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($php)
+                $entryStream.Write($bytes, 0, $bytes.Length)
             }
-            finally {
-                $fileStream.Dispose()
+            else {
+                $fileStream = [System.IO.File]::OpenRead($file.FullName)
+                try {
+                    $fileStream.CopyTo($entryStream)
+                }
+                finally {
+                    $fileStream.Dispose()
+                }
             }
         }
         finally {
@@ -290,13 +318,16 @@ function Add-FileToZip {
     }
 }
 
+# Private updater is opt-in (forbidden on wordpress.org / Plugin Check).
+$withUpdater = $IncludeMacaUpdater -and -not $WordPressOrg
+# Default / wordpress.org zip: always ship Migrate hidden; leave working-tree constant alone.
+$forceMigrateUiOff = -not $withUpdater
+
 $zip = [System.IO.Compression.ZipFile]::Open($OutputPath, [System.IO.Compression.ZipArchiveMode]::Create)
 try {
     Remove-PhpBomInTree -SourceRoot $Root
-    Add-FolderToZip -Archive $zip -SourceFolder $Root -PluginSlug $PluginSlug
+    Add-FolderToZip -Archive $zip -SourceFolder $Root -PluginSlug $PluginSlug -ForceMigrateUiOff $forceMigrateUiOff
 
-    # Private updater is opt-in (forbidden on wordpress.org / Plugin Check).
-    $withUpdater = $IncludeMacaUpdater -and -not $WordPressOrg
     if ( $withUpdater ) {
         $updaterDir = Join-Path $Root 'deploy\updater'
         $updaterFiles = @(
@@ -314,6 +345,10 @@ try {
     }
     else {
         Write-Host "Updater utelämnad (Plugin Check / wordpress.org-säker). Använd -IncludeMacaUpdater för maca.se." -ForegroundColor Yellow
+    }
+
+    if ($forceMigrateUiOff) {
+        Write-Host "Migrate-UI satt till false i zip (wordpress.org-säker); working tree oförändrad." -ForegroundColor Yellow
     }
 }
 finally {
@@ -340,6 +375,21 @@ try {
         throw "Zip saknar $mainEntry"
     }
 
+    if ($forceMigrateUiOff) {
+        $mainStream = $hasMain[0].Open()
+        try {
+            $reader = New-Object System.IO.StreamReader($mainStream, [System.Text.UTF8Encoding]::new($false), $true)
+            $mainPhp = $reader.ReadToEnd()
+            $reader.Dispose()
+            if ($mainPhp -notmatch "define\s*\(\s*'MACA_BACKUP_PRO_MIGRATE_UI'\s*,\s*false\s*\)") {
+                throw "wordpress.org-zip måste ha MACA_BACKUP_PRO_MIGRATE_UI false i $mainEntry"
+            }
+        }
+        finally {
+            $mainStream.Dispose()
+        }
+    }
+
     $entryCount = $verifyZip.Entries.Count
 
     foreach ($entry in $verifyZip.Entries) {
@@ -362,6 +412,12 @@ try {
 }
 finally {
     $verifyZip.Dispose()
+}
+
+# Working tree must still allow local Migrate testing when zip forced false.
+$treePhp = Get-Content -LiteralPath $PluginFile -Raw -Encoding UTF8
+if ($forceMigrateUiOff -and $treePhp -match "define\s*\(\s*'MACA_BACKUP_PRO_MIGRATE_UI'\s*,\s*true\s*\)") {
+    Write-Host "Working tree: MIGRATE_UI=true (lokalt test OK)." -ForegroundColor DarkGray
 }
 
 $sizeKb = [math]::Round((Get-Item -LiteralPath $OutputPath).Length / 1KB, 1)

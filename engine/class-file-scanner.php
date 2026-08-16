@@ -156,6 +156,10 @@ class Maca_Backup_Pro_File_Scanner {
 				continue;
 			}
 
+			if ( ! $fileinfo->isReadable() && ! Maca_Backup_Pro_Paths::is_readable_file( $path ) ) {
+				continue;
+			}
+
 			$rel = self::logical_relative( $path );
 			if ( null === $rel ) {
 				continue;

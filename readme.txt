@@ -4,7 +4,7 @@ Tags: backup, restore, migration, wordpress backup, cloud storage
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.2
-Stable tag: 2.0.59
+Stable tag: 2.0.62
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -129,6 +129,13 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 
 == Changelog ==
 
+= 2.0.62 =
+* Full backups skip unreadable nested vendor files (e.g. Plugin Check / PHPCS) instead of aborting
+* Windows long-path support when reading and packing site files
+* Imported backups keep their import time so they appear newest in Migrate/Restore pickers
+* Do not restore plugin history tables (maca_backups) over the destination site
+* wordpress.org ZIP still ships with Migrate hidden; local/dev can enable it
+
 = 2.0.59 =
 * Plugin Check cleanups (i18n translators comments, escaping, input sanitization)
 * Migrate tab remains hidden until cross-site restore is verified
@@ -230,6 +237,9 @@ Remote storage providers you configure (FTP, cloud drives, S3, etc.) process dat
 * Major release: Smart Restore, storage providers, schedules, encryption, hub telemetry
 
 == Upgrade Notice ==
+
+= 2.0.62 =
+Full backups no longer abort on unreadable vendor files; imported archives keep their import time.
 
 = 2.0.39 =
 All public URLs point to GitHub; maca.se links removed for wordpress.org review crawlers.

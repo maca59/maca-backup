@@ -670,8 +670,8 @@ class Maca_Backup_Pro_Backup_Engine {
 		$out = array();
 		foreach ( $files as $rel ) {
 			$rel = str_replace( '\\', '/', (string) $rel );
-			$abs = Maca_Backup_Pro_Paths::absolute( (string) $rel );
-			if ( ! is_readable( $abs ) ) {
+			$abs = Maca_Backup_Pro_Paths::readable_absolute( (string) $rel );
+			if ( '' === $abs ) {
 				continue;
 			}
 			$size  = (int) filesize( $abs );
@@ -789,8 +789,8 @@ class Maca_Backup_Pro_Backup_Engine {
 			}
 			$last                  = (string) $rel;
 			$state['current_item'] = $last;
-			$abs = Maca_Backup_Pro_Paths::absolute( (string) $rel );
-			if ( is_readable( $abs ) ) {
+			$abs                   = Maca_Backup_Pro_Paths::readable_absolute( (string) $rel );
+			if ( '' !== $abs ) {
 				$size = (int) filesize( $abs );
 				if ( ! $zip->add_file( $abs, $rel ) ) {
 					throw new RuntimeException(
@@ -807,12 +807,16 @@ class Maca_Backup_Pro_Backup_Engine {
 					'mtime' => (int) filemtime( $abs ),
 					'crc'   => 0,
 				);
-			} elseif ( in_array( (string) ( $state['type'] ?? '' ), array( 'full', 'incremental', 'differential' ), true ) && empty( $state['pre_update'] ) ) {
-				throw new RuntimeException(
+			} else {
+				// Deep vendor trees (plugin-check / PHPCS) and vanished files must not abort a full backup.
+				Maca_Backup_Pro_Logger::warning(
 					sprintf(
 						/* translators: %s: relative file path */
-						esc_html__( 'Full backup cannot read required file: %s', 'maca-backup' ),
-						esc_html( (string) $rel )
+						__( 'Skipped unreadable file during backup: %s', 'maca-backup' ),
+						(string) $rel
+					),
+					array(
+						'path' => (string) $rel,
 					)
 				);
 			}
@@ -1019,8 +1023,8 @@ class Maca_Backup_Pro_Backup_Engine {
 		$inventory = array();
 		foreach ( $files as $rel ) {
 			$rel = str_replace( '\\', '/', (string) $rel );
-			$abs = Maca_Backup_Pro_Paths::absolute( (string) $rel );
-			if ( ! is_readable( $abs ) ) {
+			$abs = Maca_Backup_Pro_Paths::readable_absolute( (string) $rel );
+			if ( '' === $abs ) {
 				continue;
 			}
 			$inventory[ $rel ] = array(
@@ -1649,17 +1653,37 @@ class Maca_Backup_Pro_Backup_Engine {
 			if ( is_array( $dirs ) ) {
 				foreach ( $dirs as $dir ) {
 					$key = basename( (string) $dir );
-					if ( Maca_Backup_Pro_Backups_Table::get_by_key( $key ) ) {
-						continue;
-					}
 					$parts = self::discover_parts( (string) $dir );
 					if ( empty( $parts ) ) {
 						continue;
 					}
+
+					$existing_key = Maca_Backup_Pro_Backups_Table::get_by_key( $key );
+					if ( $existing_key ) {
+						// Repair import rows that were re-stamped with the ZIP's original created_at.
+						if ( str_starts_with( $key, 'mbp_import_' ) ) {
+							$when = self::datetime_from_backup_dir( (string) $dir, $parts );
+							$fin  = (string) ( $existing_key->finished_at ?? '' );
+							if ( '' !== $when && $when !== $fin ) {
+								Maca_Backup_Pro_Backups_Table::update(
+									(int) $existing_key->id,
+									array(
+										'started_at'  => $when,
+										'finished_at' => $when,
+										'created_at'  => $when,
+									)
+								);
+								++$recovered;
+							}
+						}
+						continue;
+					}
+
 					$size = 0;
 					foreach ( $parts as $part ) {
 						$size += is_readable( $part ) ? (int) filesize( $part ) : 0;
 					}
+					$when = self::datetime_from_backup_dir( (string) $dir, $parts );
 					$new_id = Maca_Backup_Pro_Backups_Table::insert(
 						array(
 							'backup_key'  => $key,
@@ -1670,9 +1694,9 @@ class Maca_Backup_Pro_Backup_Engine {
 							'parts'       => count( $parts ),
 							'size_bytes'  => $size,
 							'file_count'  => 0,
-							'started_at'  => current_time( 'mysql' ),
-							'finished_at' => current_time( 'mysql' ),
-							'created_at'  => current_time( 'mysql' ),
+							'started_at'  => $when,
+							'finished_at' => $when,
+							'created_at'  => $when,
 						)
 					);
 					if ( $new_id > 0 ) {
@@ -1683,6 +1707,129 @@ class Maca_Backup_Pro_Backup_Engine {
 		}
 
 		return $recovered;
+	}
+
+	/**
+	 * Best-effort local MySQL datetime for a leftover backup folder.
+	 *
+	 * For imports: prefer import-meta.json / folder name / manifest imported_at
+	 * so the picker shows import time (newest), not the source backup's created_at
+	 * (which made every imported archive look identical).
+	 *
+	 * For native backups: prefer manifest created_at, then archive mtime —
+	 * never stamp every orphan with the same current_time().
+	 *
+	 * @param string   $dir   Backup work directory.
+	 * @param string[] $parts Discovered archive paths.
+	 * @return string MySQL datetime in site local time.
+	 */
+	private static function datetime_from_backup_dir( string $dir, array $parts ): string {
+		$key = basename( $dir );
+
+		$from_import_meta = self::datetime_from_import_meta( $dir );
+		if ( '' !== $from_import_meta ) {
+			return $from_import_meta;
+		}
+
+		$from_key = self::datetime_from_import_key( $key );
+		if ( '' !== $from_key ) {
+			return $from_key;
+		}
+
+		if ( class_exists( 'ZipArchive' ) ) {
+			foreach ( $parts as $part ) {
+				$part = (string) $part;
+				if ( ! is_readable( $part ) || str_ends_with( strtolower( $part ), '.enc' ) ) {
+					continue;
+				}
+				$zip = new ZipArchive();
+				if ( true !== $zip->open( $part ) ) {
+					continue;
+				}
+				$raw = $zip->getFromName( 'manifest.json' );
+				$zip->close();
+				if ( false === $raw || '' === $raw ) {
+					continue;
+				}
+				$manifest = json_decode( (string) $raw, true );
+				if ( ! is_array( $manifest ) ) {
+					continue;
+				}
+				// imported_at first — never let source created_at mask a fresh import.
+				$fields = str_starts_with( $key, 'mbp_import_' )
+					? array( 'imported_at', 'finished_at', 'created_at' )
+					: array( 'created_at', 'finished_at', 'imported_at' );
+				foreach ( $fields as $field ) {
+					if ( empty( $manifest[ $field ] ) || ! is_string( $manifest[ $field ] ) ) {
+						continue;
+					}
+					$parsed = strtotime( $manifest[ $field ] );
+					if ( false !== $parsed && $parsed > 0 ) {
+						return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $parsed ) );
+					}
+				}
+			}
+		}
+
+		$mtime = 0;
+		foreach ( $parts as $part ) {
+			if ( is_readable( (string) $part ) ) {
+				$mtime = max( $mtime, (int) filemtime( (string) $part ) );
+			}
+		}
+		if ( $mtime < 1 && is_dir( $dir ) ) {
+			$mtime = (int) filemtime( $dir );
+		}
+		if ( $mtime > 0 ) {
+			return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $mtime ) );
+		}
+
+		return current_time( 'mysql' );
+	}
+
+	/**
+	 * Read import-meta.json written by the importer.
+	 *
+	 * @param string $dir Backup directory.
+	 * @return string Local MySQL datetime or empty.
+	 */
+	private static function datetime_from_import_meta( string $dir ): string {
+		$path = trailingslashit( $dir ) . 'import-meta.json';
+		if ( ! is_readable( $path ) ) {
+			return '';
+		}
+		$raw = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $raw || '' === $raw ) {
+			return '';
+		}
+		$data = json_decode( $raw, true );
+		if ( ! is_array( $data ) || empty( $data['imported_at'] ) || ! is_string( $data['imported_at'] ) ) {
+			return '';
+		}
+		$parsed = strtotime( $data['imported_at'] );
+		if ( false === $parsed || $parsed < 1 ) {
+			return '';
+		}
+		return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $parsed ) );
+	}
+
+	/**
+	 * Parse mbp_import_YYYYMMDD_HHMMSS_* folder names.
+	 *
+	 * @param string $key Backup folder basename.
+	 * @return string Local MySQL datetime or empty.
+	 */
+	private static function datetime_from_import_key( string $key ): string {
+		if ( ! preg_match( '/^mbp_import_(\d{8})_(\d{6})_/', $key, $m ) ) {
+			return '';
+		}
+		$gmt = substr( $m[1], 0, 4 ) . '-' . substr( $m[1], 4, 2 ) . '-' . substr( $m[1], 6, 2 )
+			. ' ' . substr( $m[2], 0, 2 ) . ':' . substr( $m[2], 2, 2 ) . ':' . substr( $m[2], 4, 2 );
+		$parsed = strtotime( $gmt . ' UTC' );
+		if ( false === $parsed || $parsed < 1 ) {
+			return '';
+		}
+		return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $parsed ) );
 	}
 
 	/**

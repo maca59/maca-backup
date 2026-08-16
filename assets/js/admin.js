@@ -858,14 +858,8 @@
 			}
 			if (action === 'continue') {
 				if (migrateFlow) {
-					if (onMigratePage()) {
-						renderImportNextFlow(backupId, 2);
-						var $migGrid = $('#maca-bp-migrate-backup').closest('.maca-bp-form-grid');
-						if ($migGrid.length) {
-							$('html, body').animate({ scrollTop: $migGrid.offset().top - 80 }, 280);
-						}
-						return;
-					}
+					// Always reload Migrate so the select lists the new row with import time
+					// (in-page stub "#id (imported)" was easy to miss / looked like old entries).
 					var murl = cfg.migrateUrl || '';
 					if (!murl) {
 						window.location.reload();

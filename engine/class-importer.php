@@ -478,6 +478,10 @@ class Maca_Backup_Pro_Importer {
 			$type = 'full';
 		}
 
+		// Import registration time (site local) — same fields as a completed backup job.
+		// Keeps the new row newest in pickers; do not reuse other rows' timestamps.
+		$now = current_time( 'mysql' );
+
 		$id = Maca_Backup_Pro_Backups_Table::insert(
 			array(
 				'backup_key'    => $key,
@@ -492,9 +496,9 @@ class Maca_Backup_Pro_Importer {
 				'checksum'      => $checksum,
 				'manifest'      => wp_json_encode( $manifest ),
 				'inventory'     => ! empty( $inventory ) ? wp_json_encode( $inventory ) : null,
-				'started_at'    => current_time( 'mysql' ),
-				'finished_at'   => current_time( 'mysql' ),
-				'created_at'    => current_time( 'mysql' ),
+				'started_at'    => $now,
+				'finished_at'   => $now,
+				'created_at'    => $now,
 				'error_message' => '',
 			)
 		);
@@ -503,6 +507,21 @@ class Maca_Backup_Pro_Importer {
 			self::rrmdir( $dir );
 			return new WP_Error( 'db', __( 'Could not register the imported backup.', 'maca-backup' ) );
 		}
+
+		// Sidecar so reconcile/history can prefer import time over the ZIP's original created_at.
+		$meta_path = trailingslashit( $dir ) . 'import-meta.json';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents(
+			$meta_path,
+			wp_json_encode(
+				array(
+					'imported'    => true,
+					'imported_at' => gmdate( 'c' ),
+					'backup_id'   => $id,
+					'backup_key'  => $key,
+				)
+			)
+		);
 
 		Maca_Backup_Pro_Logger::success(
 			__( 'Backup imported.', 'maca-backup' ),

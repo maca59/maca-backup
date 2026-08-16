@@ -168,4 +168,146 @@ class Maca_Backup_Pro_Paths {
 
 		return trailingslashit( self::site_root() ) . $rel;
 	}
+
+	/**
+	 * Convert a path to the OS-native directory separator.
+	 *
+	 * @param string $path Path.
+	 * @return string
+	 */
+	public static function native( string $path ): string {
+		if ( '\\' === DIRECTORY_SEPARATOR ) {
+			return str_replace( '/', '\\', $path );
+		}
+
+		return str_replace( '\\', '/', $path );
+	}
+
+	/**
+	 * Windows MAX_PATH workaround (\\?\ prefix). Other OS: unchanged.
+	 *
+	 * @param string $path Absolute path.
+	 * @return string
+	 */
+	public static function windows_long_path( string $path ): string {
+		if ( '\\' !== DIRECTORY_SEPARATOR || '' === $path ) {
+			return $path;
+		}
+
+		$path = self::native( $path );
+		if ( str_starts_with( $path, '\\\\?\\' ) ) {
+			return $path;
+		}
+
+		if ( str_starts_with( $path, '\\\\' ) ) {
+			return '\\\\?\\UNC\\' . substr( $path, 2 );
+		}
+
+		return '\\\\?\\' . $path;
+	}
+
+	/**
+	 * Whether $path is an existing readable regular file.
+	 *
+	 * Tries native separators and the Windows long-path prefix because
+	 * is_readable() often fails on deep vendor trees (e.g. plugin-check).
+	 *
+	 * @param string $path Absolute path.
+	 * @return bool
+	 */
+	public static function is_readable_file( string $path ): bool {
+		return '' !== self::readable_path( $path );
+	}
+
+	/**
+	 * Resolve a backup-relative path to a readable absolute filesystem path.
+	 *
+	 * @param string $relative Archive-relative path.
+	 * @return string Absolute path (possibly \\?\ prefixed on Windows), or empty.
+	 */
+	public static function readable_absolute( string $relative ): string {
+		return self::readable_path( self::absolute( $relative ) );
+	}
+
+	/**
+	 * First candidate of $path that PHP can open as a regular file.
+	 *
+	 * @param string $path Absolute path.
+	 * @return string Usable absolute path, or empty.
+	 */
+	public static function readable_path( string $path ): string {
+		$path = wp_normalize_path( trim( $path ) );
+		if ( '' === $path ) {
+			return '';
+		}
+
+		foreach ( self::readable_candidates( $path ) as $candidate ) {
+			if ( self::php_can_read_file( $candidate ) ) {
+				return $candidate;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Path variants to try when opening a file.
+	 *
+	 * @param string $path Normalized absolute path.
+	 * @return string[]
+	 */
+	private static function readable_candidates( string $path ): array {
+		$out    = array();
+		$native = self::native( $path );
+		foreach ( array( $path, $native ) as $base ) {
+			if ( '' === $base || in_array( $base, $out, true ) ) {
+				continue;
+			}
+			$out[] = $base;
+		}
+
+		foreach ( $out as $base ) {
+			$real = realpath( $base );
+			if ( is_string( $real ) && '' !== $real && ! in_array( $real, $out, true ) ) {
+				$out[] = $real;
+			}
+		}
+
+		if ( '\\' === DIRECTORY_SEPARATOR ) {
+			$long = array();
+			foreach ( $out as $base ) {
+				$prefixed = self::windows_long_path( $base );
+				if ( '' !== $prefixed && ! in_array( $prefixed, $out, true ) && ! in_array( $prefixed, $long, true ) ) {
+					$long[] = $prefixed;
+				}
+			}
+			$out = array_merge( $out, $long );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Definitive readable-file check (is_readable() is unreliable on Windows ACLs).
+	 *
+	 * @param string $path Absolute path.
+	 * @return bool
+	 */
+	private static function php_can_read_file( string $path ): bool {
+		if ( '' === $path || ! is_file( $path ) ) {
+			return false;
+		}
+		if ( is_readable( $path ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$handle = @fopen( $path, 'rb' );
+		if ( false === $handle ) {
+			return false;
+		}
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		return true;
+	}
 }

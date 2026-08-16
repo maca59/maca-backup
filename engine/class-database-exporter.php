@@ -371,7 +371,7 @@ class Maca_Backup_Pro_Database_Exporter {
 		$plugin = array();
 		$other  = array();
 		foreach ( $rest as $name ) {
-			if ( str_contains( $name, 'maca_backup_' ) ) {
+			if ( self::is_plugin_control_table_name( (string) $name ) ) {
 				$plugin[] = $name;
 			} else {
 				$other[] = $name;
@@ -412,23 +412,37 @@ class Maca_Backup_Pro_Database_Exporter {
 		$from_len = strlen( $from_prefix );
 		$all      = self::tables();
 		$sources  = array();
+		$orphans  = array();
 		foreach ( $all as $table ) {
 			$table = (string) $table;
 			if ( ! str_starts_with( $table, $from_prefix ) ) {
 				continue;
 			}
 			$suffix = substr( $table, $from_len );
-			if ( '' === $suffix || str_starts_with( $suffix, 'maca_backup_' ) ) {
+			// Keep live maca_backups / maca_backup_jobs / maca_backup_logs — never adopt dump copies.
+			if ( '' === $suffix ) {
+				continue;
+			}
+			if ( self::is_plugin_control_table_suffix( $suffix ) ) {
+				$orphans[] = $table;
 				continue;
 			}
 			$sources[] = $table;
 		}
 
+		$wpdb->query( 'SET FOREIGN_KEY_CHECKS=0' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+
+		// Drop leftover dump-prefix control tables so they cannot be mistaken for live history.
+		foreach ( $orphans as $orphan ) {
+			$safe = preg_replace( '/[^A-Za-z0-9_\-]/', '', $orphan );
+			if ( '' !== $safe ) {
+				$wpdb->query( "DROP TABLE IF EXISTS `{$safe}`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			}
+		}
+
 		if ( empty( $sources ) ) {
 			return $out;
 		}
-
-		$wpdb->query( 'SET FOREIGN_KEY_CHECKS=0' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
 
 		foreach ( $sources as $src ) {
 			$suffix = substr( $src, $from_len );
@@ -492,7 +506,7 @@ class Maca_Backup_Pro_Database_Exporter {
 		}
 
 		foreach ( $all as $table ) {
-			if ( $table === $live || ! str_ends_with( $table, 'posts' ) || str_contains( $table, 'maca_backup_' ) ) {
+			if ( $table === $live || ! str_ends_with( $table, 'posts' ) || self::is_plugin_control_table_name( (string) $table ) ) {
 				continue;
 			}
 			$safe = preg_replace( '/[^A-Za-z0-9_\-]/', '', $table );
@@ -622,16 +636,43 @@ class Maca_Backup_Pro_Database_Exporter {
 	}
 
 	/**
+	 * Whether a bare table suffix (after $wpdb->prefix) is a plugin control table.
+	 *
+	 * Real names: maca_backups, maca_backup_jobs, maca_backup_logs.
+	 * (Note: NOT maca_backup_backups — that typo used to miss the history table.)
+	 *
+	 * @param string $suffix Table name without DB prefix.
+	 * @return bool
+	 */
+	public static function is_plugin_control_table_suffix( string $suffix ): bool {
+		$suffix = strtolower( $suffix );
+		return (bool) preg_match( '/^maca_backup(?:s|_jobs|_logs)$/', $suffix );
+	}
+
+	/**
+	 * Whether a full table name belongs to this plugin's control plane.
+	 *
+	 * @param string $table Full table name (any prefix).
+	 * @return bool
+	 */
+	public static function is_plugin_control_table_name( string $table ): bool {
+		$table = strtolower( $table );
+		return (bool) preg_match( '/maca_backup(?:s|_jobs|_logs)$/', $table );
+	}
+
+	/**
 	 * Statements that would DROP/CREATE/INSERT this plugin's live tables.
 	 *
 	 * Restoring them mid-job deletes the active restore row and aborts the migration.
+	 * Overwriting maca_backups also wiped destination backup timestamps (all local
+	 * folders were then re-registered with the same current_time via reconcile).
 	 *
 	 * @param string $sql Statement.
 	 * @return bool
 	 */
 	public static function is_plugin_control_sql( string $sql ): bool {
 		return (bool) preg_match(
-			'/`[^`]*maca_backup_(?:jobs|backups|logs)`/i',
+			'/`[^`]*maca_backup(?:s|_jobs|_logs)`/i',
 			$sql
 		);
 	}

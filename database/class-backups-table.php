@@ -164,7 +164,7 @@ class Maca_Backup_Pro_Backups_Table {
 		$limit = max( 1, (int) $limit );
 		$rows  = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE status = %s ORDER BY id DESC LIMIT %d",
+				"SELECT * FROM {$table} WHERE status = %s ORDER BY COALESCE(NULLIF(finished_at, '0000-00-00 00:00:00'), created_at) DESC, id DESC LIMIT %d",
 				'completed',
 				$limit
 			)

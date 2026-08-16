@@ -171,7 +171,11 @@ class Maca_Backup_Pro_Zip_Builder {
 			}
 		}
 
-		$size = is_readable( $absolute ) ? (int) filesize( $absolute ) : 0;
+		$source = Maca_Backup_Pro_Paths::readable_path( $absolute );
+		if ( '' === $source ) {
+			$source = $absolute;
+		}
+		$size = is_file( $source ) ? (int) filesize( $source ) : 0;
 		if ( $this->max_part_bytes > 0 && $this->current_part_bytes() + $this->pending_bytes + $size >= $this->max_part_bytes && $this->pending_bytes > 0 ) {
 			if ( ! $this->rotate() ) {
 				return false;
@@ -182,7 +186,21 @@ class Maca_Backup_Pro_Zip_Builder {
 			$this->zip->deleteName( $arcname );
 		}
 
-		$ok = $this->zip->addFile( $absolute, $arcname );
+		$ok = $this->zip->addFile( $source, $arcname );
+		if ( ! $ok ) {
+			$native = Maca_Backup_Pro_Paths::native( $source );
+			if ( $native !== $source ) {
+				$ok = $this->zip->addFile( $native, $arcname );
+			}
+		}
+		// ZipArchive::addFile often rejects Windows long-path prefixes; embed small files instead.
+		if ( ! $ok && $size <= 16 * 1024 * 1024 ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$contents = @file_get_contents( $source );
+			if ( false !== $contents ) {
+				$ok = $this->zip->addFromString( $arcname, $contents );
+			}
+		}
 		if ( ! $ok ) {
 			return false;
 		}

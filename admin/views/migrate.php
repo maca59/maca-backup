@@ -59,8 +59,8 @@ $current_host = (string) ( wp_parse_url( $dest_home, PHP_URL_HOST ) ?: '' );
 						$label_date = Maca_Backup_Pro_Format::datetime_local( ! empty( $row->finished_at ) ? (string) $row->finished_at : (string) $row->created_at );
 						$src_hint   = '';
 						$meta       = array();
-						if ( ! empty( $row->meta_json ) ) {
-							$decoded = json_decode( (string) $row->meta_json, true );
+						if ( ! empty( $row->manifest ) ) {
+							$decoded = json_decode( (string) $row->manifest, true );
 							if ( is_array( $decoded ) ) {
 								$meta = $decoded;
 							}
